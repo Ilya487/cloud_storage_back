@@ -7,8 +7,8 @@ class Router
 
     private static $routes = [
         [
-            'path' => '/\/signin$/',
-            'controller' => 'ExampleController'
+            'path' => '/^\/signup$/',
+            'controller' => 'SignUpController'
         ],
     ];
 
