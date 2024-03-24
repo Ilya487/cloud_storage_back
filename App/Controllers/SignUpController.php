@@ -17,7 +17,7 @@ class SignUpController extends \App\Contracts\Controller
         $validationResult = $this->validateData(new SignUpValidator($login, $password));
 
         if (!$validationResult) {
-            $this->sendAnswer(400);
+            $this->sendAnswer(400, $this->result);
         }
     }
 
@@ -30,18 +30,9 @@ class SignUpController extends \App\Contracts\Controller
         } else {
             $this->result = [
                 'isSuccess' => $validationResult->getResult(),
-                'errorList' => $validationResult->getErrorList()
+                'errors' => $validationResult->getErrorList()
             ];
             return false;
         }
-    }
-
-    private function sendAnswer(int $code)
-    {
-        header(self::CONTENT_TYPE_JSON);
-        http_response_code($code);
-
-        $json =  json_encode($this->result);
-        echo $json;
     }
 }
