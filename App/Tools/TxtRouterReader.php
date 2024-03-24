@@ -2,13 +2,14 @@
 
 namespace App\Tools;
 
-use App\dto\RouterDtoRepo;
-use App\dto\RouterDto;
 use App\Contracts\RoutesReader;
+use App\dto\RouteDto;
 
 class TxtRouterReader extends RoutesReader
 {
-    public function getRoutes(): RouterDtoRepo
+    private const CONTROLLERS_NAMESPACE = 'App\Controllers\\';
+
+    public function getRoutes(): array
     {
         $this->readFile();
         return $this->routes;
@@ -32,7 +33,10 @@ class TxtRouterReader extends RoutesReader
 
     private function convertLine($line)
     {
-        [$regexp, $className] = explode(' ', $line);
-        $this->routes->addRoute(new RouterDto($regexp, $className));
+
+        $line = str_replace(["\n", "\r"], '', $line);
+        [$regexp, $className] = explode(" ", $line);
+        $className = self::CONTROLLERS_NAMESPACE . $className;
+        $this->routes[] = (new RouteDto($regexp, $className));
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Contracts;
 
+use App\dto\RouteDto;
+
 abstract class RoutesReader
 {
     /**
