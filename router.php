@@ -1,37 +1,40 @@
 <?php
 spl_autoload_register();
 
+use App\Contracts\Controller;
+use App\Contracts\RoutesReader;
+
 class Router
 {
-    private const CONTROLLERS_NAMESPACE = 'App\Controllers\\';
-
-    private static $routes = [
-        [
-            'path' => '/^\/signup$/',
-            'controller' => 'SignUpController'
-        ],
-    ];
-
-    public static function resolvePath()
+    public function __construct(private RoutesReader $routsReader)
     {
+    }
+
+    public function resolvePath()
+    {
+        $routes = $this->routsReader->getRoutes();
         $requestUrl = $_SERVER['REQUEST_URI'];
+        try {
+            foreach ($routes as $route) {
+                $cmpRes = preg_match($route->regexp, $requestUrl);
 
-        foreach (self::$routes as $route) {
-            $cmpRes = preg_match($route['path'], $requestUrl);
-
-            if ($cmpRes) {
-                $classname = self::CONTROLLERS_NAMESPACE . $route['controller'];
-                $controller = new $classname;
-                self::callController($controller);
-                break;
+                if ($cmpRes) {
+                    $this->callController(new $route->controllerClassName);
+                    break;
+                }
             }
+        } catch (Exception $error) {
+            echo $error->getMessage();
         }
     }
 
-    private static function callController(\App\Contracts\Controller $controller)
+    private static function callController(Controller $controller)
     {
         $controller->resolve();
     }
 }
 
-Router::resolvePath();
+$routsReader = new App\Tools\TxtRouterReader($_SERVER["DOCUMENT_ROOT"] . DIRECTORY_SEPARATOR . 'routerConfig.txt');
+$router = new Router($routsReader);
+
+$router->resolvePath();
