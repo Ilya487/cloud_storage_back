@@ -6,7 +6,7 @@ abstract class Controller
 {
     protected const CONTENT_TYPE_JSON = 'Content-type: application/json; charset=utf-8';
 
-    public function __construct()
+    final public function __construct()
     {
         header("Access-Control-Allow-Origin:" . $_SERVER['HTTP_ORIGIN']);
     }
