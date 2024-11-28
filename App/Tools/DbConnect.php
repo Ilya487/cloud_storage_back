@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Connect;
+namespace App\Tools;
 
 use PDO;
 use PDOException;
 
-class Connect
+class DbConnect
 {
     private const
-        DSN = 'mysql:host=localhost;dbname=blog',
+        DSN = 'mysql:host=localhost;dbname=testDb',
         USER_NAME = 'root',
-        USER_PASSWORD = 'root';
+        USER_PASSWORD = '123';
 
     private static ?PDO  $connection = null;
 

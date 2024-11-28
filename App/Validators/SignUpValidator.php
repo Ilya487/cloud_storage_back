@@ -13,8 +13,7 @@ class SignUpValidator implements Validator
     public function __construct(
         private ?string $login,
         private ?string $password
-    ) {
-    }
+    ) {}
 
     public function validate(): ValidationResult
     {
@@ -45,7 +44,7 @@ class SignUpValidator implements Validator
 
     private function checkPassword()
     {
-        $pattern = '/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@#\$\!\.]{8,}$/';
+        $pattern = '/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@#\$!\.]{8,30}$/';
 
         if (!preg_match($pattern, $this->password)) {
             $this->isSuccess = false;
@@ -57,7 +56,7 @@ class SignUpValidator implements Validator
 
     private function checkLogin()
     {
-        $pattern = '/^[A-Za-z\d@#\$\!\.]{5,}$/';
+        $pattern = '/^[A-Za-z\d@#\$\!\.]{3,30}$/';
 
         if (!preg_match($pattern, $this->login)) {
             $this->isSuccess = false;
