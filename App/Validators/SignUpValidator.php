@@ -7,6 +7,9 @@ use App\Validators\ValidationResult;
 
 class SignUpValidator implements Validator
 {
+    private const LOGIN_PATTERN = '/^[A-Za-z\d@#\$\!\.]{3,30}$/';
+    private const PASSWORD_PATTERN = '/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@#\$!\.]{8,30}$/';
+
     private bool $isSuccess = true;
     private array $errorsList;
 
@@ -23,19 +26,19 @@ class SignUpValidator implements Validator
         if (!$this->checkEmpty()) {
             return new ValidationResult($this->isSuccess, $this->errorsList);
         }
-        if (!$this->checkLogin()) {
-            return new ValidationResult($this->isSuccess, $this->errorsList);
-        }
-        if (!$this->checkPassword()) {
-            return new ValidationResult($this->isSuccess, $this->errorsList);
-        }
-        return new ValidationResult($this->isSuccess);
+
+        $this->checkLogin();
+        $this->checkPassword();
+
+        if ($this->isSuccess) {
+            return new ValidationResult($this->isSuccess);
+        } else return new ValidationResult($this->isSuccess, $this->errorsList);
     }
 
     private function checkEmpty()
     {
         if (!$this->login | !$this->password) {
-            $this->isSuccess = false;
+            $this->isSuccess = $this->isSuccess && false;
             $this->errorsList[] = 'Одно из полей пустое';
 
             return false;
@@ -44,10 +47,8 @@ class SignUpValidator implements Validator
 
     private function checkPassword()
     {
-        $pattern = '/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@#\$!\.]{8,30}$/';
-
-        if (!preg_match($pattern, $this->password)) {
-            $this->isSuccess = false;
+        if (!preg_match(self::PASSWORD_PATTERN, $this->password)) {
+            $this->isSuccess = $this->isSuccess && false;
             $this->errorsList[] = 'Неверный формат пароля';
 
             return false;
@@ -56,10 +57,8 @@ class SignUpValidator implements Validator
 
     private function checkLogin()
     {
-        $pattern = '/^[A-Za-z\d@#\$\!\.]{3,30}$/';
-
-        if (!preg_match($pattern, $this->login)) {
-            $this->isSuccess = false;
+        if (!preg_match(self::LOGIN_PATTERN, $this->login)) {
+            $this->isSuccess = $this->isSuccess && false;
             $this->errorsList[] = 'Неверный формат логина';
 
             return false;
