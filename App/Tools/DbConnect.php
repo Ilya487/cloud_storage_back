@@ -32,7 +32,7 @@ class DbConnect
             return true;
         } catch (PDOException) {
             //log error...
-            throw new Exception('An unexpected error occurred. Please try again later.');
+            throw new Exception();
         }
     }
 }

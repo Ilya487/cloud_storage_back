@@ -19,10 +19,10 @@ class SignUpController extends \App\Contracts\Controller
             if ($validationResult->getResult()) {
                 $user = new UserModel($login, $password);
                 $user->save();
-                $this->sendAnswer(200, ['status' => 'krutoi!']);
+                $this->sendAnswer(200, ['userId' => $user->getId()]);
             } else $this->sendAnswer(400, ['errors' => $validationResult->getErrorList()]);
-        } catch (Exception $error) {
-            $this->sendAnswer(500, ['message' => $error->getMessage()]);
+        } catch (Exception) {
+            $this->sendAnswer(500, ['message' => 'An unexpected error occurred. Please try again later.']);
         }
     }
 }
