@@ -10,27 +10,33 @@ abstract class BaseModel
 {
     private PDO $pdo;
     private ?string $id = null;
+    private QueryBuilder $queryBuilder;
 
     public function __construct()
     {
         $this->pdo = DbConnect::getConnection();
+        $this->queryBuilder = new QueryBuilder($this->getTableName());
+    }
+
+    public function getId(): ?string
+    {
+        return $this->id;
     }
 
     public  function save()
     {
-        $tableName = $this->getTableName();
         $fields = $this->getFieldsNames();
 
         if (is_null($this->id)) {
-            $query = QueryBuilder::buildInsertQuery($fields, $tableName);
+            $query = $this->queryBuilder->insert($fields)->build();
 
             $stmt = $this->pdo->prepare($query);
             $stmt->execute($this->getFieldsWithValues());
             $this->id =  $this->pdo->lastInsertId();
         } else {
-            $query = QueryBuilder::buildUpdateByIdQuery($this->getFieldsNames(), $this->getTableName());
+            $query = $this->queryBuilder->update($fields)->where('id', QueryBuilder::EQUAL)->build();
             $stmt =  $this->pdo->prepare($query);
-            $stmt->execute($this->getFieldsWithValues());
+            $stmt->execute(['id' => $this->id, ...$this->getFieldsWithValues()]);
         }
     }
 
