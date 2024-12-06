@@ -2,6 +2,7 @@
 
 namespace App\Tools;
 
+use Exception;
 use PDO;
 use PDOException;
 
@@ -14,14 +15,13 @@ class DbConnect
 
     private static ?PDO  $connection = null;
 
-    public static function getConnection(): PDO|false
+    public static function getConnection(): PDO
     {
         if (!is_null(self::$connection)) {
             return self::$connection;
         } else {
-            $result = self::createConnection();
-            if ($result) return self::$connection;
-            else return false;
+            self::createConnection();
+            return self::$connection;
         }
     }
 
@@ -31,7 +31,8 @@ class DbConnect
             self::$connection = new PDO(self::DSN, self::USER_NAME, self::USER_PASSWORD);
             return true;
         } catch (PDOException) {
-            return false;
+            //log error...
+            throw new Exception('An unexpected error occurred. Please try again later.');
         }
     }
 }
