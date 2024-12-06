@@ -11,7 +11,7 @@ abstract class Controller
         header("Access-Control-Allow-Origin:" . $_SERVER['HTTP_ORIGIN']);
     }
 
-    protected function sendAnswer(int $code, ?array $data = [])
+    protected function sendAnswer(int $code, array $data = [])
     {
         header(self::CONTENT_TYPE_JSON);
         http_response_code($code);
