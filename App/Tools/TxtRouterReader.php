@@ -5,9 +5,18 @@ namespace App\Tools;
 use App\Contracts\RoutesReader;
 use App\dto\RouteDto;
 
-class TxtRouterReader extends RoutesReader
+class TxtRouterReader implements RoutesReader
 {
     private const CONTROLLERS_NAMESPACE = 'App\Controllers\\';
+
+
+    /**
+     * @var RouteDto[]
+     */
+    protected array $routes = [];
+
+    public function __construct(protected string $filePath) {}
+
 
     public function getRoutes(): array
     {
