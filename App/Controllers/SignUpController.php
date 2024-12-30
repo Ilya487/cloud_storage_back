@@ -2,27 +2,30 @@
 
 namespace App\Controllers;
 
-use App\Validators\SignUpValidator;
-use App\Models\UserModel;
+use App\Http\Request;
+use App\Http\Response;
+use App\Services\UserService;
+use App\Contracts\Controller;
 use Exception;
 
-class SignUpController extends \App\Contracts\Controller
+class SignUpController implements Controller
 {
     public function resolve(): void
     {
         try {
-            $login = $_POST['login'];
-            $password = $_POST['password'];
+            $request = new Request;
+            $response = new Response;
 
-            $validationResult = (new SignUpValidator($login, $password))->validate();
+            $login = $request->post('login');
+            $password = $request->post('password');
 
-            if ($validationResult->getResult()) {
-                $user = new UserModel($login, $password);
-                $user->save();
-                $this->sendAnswer(200, ['userId' => $user->getId()]);
-            } else $this->sendAnswer(400, ['errors' => $validationResult->getErrorList()]);
+            $registrationResult = (new UserService)->registerUser($login, $password);
+
+            if ($registrationResult->success) {
+                $response->sendJson(['code' => 200, 'userId' => $registrationResult->userId]);
+            } else $response->setStatusCode(400)->sendJson(['code' => 400, 'errors' => $registrationResult->errors]);
         } catch (Exception) {
-            $this->sendAnswer(500, ['message' => 'An unexpected error occurred. Please try again later.']);
+            $response->setStatusCode(500)->sendJson(['code' => 500, 'message' => 'An unexpected error occurred. Please try again later.']);
         }
     }
 }

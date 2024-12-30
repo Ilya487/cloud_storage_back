@@ -2,8 +2,6 @@
 
 namespace App\Contracts;
 
-use App\dto\RouteDto;
-
 interface  RoutesReader
 {
     /**

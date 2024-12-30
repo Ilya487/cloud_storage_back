@@ -3,7 +3,7 @@
 namespace App\Tools;
 
 use App\Contracts\RoutesReader;
-use App\dto\RouteDto;
+use App\DTO\RouteDto;
 
 class TxtRouterReader implements RoutesReader
 {
