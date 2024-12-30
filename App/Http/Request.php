@@ -15,12 +15,12 @@ class Request
 
     public function get(string $key)
     {
-        return $_GET[$key] ?? null;
+        return htmlspecialchars($_GET[$key]) ?? null;
     }
 
     public function post(string $key)
     {
-        return $_POST[$key] ?? null;
+        return htmlspecialchars($_POST[$key]) ?? null;
     }
 
     public function header(string $name): ?string
