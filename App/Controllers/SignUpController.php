@@ -10,12 +10,9 @@ use Exception;
 
 class SignUpController implements Controller
 {
-    public function resolve(): void
+    public function resolve(Request $request, Response $response): void
     {
         try {
-            $request = new Request;
-            $response = new Response;
-
             $login = $request->post('login');
             $password = $request->post('password');
 
