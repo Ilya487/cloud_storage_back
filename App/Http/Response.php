@@ -55,5 +55,6 @@ class Response
     private function setCorsHeaders()
     {
         header("Access-Control-Allow-Origin:" . (new Request)->header('origin'));
+        header('Access-Control-Allow-Credentials: true');
     }
 }
