@@ -53,4 +53,17 @@ class UserRepository
         }
         return null;
     }
+
+    public function getByLogin(string $login): ?User
+    {
+        $query = $this->queryBuilder->select()->where('login', QueryBuilder::EQUAL)->build();
+        $stmt = $this->pdo->prepare($query);
+        $stmt->execute(['login' => $login]);
+        $dbRes = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($dbRes) {
+            return new User($dbRes['id'], $dbRes['login'], $dbRes['password']);
+        }
+        return null;
+    }
 }
