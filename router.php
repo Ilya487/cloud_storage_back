@@ -3,12 +3,12 @@ spl_autoload_register();
 
 use App\Contracts\Controller;
 use App\Contracts\RoutesReader;
+use App\Http\Request;
+use App\Http\Response;
 
 class Router
 {
-    public function __construct(private RoutesReader $routsReader)
-    {
-    }
+    public function __construct(private RoutesReader $routsReader) {}
 
     public function resolvePath()
     {
@@ -30,7 +30,9 @@ class Router
 
     private static function callController(Controller $controller)
     {
-        $controller->resolve();
+        $request = new Request;
+        $response = new Response;
+        $controller->resolve($request, $response);
     }
 }
 
