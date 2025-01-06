@@ -39,6 +39,7 @@ class Response
     public function send()
     {
         echo $this->body;
+        die;
     }
 
     public function sendJson(array $data)
@@ -50,6 +51,7 @@ class Response
         }
 
         echo $json;
+        die;
     }
 
     private function setCorsHeaders()

@@ -45,8 +45,7 @@ class UserService
         $user = $this->userRepo->getByLogin($login);
         if (!$user || !$user->verifyPass($password)) return new AuthResult(false, null, ['message' => 'Неверный логин или пароль']);
 
-        if ($authService->signIn($user)) return new AuthResult(true, $user->getId());
-
-        return new AuthResult(false, null, ['message' => 'Вы уже авторизованы']);
+        $authService->signIn($user);
+        return new AuthResult(true, $user->getId());
     }
 }
