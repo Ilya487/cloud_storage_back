@@ -5,10 +5,10 @@ namespace App\Controllers;
 use App\Http\Request;
 use App\Http\Response;
 use App\Services\UserService;
-use App\Contracts\Controller;
+use App\Controllers\ControllerInterface;
 use Exception;
 
-class SignUpController implements Controller
+class SignUpController implements ControllerInterface
 {
     public function resolve(Request $request, Response $response): void
     {
