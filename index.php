@@ -18,8 +18,8 @@ function executeApp()
 
     $router = new Router($request, $response);
 
-    $signUpRoute = new Route('/signup', 'POST', SignUpController::class, [new GuestMiddleware($authService)]);
-    $signInRoute = new Route('/signin', 'POST', SignInController::class, [new GuestMiddleware($authService)]);
+    $signUpRoute = new Route('/signup', 'POST', new SignUpController, [new GuestMiddleware($authService)]);
+    $signInRoute = new Route('/signin', 'POST', new SignInController, [new GuestMiddleware($authService)]);
 
     $router->setRoute($signInRoute);
     $router->setRoute($signUpRoute);

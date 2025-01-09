@@ -2,6 +2,8 @@
 
 namespace App\Router;
 
+use App\Controllers\ControllerInterface;
+
 class Route
 {
     private string $method;
@@ -9,7 +11,7 @@ class Route
     /**
      * @param MiddlewareInterface[] $middlewares
      */
-    public function __construct(private string $endPoint, string $method, public readonly string $controllerClassName, public readonly array $middlewares = [])
+    public function __construct(private string $endPoint, string $method, public readonly ControllerInterface $controller, public readonly array $middlewares = [])
     {
         $this->method = strtolower($method);
     }

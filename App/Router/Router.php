@@ -2,7 +2,6 @@
 
 namespace App\Router;
 
-use App\Controllers\ControllerInterface;
 use App\Http\Middleware\MiddlewareInterface;
 use App\Http\Request;
 use App\Http\Response;
@@ -10,7 +9,7 @@ use App\Http\Response;
 class Router
 {
     /**
-     * @var Route[] $routs
+     * @var Route[] $routes
      */
     private array $routes = [];
 
@@ -29,15 +28,10 @@ class Router
         foreach ($this->routes as $route) {
             if ($route->match($method, $uri)) {
                 $this->resolveMiddlewares($route->middlewares);
-                $this->callController(new $route->controllerClassName);
+                $route->controller->resolve($this->request, $this->response);
                 return;
             }
         }
-    }
-
-    private function callController(ControllerInterface $controller)
-    {
-        $controller->resolve($this->request, $this->response);
     }
 
     /**
