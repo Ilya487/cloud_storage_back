@@ -10,12 +10,7 @@ use App\Validators\SignUpValidator;
 
 class UserService
 {
-    private UserRepository $userRepo;
-
-    public function __construct()
-    {
-        $this->userRepo = new UserRepository;
-    }
+    public function __construct(private UserRepository $userRepo, private AuthenticationInterface $authService) {}
 
     public function registerUser(string $login, string $password): RegistrationResult
     {
@@ -37,7 +32,7 @@ class UserService
         return new RegistrationResult(true, $userId);
     }
 
-    public function authUser(string $login, string $password, AuthenticationInterface $authService)
+    public function authUser(string $login, string $password)
     {
         $login = trim($login);
         $password = trim($password);
@@ -45,7 +40,7 @@ class UserService
         $user = $this->userRepo->getByLogin($login);
         if (!$user || !$user->verifyPass($password)) return new AuthResult(false, null, ['message' => 'Неверный логин или пароль']);
 
-        $authService->signIn($user);
+        $this->authService->signIn($user);
         return new AuthResult(true, $user->getId());
     }
 }
