@@ -10,14 +10,11 @@ class SessionAuthentication implements AuthenticationInterface
 {
     private ?User $user = null;
     private bool $isAuth  = false;
-    private Session $session;
 
-    public function __construct()
+    public function __construct(private Session $session, UserRepository $userRepository)
     {
-        $this->session = new Session;
-
         if ($userId =  $this->session->get('userId')) {
-            $user = (new UserRepository)->getById($userId);
+            $user = $userRepository->getById($userId);
             if (!is_null($user)) {
                 $this->user = $user;
                 $this->isAuth = true;

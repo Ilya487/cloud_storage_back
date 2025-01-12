@@ -10,19 +10,21 @@ use Exception;
 
 class SignUpController implements ControllerInterface
 {
-    public function resolve(Request $request, Response $response): void
+    public function __construct(private Request $request, private Response $response, private UserService $userService) {}
+
+    public function resolve(): void
     {
         try {
-            $login = $request->post('login');
-            $password = $request->post('password');
+            $login = $this->request->post('login');
+            $password = $this->request->post('password');
 
-            $registrationResult = (new UserService)->registerUser($login, $password);
+            $registrationResult = $this->userService->registerUser($login, $password);
 
             if ($registrationResult->success) {
-                $response->sendJson(['code' => 200, 'userId' => $registrationResult->userId]);
-            } else $response->setStatusCode(400)->sendJson(['code' => 400, 'errors' => $registrationResult->errors]);
+                $this->response->sendJson(['code' => 200, 'userId' => $registrationResult->userId]);
+            } else $this->response->setStatusCode(400)->sendJson(['code' => 400, 'errors' => $registrationResult->errors]);
         } catch (Exception) {
-            $response->setStatusCode(500)->sendJson(['code' => 500, 'message' => 'An unexpected error occurred. Please try again later.']);
+            $this->response->setStatusCode(500)->sendJson(['code' => 500, 'message' => 'An unexpected error occurred. Please try again later.']);
         }
     }
 }

@@ -13,9 +13,9 @@ class UserRepository
     private QueryBuilder $queryBuilder;
 
 
-    public function __construct()
+    public function __construct(DbConnect $dbConnect)
     {
-        $this->pdo = DbConnect::getConnection();
+        $this->pdo = $dbConnect->getConnection();
         $this->queryBuilder = new QueryBuilder('users');
     }
 

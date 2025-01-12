@@ -13,23 +13,24 @@ class DbConnect
         USER_NAME = 'root',
         USER_PASSWORD = '123';
 
-    private static ?PDO  $connection = null;
+    private ?PDO  $connection = null;
 
-    public static function getConnection(): PDO
+    public function __construct() {}
+
+    public function getConnection(): PDO
     {
-        if (!is_null(self::$connection)) {
-            return self::$connection;
-        } else {
-            self::createConnection();
-            return self::$connection;
+        if (isset($this->connection)) return $this->connection;
+        else {
+            $this->connection = $this->createConnection();
+            return $this->connection;
         }
     }
 
-    private static function createConnection(): bool
+    private function createConnection(): PDO
     {
         try {
-            self::$connection = new PDO(self::DSN, self::USER_NAME, self::USER_PASSWORD);
-            return true;
+            $connection = new PDO(self::DSN, self::USER_NAME, self::USER_PASSWORD);
+            return $connection;
         } catch (PDOException) {
             //log error...
             throw new Exception();
