@@ -2,9 +2,12 @@
 
 namespace App\Router;
 
+use App\Controllers\ControllerInterface;
+use App\Core\DiContainer\Container;
 use App\Http\Middleware\MiddlewareInterface;
 use App\Http\Request;
 use App\Http\Response;
+use Exception;
 
 class Router
 {
@@ -13,11 +16,14 @@ class Router
      */
     private array $routes = [];
 
-    public function __construct(private Request $request, private Response $response) {}
+    public function __construct(private Container $container, private Request $request) {}
 
-    public function setRoute(Route $route)
+    /**
+     * @var Route[] $routes
+     */
+    public function setRoutes(array $routes)
     {
-        $this->routes[] = $route;
+        $this->routes = array_merge($this->routes, $routes);
     }
 
     public function resolve()
@@ -28,19 +34,26 @@ class Router
         foreach ($this->routes as $route) {
             if ($route->match($method, $uri)) {
                 $this->resolveMiddlewares($route->middlewares);
-                $route->controller->resolve($this->request, $this->response);
-                return;
+                $this->resolveController($route->controllerClassName);
             }
         }
     }
 
-    /**
-     * @param MiddlewareInterface[] $middlewares
-     */
     private function resolveMiddlewares(array $middlewares)
     {
         foreach ($middlewares as $middleware) {
-            $middleware->handle($this->request, $this->response);
+            $resolvedMiddleware = $this->container->resolve($middleware);
+            if (is_subclass_of($resolvedMiddleware, MiddlewareInterface::class)) {
+                $resolvedMiddleware->handle();
+            } else throw new Exception($resolvedMiddleware::class . ' не является Middleware');
         }
+    }
+
+    private function resolveController(string $className)
+    {
+        $controller = $this->container->resolve($className);
+        if (is_subclass_of($controller, ControllerInterface::class)) {
+            $controller->resolve();
+        } else throw new Exception($controller::class . ' не является Controller');
     }
 }
