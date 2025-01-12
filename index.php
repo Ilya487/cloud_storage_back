@@ -1,29 +1,33 @@
 <?php
 spl_autoload_register();
 
+use App\Authentication\AuthenticationInterface;
 use App\Authentication\SessionAuthentication;
 use App\Controllers\SignInController;
 use App\Controllers\SignUpController;
+use App\Core\DiContainer\ContainerBuilder;
 use App\Http\Middleware\GuestMiddleware;
 use App\Http\Request;
-use App\Http\Response;
 use App\Router\Route;
 use App\Router\Router;
+use App\Tools\DbConnect;
+use App\Tools\Session;
 
 function executeApp()
 {
-    $request = new Request;
-    $response = new Response;
-    $authService = new SessionAuthentication;
+    $containerBuilder = new ContainerBuilder;
+    $containerBuilder->bind(AuthenticationInterface::class, SessionAuthentication::class);
+    $containerBuilder->share(DbConnect::class);
+    $containerBuilder->share(Session::class);
+    $container = $containerBuilder->build();
 
-    $router = new Router($request, $response);
 
-    $signUpRoute = new Route('/signup', 'POST', new SignUpController, [new GuestMiddleware($authService)]);
-    $signInRoute = new Route('/signin', 'POST', new SignInController, [new GuestMiddleware($authService)]);
+    $request = $container->resolve(Request::class);
+    $router = new Router($container, $request);
+    $signUpRoute = new Route('/signup', 'POST', SignUpController::class, [GuestMiddleware::class]);
+    $signInRoute = new Route('/signin', 'POST', SignInController::class, [GuestMiddleware::class]);
 
-    $router->setRoute($signInRoute);
-    $router->setRoute($signUpRoute);
-
+    $router->setRoutes([$signUpRoute, $signInRoute]);
     $router->resolve();
 }
 
