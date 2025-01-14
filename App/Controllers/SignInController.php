@@ -19,7 +19,7 @@ class SignInController implements ControllerInterface
         $authResult = $this->userService->authUser($login, $password);
 
         if ($authResult->success) {
-            $this->response->sendJson(['code' => 200, 'userId' => $authResult->userId]);
-        } else $this->response->setStatusCode(400)->sendJson(['code' => 400, ...$authResult->errors]);
+            $this->response->sendJson(['userId' => $authResult->userId]);
+        } else $this->response->setStatusCode(400)->sendJson($authResult->errors);
     }
 }

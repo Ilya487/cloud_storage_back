@@ -21,10 +21,10 @@ class SignUpController implements ControllerInterface
             $registrationResult = $this->userService->registerUser($login, $password);
 
             if ($registrationResult->success) {
-                $this->response->sendJson(['code' => 200, 'userId' => $registrationResult->userId]);
-            } else $this->response->setStatusCode(400)->sendJson(['code' => 400, 'errors' => $registrationResult->errors]);
+                $this->response->sendJson(['userId' => $registrationResult->userId]);
+            } else $this->response->setStatusCode(400)->sendJson(['errors' => $registrationResult->errors]);
         } catch (Exception) {
-            $this->response->setStatusCode(500)->sendJson(['code' => 500, 'message' => 'An unexpected error occurred. Please try again later.']);
+            $this->response->setStatusCode(500)->sendJson(['message' => 'An unexpected error occurred. Please try again later.']);
         }
     }
 }

@@ -6,7 +6,6 @@ use App\Controllers\ControllerInterface;
 use App\Core\DiContainer\Container;
 use App\Http\Middleware\MiddlewareInterface;
 use App\Http\Request;
-use App\Http\Response;
 use Exception;
 
 class Router
