@@ -2,9 +2,7 @@
 
 namespace App\Tools;
 
-use Exception;
 use PDO;
-use PDOException;
 
 class DbConnect
 {
@@ -28,12 +26,7 @@ class DbConnect
 
     private function createConnection(): PDO
     {
-        try {
-            $connection = new PDO(self::DSN, self::USER_NAME, self::USER_PASSWORD);
-            return $connection;
-        } catch (PDOException) {
-            //log error...
-            throw new Exception();
-        }
+        $connection = new PDO(self::DSN, self::USER_NAME, self::USER_PASSWORD);
+        return $connection;
     }
 }

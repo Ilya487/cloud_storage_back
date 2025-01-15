@@ -6,7 +6,6 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Services\UserService;
 use App\Controllers\ControllerInterface;
-use Exception;
 
 class SignUpController implements ControllerInterface
 {
@@ -14,17 +13,14 @@ class SignUpController implements ControllerInterface
 
     public function resolve(): void
     {
-        try {
-            $login = $this->request->post('login');
-            $password = $this->request->post('password');
+        $login = $this->request->post('login');
+        $password = $this->request->post('password');
 
-            $registrationResult = $this->userService->registerUser($login, $password);
+        $registrationResult = $this->userService->registerUser($login, $password);
+        if (is_null($registrationResult)) $this->response->setStatusCode(500)->sendJson(['message' => 'An unexpected error occurred. Please try again later.']);
 
-            if ($registrationResult->success) {
-                $this->response->sendJson(['userId' => $registrationResult->userId]);
-            } else $this->response->setStatusCode(400)->sendJson(['errors' => $registrationResult->errors]);
-        } catch (Exception) {
-            $this->response->setStatusCode(500)->sendJson(['message' => 'An unexpected error occurred. Please try again later.']);
-        }
+        if ($registrationResult->success) {
+            $this->response->sendJson(['userId' => $registrationResult->userId]);
+        } else $this->response->setStatusCode(400)->sendJson(['errors' => $registrationResult->errors]);
     }
 }
