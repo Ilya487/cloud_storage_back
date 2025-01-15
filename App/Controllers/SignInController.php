@@ -20,7 +20,7 @@ class SignInController implements ControllerInterface
         if (is_null($authResult)) $this->response->setStatusCode(500)->sendJson(['message' => 'An unexpected error occurred. Please try again later.']);
 
         if ($authResult->success) {
-            $this->response->sendJson(['userId' => $authResult->userId]);
+            $this->response->sendJson($authResult->data);
         } else $this->response->setStatusCode(400)->sendJson($authResult->errors);
     }
 }
