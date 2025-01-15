@@ -28,4 +28,11 @@ class Request
         $modifyName = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
         return $_SERVER[$modifyName] ?? null;
     }
+
+    public function json(): ?array
+    {
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (json_last_error() == JSON_ERROR_NONE) return $data;
+        else return null;
+    }
 }
