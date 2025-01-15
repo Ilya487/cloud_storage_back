@@ -49,7 +49,7 @@ class UserRepository
         $dbRes = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($dbRes) {
-            return new User($dbRes['id'], $dbRes['login'], $dbRes['password']);
+            return User::createFromArr($dbRes);
         }
         return null;
     }
@@ -62,7 +62,7 @@ class UserRepository
         $dbRes = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($dbRes) {
-            return new User($dbRes['id'], $dbRes['login'], $dbRes['password']);
+            return User::createFromArr($dbRes);
         }
         return null;
     }
