@@ -13,8 +13,8 @@ class SignInController implements ControllerInterface
 
     public function resolve(): void
     {
-        $login = $this->request->post('login');
-        $password = $this->request->post('password');
+        $login = trim($this->request->post('login'));
+        $password = trim($this->request->post('password'));
 
         $authResult = $this->userService->authUser($login, $password);
         if (is_null($authResult)) $this->response->setStatusCode(500)->sendJson(['message' => 'An unexpected error occurred. Please try again later.']);
