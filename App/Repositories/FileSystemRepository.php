@@ -37,11 +37,14 @@ class FileSystemRepository
         return $this->pdo->lastInsertId();
     }
 
-    public function getDirPath(string $dirId): ?string
+    public function getDirPath(string $dirId): null|string|false
     {
         $query = $this->queryBuilder->select(['path'])->where('id', QueryBuilder::EQUAL)->build();
         $stmt = $this->pdo->prepare($query);
         $stmt->execute(['id' => $dirId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC)['path'];
+        $data =  $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($data === false) return false;
+        else return $data['path'];
     }
 }

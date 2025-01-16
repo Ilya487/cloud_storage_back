@@ -16,6 +16,8 @@ class FileSystemService
         $dirName = trim($dirName);
         try {
             $parentPath = $parentDirId ? $this->fsRepo->getDirPath($parentDirId) : '';
+            if ($parentPath === false) return new OperationResult(false, null, ['message' => 'Неверный айди родительского каталога']);
+
             if ($this->diskStorage->createDir($userId, $dirName, $parentPath)) {
                 $path = "$parentPath/$dirName";
                 $dirId = $this->fsRepo->createDir($userId, $dirName, $path, $parentDirId);
