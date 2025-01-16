@@ -32,7 +32,7 @@ class SessionAuthentication implements AuthenticationInterface
         return $this->user;
     }
 
-    public function signOut(): bool
+    public function logOut(): bool
     {
         if ($this->isAuth) {
             $this->isAuth = false;

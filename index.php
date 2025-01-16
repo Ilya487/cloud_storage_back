@@ -5,6 +5,7 @@ use App\Authentication\AuthenticationInterface;
 use App\Authentication\SessionAuthentication;
 use App\Controllers\AuthCheckController;
 use App\Controllers\FolderController;
+use App\Controllers\LogOutController;
 use App\Controllers\SignInController;
 use App\Controllers\SignUpController;
 use App\Core\DiContainer\ContainerBuilder;
@@ -35,6 +36,7 @@ function executeApp()
         new Route('/signup', 'POST', SignUpController::class, [GuestMiddleware::class]),
         new Route('/signin', 'POST', SignInController::class, [GuestMiddleware::class]),
         new Route('/check-auth', 'GET', AuthCheckController::class),
+        new Route('/logout', 'POST', LogOutController::class, [AuthMiddleware::class]),
         new Route('/folder', 'POST', FolderController::class, [AuthMiddleware::class])
     ]);
     $router->resolve();
