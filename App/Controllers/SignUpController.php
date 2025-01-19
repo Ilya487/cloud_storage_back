@@ -23,7 +23,6 @@ class SignUpController implements ControllerInterface
         }
 
         $registrationResult = $this->userService->registerUser($login, $password);
-        if (is_null($registrationResult)) $this->response->setStatusCode(500)->sendJson(['message' => 'An unexpected error occurred. Please try again later.']);
 
         if ($registrationResult->success) {
             $this->response->sendJson($registrationResult->data);

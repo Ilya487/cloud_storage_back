@@ -43,7 +43,6 @@ class FolderController implements ControllerInterface
         }
 
         $creationResult = $this->fsService->createFolder($userId, $dirName, $parentDirId);
-        if (is_null($creationResult)) $this->response->setStatusCode(500)->sendJson(['message' => 'An unexpected error occurred. Please try again later.']);
 
         if ($creationResult->success) {
             $this->response->sendJson($creationResult->data);

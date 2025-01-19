@@ -17,6 +17,7 @@ use App\Router\Route;
 use App\Router\Router;
 use App\Storage\DiskStorage;
 use App\Tools\DbConnect;
+use App\Tools\ErrorHandler;
 use App\Tools\Session;
 
 function executeApp()
@@ -37,9 +38,10 @@ function executeApp()
         new Route('/signin', 'POST', SignInController::class, [GuestMiddleware::class]),
         new Route('/check-auth', 'GET', AuthCheckController::class),
         new Route('/logout', 'POST', LogOutController::class, [AuthMiddleware::class]),
-        new Route('/folder', 'POST', FolderController::class, [AuthMiddleware::class])
+        new Route('/folder', 'POST', FolderController::class, [AuthMiddleware::class]),
+        new Route('/folder', 'GET', FolderController::class, [AuthMiddleware::class]),
     ]);
     $router->resolve();
 }
 
-executeApp();
+ErrorHandler::handle('executeApp');

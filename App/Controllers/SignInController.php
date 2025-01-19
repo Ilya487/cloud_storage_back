@@ -17,7 +17,6 @@ class SignInController implements ControllerInterface
         $password = trim($this->request->post('password'));
 
         $authResult = $this->userService->authUser($login, $password);
-        if (is_null($authResult)) $this->response->setStatusCode(500)->sendJson(['message' => 'An unexpected error occurred. Please try again later.']);
 
         if ($authResult->success) {
             $this->response->sendJson($authResult->data);
