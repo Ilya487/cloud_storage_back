@@ -20,8 +20,8 @@ class FolderController implements ControllerInterface
                 $this->create();
                 break;
 
-            default:
-                # code...
+            case 'GET':
+                $this->getFolderContent();
                 break;
         }
     }
@@ -49,5 +49,15 @@ class FolderController implements ControllerInterface
         } else {
             $this->response->setStatusCode(400)->sendJson($creationResult->errors);
         }
+    }
+
+    private function getFolderContent()
+    {
+        $userId = $this->authService->getAuthUser()->getId();
+        $dirId = $this->request->get('dirId') ?: null;
+        $result = $this->fsService->getFolderContent($userId, $dirId);
+
+        if ($result->success) $this->response->sendJson($result->data);
+        else $this->response->setStatusCode(400)->sendJson($result->errors);
     }
 }

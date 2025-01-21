@@ -10,6 +10,7 @@ class QueryBuilder
     const LESS_EQUAL = '<=';
     const MORE = '>';
     const MORE_EQUAL = '>=';
+    const IS_NULL = 'IS NULL';
 
     private $query;
 
@@ -47,9 +48,8 @@ class QueryBuilder
 
     public function where(string $field, string $operation)
     {
-        $haveWhere = str_contains($this->query, 'WHERE');
-        $this->query .= $haveWhere ? '' : 'WHERE ';
-        $this->query .= "$field $operation :$field ";
+        $this->query .= str_contains($this->query, 'WHERE') ? '' : 'WHERE ';
+        $this->query .= $operation === QueryBuilder::IS_NULL ? "$field $operation " : "$field $operation :$field ";
         return $this;
     }
 
@@ -59,10 +59,10 @@ class QueryBuilder
         return $this;
     }
 
-    public function and()
+    public function and($field, $operation)
     {
         $this->query .= 'AND ';
-        return $this;
+        return $this->where($field, $operation);
     }
 
     public function or()
