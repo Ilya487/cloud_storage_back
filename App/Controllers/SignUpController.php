@@ -14,8 +14,13 @@ class SignUpController implements ControllerInterface
 
     public function resolve(): void
     {
-        $login = trim($this->request->post('login'));
-        $password = trim($this->request->post('password'));
+        $data = $this->request->json();
+        if (is_null($data)) {
+            $this->response->setStatusCode(400)->sendJson(['message' => 'Неверный JSON']);
+        }
+
+        $login = trim($data['login']);
+        $password = trim($data['password']);
         $validationResult = (new SignUpValidator($login, $password))->validate();
 
         if (count($validationResult) !== 0) {

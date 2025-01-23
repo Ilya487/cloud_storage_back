@@ -13,8 +13,13 @@ class SignInController implements ControllerInterface
 
     public function resolve(): void
     {
-        $login = trim($this->request->post('login'));
-        $password = trim($this->request->post('password'));
+        $data = $this->request->json();
+        if (is_null($data)) {
+            $this->response->setStatusCode(400)->sendJson(['message' => 'Неверный JSON']);
+        }
+
+        $login = trim($data['login']);
+        $password = trim($data['password']);
 
         $authResult = $this->userService->authUser($login, $password);
 
