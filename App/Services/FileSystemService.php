@@ -25,9 +25,10 @@ class FileSystemService
 
     public function getFolderContent(string $userId, ?string $dirId): ?OperationResult
     {
+        $pathToSelectedDir = is_null($dirId) ? '/' : $this->fsRepo->getDirPathById($dirId);
         $catalogData = $this->fsRepo->getDirContent($userId, $dirId);
 
-        if ($catalogData !== false) return new OperationResult(true, ['contents' => $catalogData]);
+        if ($catalogData !== false) return new OperationResult(true, ['path' => $pathToSelectedDir, 'contents' => $catalogData]);
         else return new OperationResult(false, null, ['message' => 'Неверный айди пользователя или каталога']);
     }
 
