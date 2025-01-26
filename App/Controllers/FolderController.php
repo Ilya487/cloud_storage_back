@@ -23,15 +23,14 @@ class FolderController implements ControllerInterface
             case 'GET':
                 $this->getFolderContent();
                 break;
+            case 'PATCH':
+                $this->renameFolder();
         }
     }
 
     private function create()
     {
         $data = $this->request->json();
-        if (is_null($data)) {
-            $this->response->setStatusCode(400)->sendJson(['message' => 'Неверный JSON']);
-        }
 
         $userId = $this->authService->getAuthUser()->getId();
         $dirName = trim($data['dirName']);
@@ -60,4 +59,6 @@ class FolderController implements ControllerInterface
         if ($result->success) $this->response->sendJson($result->data);
         else $this->response->setStatusCode(400)->sendJson($result->errors);
     }
+
+    private function renameFolder() {}
 }

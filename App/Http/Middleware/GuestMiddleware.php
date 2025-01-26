@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Authentication\AuthenticationInterface;
-use App\Http\Request;
 use App\Http\Response;
 
 class GuestMiddleware implements MiddlewareInterface
