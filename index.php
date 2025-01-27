@@ -14,6 +14,8 @@ use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
 use App\Http\Middleware\JsonValidationMiddleware;
 use App\Http\Request;
+use App\Repositories\FileSystemRepository;
+use App\Repositories\UserRepository;
 use App\Router\Route;
 use App\Router\Router;
 use App\Storage\DiskStorage;
@@ -28,6 +30,9 @@ function executeApp()
     $containerBuilder->share(DbConnect::class);
     $containerBuilder->share(Session::class);
     $containerBuilder->setParam(new ContainerParam(DiskStorage::class, 'storagePath', 'C:\Users\Илья\Desktop\storage'));
+    $containerBuilder->setParam(new ContainerParam(UserRepository::class, 'tableName', 'users'));
+    $containerBuilder->setParam(new ContainerParam(FileSystemRepository::class, 'tableName', 'file_system'));
+
     $container = $containerBuilder->build();
 
 

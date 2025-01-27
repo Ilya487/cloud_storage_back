@@ -2,30 +2,18 @@
 
 namespace App\Repositories;
 
-use App\Tools\DbConnect;
 use App\Tools\QueryBuilder;
-use PDO;
+use App\Repositories\BaseRepository;
 
-class FileSystemRepository
+class FileSystemRepository extends BaseRepository
 {
-    private PDO $pdo;
-    private QueryBuilder $queryBuilder;
-
-
-    public function __construct(DbConnect $dbConnect)
-    {
-        $this->pdo = $dbConnect->getConnection();
-        $this->queryBuilder = new QueryBuilder('file_system');
-    }
-
     /**
      * @return string new dir id
      */
     public function createDir(string $userId, string $dirName, string $path, string $parentDirId = null): string
     {
         $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path'])->build();
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute([
+        $newDirId = $this->insertAndGetId($query, [
             'name' => $dirName,
             'user_id' => $userId,
             'created_at' => date('Y-m-d'),
@@ -34,21 +22,19 @@ class FileSystemRepository
             'path' => $path
         ]);
 
-        return $this->pdo->lastInsertId();
+        return $newDirId;
     }
 
     public function getDirPathById(string $dirId): null|string|false
     {
         $query = $this->queryBuilder->select(['path'])->where('id', QueryBuilder::EQUAL)->build();
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute(['id' => $dirId]);
-        $data =  $stmt->fetch(PDO::FETCH_ASSOC);
+        $data = $this->fetchOne($query, ['id' => $dirId]);
 
         if ($data === false) return false;
         else return $data['path'];
     }
 
-    public function getDirContent(string $userId, ?string $dirId): array|false
+    public function getDirContent(string $userId, string $dirId = null): array|false
     {
         if (is_null($dirId)) return $this->getRootContent($userId);
         else return $this->getConcreteDirContent($userId, $dirId);
@@ -57,16 +43,16 @@ class FileSystemRepository
     private function getRootContent(string $userId): array|false
     {
         $query = $this->queryBuilder->select()->where('user_id', QueryBuilder::EQUAL)->and('parent_id', QueryBuilder::IS_NULL)->build();
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute(['user_id' => $userId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $content = $this->fetchAll($query, ['user_id' => $userId]);
+
+        return $content;
     }
 
     private function getConcreteDirContent(string $userId, string $dirId): array|false
     {
         $query = $this->queryBuilder->select()->where('user_id', QueryBuilder::EQUAL)->and('parent_id', QueryBuilder::EQUAL)->build();
-        $stmt = $this->pdo->prepare($query);
-        $stmt->execute(['user_id' => $userId, 'parent_id' => $dirId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $content = $this->fetchAll($query, ['user_id' => $userId, 'parent_id' => $dirId]);
+
+        return $content;
     }
 }
