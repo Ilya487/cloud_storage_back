@@ -6,9 +6,19 @@ use Exception;
 
 class DiskStorage
 {
-    public function __construct(private string $storagePath)
+    private string $storagePath;
+
+    public function __construct(string $storagePath)
     {
         if (!is_dir($storagePath)) throw new Exception('Некорретный путь к хранилищу!');
+        $storagePath = str_replace('\\', '/', $storagePath);
+
+        $lastChar = $storagePath[strlen($storagePath) - 1];
+        if ($lastChar == '/') {
+            $storagePath = substr($storagePath, 0, strlen($storagePath) - 1);
+        }
+
+        $this->storagePath = $storagePath;
     }
 
     public function initializeUserFolder(string $userId): bool
@@ -27,15 +37,22 @@ class DiskStorage
 
     private function getFullPath(string $path): string
     {
-        $path = $this->normalizePath($path);
-        return $this->storagePath . $path;
+        $partPath = $this->normalizePath($partPath);
+        return $this->storagePath . $partPath;
     }
 
     private function normalizePath(string $path): string
     {
         if (strlen($path) == 0) return '/';
-        if ($path[0] !== '/') $path = '/' . $path;
-        if ($path[strlen($path) - 1] !== '/') $path = $path . '/';
+
+        $path = str_replace('\\', '/', $path);
+        if ($path[0] !== '/') {
+            $path = '/' . $path;
+        }
+
+        if ($path[strlen($path) - 1] !== '/') {
+            $path = $path . '/';
+        }
         return $path;
     }
 }
