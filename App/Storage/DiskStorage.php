@@ -13,9 +13,9 @@ class DiskStorage
         if (!is_dir($storagePath)) throw new Exception('Некорретный путь к хранилищу!');
         $storagePath = str_replace('\\', '/', $storagePath);
 
-        $lastChar = $storagePath[strlen($storagePath) - 1];
+        $lastChar = $storagePath[mb_strlen($storagePath) - 1];
         if ($lastChar == '/') {
-            $storagePath = substr($storagePath, 0, strlen($storagePath) - 1);
+            $storagePath = substr($storagePath, 0, mb_strlen($storagePath) - 1);
         }
 
         $this->storagePath = $storagePath;
@@ -50,7 +50,7 @@ class DiskStorage
             $path = '/' . $path;
         }
 
-        if ($path[strlen($path) - 1] !== '/') {
+        if ($path[mb_strlen($path) - 1] !== '/') {
             $path = $path . '/';
         }
         return $path;

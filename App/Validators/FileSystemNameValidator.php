@@ -50,7 +50,7 @@ class FileSystemNameValidator
             return false;
         }
 
-        if (strlen($this->dirName) > 255) {
+        if (mb_strlen($this->dirName) > 255) {
             $this->errors[] = 'Длина пути превышает 255 символов';
             return false;
         }
