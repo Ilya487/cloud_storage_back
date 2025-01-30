@@ -4,10 +4,11 @@ namespace App\Repositories;
 
 use App\Tools\DbConnect;
 use App\Tools\QueryBuilder;
+use Exception;
 use PDO;
 use PDOStatement;
 
-class BaseRepository
+abstract class BaseRepository
 {
     private PDO $pdo;
     protected QueryBuilder $queryBuilder;
@@ -25,22 +26,47 @@ class BaseRepository
         return $stmt->fetchAll($returnType);
     }
 
-    protected function fetchOne(string $query, array $columnValues, $returnType = PDO::FETCH_ASSOC)
+    protected function fetchOne(string $query, array $columnValues, $returnType = PDO::FETCH_ASSOC): mixed
     {
         $stmt = $this->executeQuery($query, $columnValues);
         return $stmt->fetch($returnType);
     }
 
-    protected function insertAndGetId(string $query, array $columnValues): string
+    /**
+     * @return string inserted entity id
+     */
+    protected function insert(string $query, array $columnValues): string
     {
         $this->executeQuery($query, $columnValues);
         return $this->pdo->lastInsertId();
     }
 
+    protected function update(string $query, array $columnValues): void
+    {
+        $this->executeQuery($query, $columnValues);
+    }
+
+    protected function beginTransaction()
+    {
+        $this->pdo->beginTransaction();
+    }
+
+    protected function submitTransaction()
+    {
+        $this->pdo->commit();
+    }
+
     private function executeQuery(string $query, array $columnValues): PDOStatement
     {
-        $stmt =  $this->pdo->prepare($query);
-        $stmt->execute($columnValues);
-        return $stmt;
+        try {
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute($columnValues);
+            return $stmt;
+        } catch (Exception $error) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $error;
+        }
     }
 }
