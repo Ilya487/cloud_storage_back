@@ -13,8 +13,13 @@ class Router
      * @var Route[] $routes
      */
     private array $routes = [];
+    private array $globalMiddlewares = [];
+    private Request $request;
 
-    public function __construct(private Container $container, private Request $request) {}
+    public function __construct(private Container $container)
+    {
+        $this->request = $container->resolve(Request::class);
+    }
 
     /**
      * @var Route[] $routes
@@ -24,8 +29,18 @@ class Router
         $this->routes = array_merge($this->routes, $routes);
     }
 
+    public function setGlobalMiddleware(string $middleware)
+    {
+        if (!is_subclass_of($middleware, MiddlewareInterface::class)) {
+            throw new Exception($middleware . ' не является Middleware');
+        }
+        $this->globalMiddlewares[] = $middleware;
+    }
+
     public function resolve()
     {
+        $this->resolveMiddlewares($this->globalMiddlewares);
+
         $method = $this->request->method;
         $uri = $this->request->endPoint;
 
