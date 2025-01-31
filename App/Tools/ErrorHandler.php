@@ -25,7 +25,7 @@ class ErrorHandler
     private static function writeLog(Exception $error)
     {
         $timezone = new DateTimeZone('GMT+09:00');
-        $date = (new DateTime('now', $timezone))->format('H:i:s d.m.Y');
+        $date = (new DateTime('now', $timezone))->format('d.m.Y H:i:s');
 
         $errorMsg = $error->getMessage();
         $file = $error->getFile();
