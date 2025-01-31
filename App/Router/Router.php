@@ -2,7 +2,6 @@
 
 namespace App\Router;
 
-use App\Controllers\ControllerInterface;
 use App\Core\DiContainer\Container;
 use App\Http\Middleware\MiddlewareInterface;
 use App\Http\Request;
@@ -42,17 +41,13 @@ class Router
     {
         foreach ($middlewares as $middleware) {
             $resolvedMiddleware = $this->container->resolve($middleware);
-            if (is_subclass_of($resolvedMiddleware, MiddlewareInterface::class)) {
-                $resolvedMiddleware->handle();
-            } else throw new Exception($resolvedMiddleware::class . ' не является Middleware');
+            $resolvedMiddleware->handle();
         }
     }
 
     private function resolveController(string $className)
     {
         $controller = $this->container->resolve($className);
-        if (is_subclass_of($controller, ControllerInterface::class)) {
-            $controller->resolve();
-        } else throw new Exception($controller::class . ' не является Controller');
+        $controller->resolve();
     }
 }
