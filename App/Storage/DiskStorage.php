@@ -21,13 +21,13 @@ class DiskStorage
         $this->storagePath = $storagePath;
     }
 
-    public function initializeUserFolder(string $userId): bool
+    public function initializeUserFolder(int $userId): bool
     {
         $res = mkdir($this->getFullPath($userId));
         return $res;
     }
 
-    public function createDir(string $userId, string $dirName, string $path = '/'): bool
+    public function createDir(int $userId, string $dirName, string $path = '/'): bool
     {
         $path = $this->normalizePath($path);
         $path = $userId . $path . $dirName;
@@ -35,7 +35,7 @@ class DiskStorage
         return mkdir($this->getFullPath($path));
     }
 
-    public function renameDir(string $userId, string $newName, string $path): bool
+    public function renameDir(int $userId, string $newName, string $path): bool
     {
         $oldFullPath = $this->getFullPath($userId . $this->normalizePath($path));
         $updatedFullPath = preg_replace('/(?<=\/)[^\/]+(?=\/$)/', $newName, $oldFullPath);

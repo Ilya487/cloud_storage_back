@@ -28,7 +28,7 @@ class UserRepository extends BaseRepository
         else return true;
     }
 
-    public function getById(string $id): ?User
+    public function getById(int $id): ?User
     {
         $query = $this->queryBuilder->select()->where('id', QueryBuilder::EQUAL)->build();
         $dbRes = $this->fetchOne($query, ['id' => $id]);

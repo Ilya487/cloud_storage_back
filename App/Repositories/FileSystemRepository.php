@@ -10,7 +10,7 @@ class FileSystemRepository extends BaseRepository
     /**
      * @return string new dir id
      */
-    public function createDir(string $userId, string $dirName, string $path, string $parentDirId = null): string
+    public function createDir(int $userId, string $dirName, string $path, int $parentDirId = null): string
     {
         $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path'])->build();
         $newDirId = $this->insert($query, [
@@ -25,7 +25,7 @@ class FileSystemRepository extends BaseRepository
         return $newDirId;
     }
 
-    public function getDirPathById(string $dirId): null|string|false
+    public function getDirPathById(int $dirId): null|string|false
     {
         $query = $this->queryBuilder->select(['path'])->where('id', QueryBuilder::EQUAL)->build();
         $data = $this->fetchOne($query, ['id' => $dirId]);
@@ -38,7 +38,7 @@ class FileSystemRepository extends BaseRepository
      * @param string $path в конце не должно быть слеша
      * @param string $updatedPath в конце не должно быть слеша
      */
-    public function renameDir(string $userId, string $path, string $updatedPath, string $newName)
+    public function renameDir(int $userId, string $path, string $updatedPath, string $newName)
     {
         $this->beginTransaction();
         $this->renameOneFolder($userId, $path, $updatedPath, $newName);
@@ -46,7 +46,7 @@ class FileSystemRepository extends BaseRepository
         $this->submitTransaction();
     }
 
-    public function getDirContent(string $userId, string $dirId = null): array|false
+    public function getDirContent(int $userId, int $dirId = null): array|false
     {
         if (is_null($dirId)) return $this->getRootContent($userId);
         else return $this->getConcreteDirContent($userId, $dirId);
@@ -60,7 +60,7 @@ class FileSystemRepository extends BaseRepository
         return $content;
     }
 
-    private function getConcreteDirContent(string $userId, string $dirId): array|false
+    private function getConcreteDirContent(int $userId, int $dirId): array|false
     {
         $query = $this->queryBuilder->select()->where('user_id', QueryBuilder::EQUAL)->and('parent_id', QueryBuilder::EQUAL)->build();
         $content = $this->fetchAll($query, ['user_id' => $userId, 'parent_id' => $dirId]);
@@ -68,13 +68,13 @@ class FileSystemRepository extends BaseRepository
         return $content;
     }
 
-    private function renameOneFolder(string $userId, string $path, string $updatedPath, string $newName)
+    private function renameOneFolder(int $userId, string $path, string $updatedPath, string $newName)
     {
         $query = $this->queryBuilder->update(['path', 'name'])->where('path', QueryBuilder::LIKE, 'pathPattern')->and('user_id', QueryBuilder::EQUAL)->build();
         $this->update($query, ['path' => $updatedPath, 'name' => $newName, 'pathPattern' => $path, 'user_id' => $userId]);
     }
 
-    private function renameInnerFolders(string $userId, string $path, string $updatedPath)
+    private function renameInnerFolders(int $userId, string $path, string $updatedPath)
     {
         $startPos = mb_strlen($path) + 1;
 
