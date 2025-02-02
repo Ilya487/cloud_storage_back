@@ -13,7 +13,7 @@ class FileSystemRepository extends BaseRepository
     public function createDir(string $userId, string $dirName, string $path, string $parentDirId = null): string
     {
         $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path'])->build();
-        $newDirId = $this->insertAndGetId($query, [
+        $newDirId = $this->insert($query, [
             'name' => $dirName,
             'user_id' => $userId,
             'created_at' => date('Y-m-d'),
@@ -32,6 +32,18 @@ class FileSystemRepository extends BaseRepository
 
         if ($data === false) return false;
         else return $data['path'];
+    }
+
+    /**
+     * @param string $path в конце не должно быть слеша
+     * @param string $updatedPath в конце не должно быть слеша
+     */
+    public function renameDir(string $userId, string $path, string $updatedPath, string $newName)
+    {
+        $this->beginTransaction();
+        $this->renameOneFolder($userId, $path, $updatedPath, $newName);
+        $this->renameInnerFolders($userId, $path, $updatedPath);
+        $this->submitTransaction();
     }
 
     public function getDirContent(string $userId, string $dirId = null): array|false
@@ -54,5 +66,27 @@ class FileSystemRepository extends BaseRepository
         $content = $this->fetchAll($query, ['user_id' => $userId, 'parent_id' => $dirId]);
 
         return $content;
+    }
+
+    private function renameOneFolder(string $userId, string $path, string $updatedPath, string $newName)
+    {
+        $query = $this->queryBuilder->update(['path', 'name'])->where('path', QueryBuilder::LIKE, 'pathPattern')->and('user_id', QueryBuilder::EQUAL)->build();
+        $this->update($query, ['path' => $updatedPath, 'name' => $newName, 'pathPattern' => $path, 'user_id' => $userId]);
+    }
+
+    private function renameInnerFolders(string $userId, string $path, string $updatedPath)
+    {
+        $startPos = mb_strlen($path) + 1;
+
+        $query = "UPDATE file_system
+        SET path = CONCAT(:updatedPath, SUBSTRING(path, $startPos))
+        WHERE path LIKE :oldPath AND user_id = :user_id;
+        ";
+
+        $this->update($query, [
+            'updatedPath' => $updatedPath,
+            'oldPath' => $path . '/%',
+            'user_id' => $userId,
+        ]);
     }
 }

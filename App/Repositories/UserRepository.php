@@ -15,7 +15,7 @@ class UserRepository extends BaseRepository
     public function insertNewUser(string $login, string $password): string
     {
         $query = $this->queryBuilder->insert(['login', 'password'])->build();
-        $newUserId =  $this->insertAndGetId($query, ['login' => $login, 'password' => $password]);
+        $newUserId =  $this->insert($query, ['login' => $login, 'password' => $password]);
         return $newUserId;
     }
 
