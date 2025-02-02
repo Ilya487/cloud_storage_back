@@ -5,7 +5,6 @@ namespace App\Services;
 use App\DTO\OperationResult;
 use App\Repositories\FileSystemRepository;
 use App\Storage\DiskStorage;
-use PDOException;
 
 class FileSystemService
 {
@@ -23,7 +22,7 @@ class FileSystemService
         } else return new OperationResult(false, null, ['message' => 'Папка с таким именем уже существует']);
     }
 
-    public function getFolderContent(string $userId, ?string $dirId): ?OperationResult
+    public function getFolderContent(string $userId, ?string $dirId = null): ?OperationResult
     {
         $pathToSelectedDir = is_null($dirId) ? '/' : $this->fsRepo->getDirPathById($dirId);
         $catalogData = $this->fsRepo->getDirContent($userId, $dirId);
@@ -35,5 +34,19 @@ class FileSystemService
     public function initializeUserStorage(string $userId): bool
     {
         return $this->diskStorage->initializeUserFolder($userId);
+    }
+
+    public function renameFolder(string $userId, string $dirId, string $newName)
+    {
+        $folderPath = $this->fsRepo->getDirPathById($dirId);
+        if ($this->diskStorage->renameDir($userId, $newName, $folderPath)) {
+            $lastSlashPos = strrpos($folderPath, '/', -1);
+            $updatedPath = substr($folderPath, 0, $lastSlashPos + 1) . $newName;
+
+            $this->fsRepo->renameDir($userId, $folderPath, $updatedPath, $newName);
+            return new OperationResult(true, ['updatedPath' => $updatedPath]);
+        } else {
+            return new OperationResult(false, null, ['error' => 'Не удалось переименовать папку']);
+        }
     }
 }

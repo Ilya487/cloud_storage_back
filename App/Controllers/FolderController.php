@@ -23,8 +23,10 @@ class FolderController implements ControllerInterface
             case 'GET':
                 $this->getFolderContent();
                 break;
+
             case 'PATCH':
                 $this->renameFolder();
+                break;
         }
     }
 
@@ -34,7 +36,7 @@ class FolderController implements ControllerInterface
 
         $userId = $this->authService->getAuthUser()->getId();
         $dirName = trim($data['dirName']);
-        $parentDirId = $data['parentDirId'];
+        $parentDirId = $data['parentDirId'] ?: null;
 
         $validationResult = (new FileSystemNameValidator($dirName))->validate();
         if (count($validationResult) !== 0) {
@@ -60,5 +62,22 @@ class FolderController implements ControllerInterface
         else $this->response->setStatusCode(400)->sendJson($result->errors);
     }
 
-    private function renameFolder() {}
+    private function renameFolder()
+    {
+        $data = $this->request->json();
+
+        $dirId = $data['dirId'];
+        $updatedDirName = trim($data['newName']);
+        $userId = $this->authService->getAuthUser()->getId();
+
+        $validationResult = (new FileSystemNameValidator($updatedDirName))->validate();
+        if (count($validationResult) !== 0) {
+            $this->response->setStatusCode(400)->sendJson(['errors' => $validationResult]);
+        }
+
+        $renameRes = $this->fsService->renameFolder($userId, $dirId, $updatedDirName);
+        if ($renameRes->success) {
+            $this->response->sendJson($renameRes->data);
+        } else $this->response->setStatusCode(400)->sendJson($renameRes->errors);
+    }
 }
