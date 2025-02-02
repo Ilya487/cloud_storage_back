@@ -35,7 +35,15 @@ class DiskStorage
         return mkdir($this->getFullPath($path));
     }
 
-    private function getFullPath(string $path): string
+    public function renameDir(string $userId, string $newName, string $path): bool
+    {
+        $oldFullPath = $this->getFullPath($userId . $this->normalizePath($path));
+        $updatedFullPath = preg_replace('/(?<=\/)[^\/]+(?=\/$)/', $newName, $oldFullPath);
+
+        return rename($oldFullPath, $updatedFullPath);
+    }
+
+    private function getFullPath(string $partPath): string
     {
         $partPath = $this->normalizePath($partPath);
         return $this->storagePath . $partPath;
@@ -50,7 +58,7 @@ class DiskStorage
             $path = '/' . $path;
         }
 
-        if ($path[mb_strlen($path) - 1] !== '/') {
+        if ($path[-1] !== '/') {
             $path = $path . '/';
         }
         return $path;
