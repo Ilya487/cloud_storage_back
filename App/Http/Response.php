@@ -45,7 +45,7 @@ class Response
     public function sendJson(array $data)
     {
         header('Content-type: application/json; charset=utf-8');
-        $json = json_encode($data);
+        $json = json_encode(['code' => http_response_code(), ...$data]);
         if (!$json) {
             throw new Exception('Ошибка JSON: ' . json_last_error_msg());
         }
@@ -58,5 +58,7 @@ class Response
     {
         header("Access-Control-Allow-Origin:" . (new Request)->header('origin'));
         header('Access-Control-Allow-Credentials: true');
+        header("Access-Control-Allow-Methods: GET, POST, PATCH, DELETE");
+        header('Access-Control-Max-Age: 3600');
     }
 }

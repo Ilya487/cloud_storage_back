@@ -32,7 +32,7 @@ class SignUpValidator
         return $this->errorsList;
     }
 
-    private function checkEmpty()
+    private function checkEmpty(): bool
     {
         if (!$this->login | !$this->password) {
             $this->errorsList[] = 'Одно из полей пустое';

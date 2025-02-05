@@ -13,13 +13,15 @@ class SignInController implements ControllerInterface
 
     public function resolve(): void
     {
-        $login = $this->request->post('login');
-        $password = $this->request->post('password');
+        $data = $this->request->json();
+
+        $login = trim($data['login']);
+        $password = trim($data['password']);
 
         $authResult = $this->userService->authUser($login, $password);
 
         if ($authResult->success) {
-            $this->response->sendJson(['code' => 200, 'userId' => $authResult->userId]);
-        } else $this->response->setStatusCode(400)->sendJson(['code' => 400, ...$authResult->errors]);
+            $this->response->sendJson($authResult->data);
+        } else $this->response->setStatusCode(400)->sendJson($authResult->errors);
     }
 }

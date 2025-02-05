@@ -18,6 +18,11 @@ class User
         $this->password = $password;
     }
 
+    public static function createFromArr(array $data): User
+    {
+        return new self($data['id'], $data['login'], $data['password']);
+    }
+
     public function getId(): string
     {
         return $this->id;

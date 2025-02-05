@@ -10,6 +10,8 @@ class QueryBuilder
     const LESS_EQUAL = '<=';
     const MORE = '>';
     const MORE_EQUAL = '>=';
+    const IS_NULL = 'IS NULL';
+    const LIKE = 'LIKE';
 
     private $query;
 
@@ -45,11 +47,24 @@ class QueryBuilder
         return $this;
     }
 
-    public function where(string $field, string $operation)
+    public function where(string $field, string $operation, string $value = '')
     {
-        $haveWhere = str_contains($this->query, 'WHERE');
-        $this->query .= $haveWhere ? '' : 'WHERE ';
-        $this->query .= "$field $operation :$field ";
+        $this->query .= str_contains($this->query, 'WHERE') ? '' : 'WHERE ';
+
+        switch ($operation) {
+            case self::IS_NULL:
+                $this->query .= "$field $operation ";
+                break;
+
+            case self::LIKE:
+                $this->query .= "$field $operation :$value ";
+                break;
+
+            default:
+                $this->query .= "$field $operation :$field ";
+                break;
+        }
+
         return $this;
     }
 
@@ -59,16 +74,16 @@ class QueryBuilder
         return $this;
     }
 
-    public function and()
+    public function and(string $field, string $operation, string $value = '')
     {
         $this->query .= 'AND ';
-        return $this;
+        return $this->where($field, $operation, $value);
     }
 
-    public function or()
+    public function or(string $field, string $operation, string $value = '')
     {
         $this->query .= 'OR ';
-        return $this;
+        return $this->where($field, $operation, $value);
     }
 
     public function build()

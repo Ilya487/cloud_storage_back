@@ -2,11 +2,9 @@
 
 namespace App\Router;
 
-use App\Controllers\ControllerInterface;
 use App\Core\DiContainer\Container;
 use App\Http\Middleware\MiddlewareInterface;
 use App\Http\Request;
-use App\Http\Response;
 use Exception;
 
 class Router
@@ -15,8 +13,13 @@ class Router
      * @var Route[] $routes
      */
     private array $routes = [];
+    private array $globalMiddlewares = [];
+    private Request $request;
 
-    public function __construct(private Container $container, private Request $request) {}
+    public function __construct(private Container $container)
+    {
+        $this->request = $container->resolve(Request::class);
+    }
 
     /**
      * @var Route[] $routes
@@ -26,8 +29,18 @@ class Router
         $this->routes = array_merge($this->routes, $routes);
     }
 
+    public function setGlobalMiddleware(string $middleware)
+    {
+        if (!is_subclass_of($middleware, MiddlewareInterface::class)) {
+            throw new Exception($middleware . ' не является Middleware');
+        }
+        $this->globalMiddlewares[] = $middleware;
+    }
+
     public function resolve()
     {
+        $this->resolveMiddlewares($this->globalMiddlewares);
+
         $method = $this->request->method;
         $uri = $this->request->endPoint;
 
@@ -43,17 +56,13 @@ class Router
     {
         foreach ($middlewares as $middleware) {
             $resolvedMiddleware = $this->container->resolve($middleware);
-            if (is_subclass_of($resolvedMiddleware, MiddlewareInterface::class)) {
-                $resolvedMiddleware->handle();
-            } else throw new Exception($resolvedMiddleware::class . ' не является Middleware');
+            $resolvedMiddleware->handle();
         }
     }
 
     private function resolveController(string $className)
     {
         $controller = $this->container->resolve($className);
-        if (is_subclass_of($controller, ControllerInterface::class)) {
-            $controller->resolve();
-        } else throw new Exception($controller::class . ' не является Controller');
+        $controller->resolve();
     }
 }

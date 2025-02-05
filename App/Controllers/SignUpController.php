@@ -6,7 +6,7 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Services\UserService;
 use App\Controllers\ControllerInterface;
-use Exception;
+use App\Validators\SignUpValidator;
 
 class SignUpController implements ControllerInterface
 {
@@ -14,17 +14,20 @@ class SignUpController implements ControllerInterface
 
     public function resolve(): void
     {
-        try {
-            $login = $this->request->post('login');
-            $password = $this->request->post('password');
+        $data = $this->request->json();
 
-            $registrationResult = $this->userService->registerUser($login, $password);
+        $login = trim($data['login']);
+        $password = trim($data['password']);
+        $validationResult = (new SignUpValidator($login, $password))->validate();
 
-            if ($registrationResult->success) {
-                $this->response->sendJson(['code' => 200, 'userId' => $registrationResult->userId]);
-            } else $this->response->setStatusCode(400)->sendJson(['code' => 400, 'errors' => $registrationResult->errors]);
-        } catch (Exception) {
-            $this->response->setStatusCode(500)->sendJson(['code' => 500, 'message' => 'An unexpected error occurred. Please try again later.']);
+        if (count($validationResult) !== 0) {
+            $this->response->setStatusCode(400)->sendJson(['errors' => $validationResult]);
         }
+
+        $registrationResult = $this->userService->registerUser($login, $password);
+
+        if ($registrationResult->success) {
+            $this->response->sendJson($registrationResult->data);
+        } else $this->response->setStatusCode(400)->sendJson($registrationResult->errors);
     }
 }

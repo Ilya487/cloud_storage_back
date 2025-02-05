@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Authentication\AuthenticationInterface;
-use App\Http\Request;
 use App\Http\Response;
 
 class AuthMiddleware implements MiddlewareInterface
@@ -13,7 +12,7 @@ class AuthMiddleware implements MiddlewareInterface
     public function handle()
     {
         if (!$this->authService->auth()) {
-            $this->response->setStatusCode(401)->sendJson(['code' => 401, 'message' => 'Вы должны авторизоваться']);
+            $this->response->setStatusCode(401)->sendJson(['code' => 401, 'message' => 'Пользователь не авторизован']);
         }
     }
 }
