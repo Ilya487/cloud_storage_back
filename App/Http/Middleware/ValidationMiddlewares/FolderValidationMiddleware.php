@@ -7,15 +7,7 @@ use App\Validators\FileSystemNameValidator;
 
 class FolderValidationMiddleware extends ValidationMiddleware implements MiddlewareInterface
 {
-    public function handle()
-    {
-        $method = $this->request->method;
-        $endPoint = $this->request->endPoint;
-
-        if ($method == 'GET' && $endPoint == '/folder') $this->getContent();
-        if ($method == 'POST' && $endPoint == '/folder') $this->create();
-        if ($method == 'PATCH' && $endPoint == '/folder/rename') $this->renameFolder();
-    }
+    public function handle() {}
 
     public function create()
     {

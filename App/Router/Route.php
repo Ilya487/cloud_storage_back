@@ -5,6 +5,7 @@ namespace App\Router;
 use App\Controllers\ControllerInterface;
 use App\Http\Middleware\MiddlewareInterface;
 use Exception;
+use ReflectionClass;
 
 class Route
 {
@@ -19,8 +20,21 @@ class Route
         }
 
         foreach ($middlewares as $middleware) {
-            if (!is_subclass_of($middleware, MiddlewareInterface::class)) {
-                throw new Exception($middleware . ' не является Middleware');
+            if (is_array($middleware)) {
+                $className = $middleware[0];
+                $method = $middleware[1];
+
+                if (!is_subclass_of($className, MiddlewareInterface::class)) {
+                    throw new Exception($middleware . ' не является Middleware');
+                }
+
+                if (!method_exists($className, $method)) {
+                    throw new Exception("У класса $className отсутствует метод $method");
+                }
+            } else {
+                if (!is_subclass_of($middleware, MiddlewareInterface::class)) {
+                    throw new Exception($middleware . ' не является Middleware');
+                }
             }
         }
     }

@@ -55,8 +55,14 @@ class Router
     private function resolveMiddlewares(array $middlewares)
     {
         foreach ($middlewares as $middleware) {
-            $resolvedMiddleware = $this->container->resolve($middleware);
-            $resolvedMiddleware->handle();
+            if (is_array($middleware)) {
+                $resolvedMiddleware = $this->container->resolve($middleware[0]);
+                $method = $middleware[1];
+                $resolvedMiddleware->$method();
+            } else {
+                $resolvedMiddleware = $this->container->resolve($middleware);
+                $resolvedMiddleware->handle();
+            }
         }
     }
 

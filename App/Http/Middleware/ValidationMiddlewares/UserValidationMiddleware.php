@@ -7,16 +7,22 @@ use App\Validators\SignUpValidator;
 
 class UserValidationMiddleware extends ValidationMiddleware implements MiddlewareInterface
 {
-    public function handle()
+    public function handle() {}
+
+    public function signin()
+    {
+        $this->validate(self::STRING | self::REQUIRE, 'login', self::JSON);
+        $this->validate(self::STRING | self::REQUIRE, 'password', self::JSON);
+    }
+
+    public function signup()
     {
         $login = $this->validate(self::STRING | self::REQUIRE, 'login', self::JSON);
         $password = $this->validate(self::STRING | self::REQUIRE, 'password', self::JSON);
 
-        if ($this->request->endPoint == '/signup') {
-            $validationRes = (new SignUpValidator($login, $password))->validate();
-            if (!$validationRes->success) {
-                $this->sendError($validationRes->errors);
-            }
+        $validationRes = (new SignUpValidator($login, $password))->validate();
+        if (!$validationRes->success) {
+            $this->sendError($validationRes->errors);
         }
     }
 }
