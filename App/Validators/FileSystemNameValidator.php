@@ -2,6 +2,8 @@
 
 namespace App\Validators;
 
+use App\DTO\ValidationResult;
+
 class FileSystemNameValidator
 {
     private array $invalidChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
@@ -15,13 +17,14 @@ class FileSystemNameValidator
         $this->dirName = strtoupper($dirName);
     }
 
-    public function validate(): array
+    public function validate(): ValidationResult
     {
         $this->checkChars();
         $this->checkName();
         $this->checkLength();
 
-        return $this->errors;
+        if (empty($this->errors)) return new ValidationResult(true);
+        else return new ValidationResult(false, $this->errors);
     }
 
     private function checkName(): bool

@@ -2,12 +2,14 @@
 
 namespace App\Validators;
 
+use App\DTO\ValidationResult;
+
 class SignUpValidator
 {
     private const LOGIN_PATTERN = '/^[A-Za-z\d@#\$\!\.]{3,30}$/';
     private const PASSWORD_PATTERN = '/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@#\$!\.]{8,30}$/';
 
-    private array $errorsList = [];
+    private array $errorList = [];
     private ?string $login;
     private ?string $password;
 
@@ -17,25 +19,23 @@ class SignUpValidator
         $this->password = trim($password);
     }
 
-    /**
-     * @return array error list
-     */
-    public function validate(): array
+    public function validate(): ValidationResult
     {
         if (!$this->checkEmpty()) {
-            return $this->errorsList;
+            return new ValidationResult(false, $this->errorList);
         }
 
         $this->checkLogin();
         $this->checkPassword();
 
-        return $this->errorsList;
+        if (empty($this->errorList)) return new ValidationResult(true);
+        else return new ValidationResult(false, $this->errorList);
     }
 
     private function checkEmpty(): bool
     {
         if (!$this->login | !$this->password) {
-            $this->errorsList[] = 'Одно из полей пустое';
+            $this->errorList[] = 'Одно из полей пустое';
 
             return false;
         } else return true;
@@ -44,7 +44,7 @@ class SignUpValidator
     private function checkPassword()
     {
         if (!preg_match(self::PASSWORD_PATTERN, $this->password)) {
-            $this->errorsList[] = 'Неверный формат пароля';
+            $this->errorList[] = 'Неверный формат пароля';
 
             return false;
         } else return true;
@@ -53,7 +53,7 @@ class SignUpValidator
     private function checkLogin()
     {
         if (!preg_match(self::LOGIN_PATTERN, $this->login)) {
-            $this->errorsList[] = 'Неверный формат логина';
+            $this->errorList[] = 'Неверный формат логина';
 
             return false;
         } else return true;
