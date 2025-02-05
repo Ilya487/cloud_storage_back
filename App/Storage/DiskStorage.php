@@ -3,6 +3,9 @@
 namespace App\Storage;
 
 use Exception;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 class DiskStorage
 {
@@ -41,6 +44,22 @@ class DiskStorage
         $updatedFullPath = preg_replace('/(?<=\/)[^\/]+(?=\/$)/', $newName, $oldFullPath);
 
         return rename($oldFullPath, $updatedFullPath);
+    }
+
+    public function deleteDir(int $userId, string $path): bool
+    {
+        $fullPath = $this->getFullPath($userId . $this->normalizePath($path));
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($fullPath, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $path => $obj) {
+            if ($obj->isFile()) unlink($path);
+            if ($obj->isDir()) rmdir($path);
+        }
+
+        return rmdir($fullPath);
     }
 
     private function getFullPath(string $partPath): string
