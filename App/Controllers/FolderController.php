@@ -7,7 +7,6 @@ use App\Http\Request;
 use App\Http\Response;
 use App\Controllers\ControllerInterface;
 use App\Services\FileSystemService;
-use App\Validators\FileSystemNameValidator;
 
 class FolderController implements ControllerInterface
 {
@@ -38,11 +37,6 @@ class FolderController implements ControllerInterface
         $dirName = trim($data['dirName']);
         $parentDirId = $data['parentDirId'] ?: null;
 
-        $validationResult = (new FileSystemNameValidator($dirName))->validate();
-        if (count($validationResult) !== 0) {
-            $this->response->setStatusCode(400)->sendJson(['errors' => $validationResult]);
-        }
-
         $creationResult = $this->fsService->createFolder($userId, $dirName, $parentDirId);
 
         if ($creationResult->success) {
@@ -69,11 +63,6 @@ class FolderController implements ControllerInterface
         $dirId = $data['dirId'];
         $updatedDirName = trim($data['newName']);
         $userId = $this->authService->getAuthUser()->getId();
-
-        $validationResult = (new FileSystemNameValidator($updatedDirName))->validate();
-        if (count($validationResult) !== 0) {
-            $this->response->setStatusCode(400)->sendJson(['errors' => $validationResult]);
-        }
 
         $renameRes = $this->fsService->renameFolder($userId, $dirId, $updatedDirName);
         if ($renameRes->success) {

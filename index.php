@@ -12,7 +12,6 @@ use App\Core\DiContainer\ContainerBuilder;
 use App\Core\DiContainer\ContainerParam;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
-use App\Http\Middleware\JsonValidationMiddleware;
 use App\Http\Middleware\OptionsRequestMiddleware;
 use App\Http\Request;
 use App\Repositories\FileSystemRepository;
@@ -42,14 +41,14 @@ function executeApp()
 
     $router->setGlobalMiddleware(OptionsRequestMiddleware::class);
     $router->setRoutes([
-        new Route('/signup', 'POST', SignUpController::class, [GuestMiddleware::class, JsonValidationMiddleware::class]),
-        new Route('/signin', 'POST', SignInController::class, [GuestMiddleware::class, JsonValidationMiddleware::class]),
+        new Route('/signup', 'POST', SignUpController::class, [GuestMiddleware::class, UserValidationMiddleware::class]),
+        new Route('/signin', 'POST', SignInController::class, [GuestMiddleware::class, UserValidationMiddleware::class]),
         new Route('/check-auth', 'GET', AuthCheckController::class),
         new Route('/logout', 'POST', LogOutController::class, [AuthMiddleware::class]),
 
-        new Route('/folder', 'POST', FolderController::class, [AuthMiddleware::class, JsonValidationMiddleware::class]),
-        new Route('/folder', 'GET', FolderController::class, [AuthMiddleware::class]),
-        new Route('/folder/rename', 'PATCH', FolderController::class, [AuthMiddleware::class, JsonValidationMiddleware::class]),
+        new Route('/folder', 'POST', FolderController::class, [AuthMiddleware::class, FolderValidationMiddleware::class]),
+        new Route('/folder', 'GET', FolderController::class, [AuthMiddleware::class, FolderValidationMiddleware::class]),
+        new Route('/folder/rename', 'PATCH', FolderController::class, [AuthMiddleware::class, FolderValidationMiddleware::class]),
     ]);
     $router->resolve();
 }

@@ -6,6 +6,7 @@ class Request
 {
     public readonly string $endPoint;
     public readonly string $method;
+    private array $jsonCache;
 
     public function __construct()
     {
@@ -31,8 +32,12 @@ class Request
 
     public function json(): ?array
     {
+        if (isset($this->jsonCache)) return $this->jsonCache;
+
         $data = json_decode(file_get_contents('php://input'), true);
-        if (json_last_error() == JSON_ERROR_NONE) return $data;
-        else return null;
+        if (json_last_error() == JSON_ERROR_NONE) {
+            $this->jsonCache = $data;
+            return $data;
+        } else return null;
     }
 }
