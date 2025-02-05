@@ -26,6 +26,10 @@ class FolderController implements ControllerInterface
             case 'PATCH':
                 $this->renameFolder();
                 break;
+
+            case 'DELETE':
+                $this->delete();
+                break;
         }
     }
 
@@ -68,5 +72,16 @@ class FolderController implements ControllerInterface
         if ($renameRes->success) {
             $this->response->sendJson($renameRes->data);
         } else $this->response->setStatusCode(400)->sendJson($renameRes->errors);
+    }
+
+    private function delete()
+    {
+        $dirId = $this->request->get('dirId');
+        $userId = $this->authService->getAuthUser()->getId();
+
+        $deleteResult = $this->fsService->deleteFolder($userId, $dirId);
+
+        if ($deleteResult->success) $this->response->setStatusCode(200)->sendJson($deleteResult->data);
+        else $this->response->setStatusCode(400)->sendJson($deleteResult->errors);
     }
 }

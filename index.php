@@ -15,7 +15,6 @@ use App\Http\Middleware\GuestMiddleware;
 use App\Http\Middleware\OptionsRequestMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\FolderValidationMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\UserValidationMiddleware;
-use App\Http\Request;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\UserRepository;
 use App\Router\Route;
@@ -38,8 +37,7 @@ function executeApp()
     $container = $containerBuilder->build();
 
 
-    $request = $container->resolve(Request::class);
-    $router = new Router($container, $request);
+    $router = new Router($container);
 
     $router->setGlobalMiddleware(OptionsRequestMiddleware::class);
     $router->setRoutes([
@@ -51,6 +49,7 @@ function executeApp()
         new Route('/folder', 'POST', FolderController::class, [AuthMiddleware::class, [FolderValidationMiddleware::class, 'create']]),
         new Route('/folder', 'GET', FolderController::class, [AuthMiddleware::class, [FolderValidationMiddleware::class, 'getContent']]),
         new Route('/folder/rename', 'PATCH', FolderController::class, [AuthMiddleware::class, [FolderValidationMiddleware::class, 'renameFolder']]),
+        new Route('/folder/delete', 'DELETE', FolderController::class, [AuthMiddleware::class, [FolderValidationMiddleware::class, 'deleteFolder']]),
     ]);
     $router->resolve();
 }
