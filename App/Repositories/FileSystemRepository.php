@@ -25,10 +25,10 @@ class FileSystemRepository extends BaseRepository
         return $newDirId;
     }
 
-    public function getDirPathById(int $dirId): null|string|false
+    public function getPathById(int $id): null|string|false
     {
         $query = $this->queryBuilder->select(['path'])->where('id', QueryBuilder::EQUAL)->build();
-        $data = $this->fetchOne($query, ['id' => $dirId]);
+        $data = $this->fetchOne($query, ['id' => $id]);
 
         if ($data === false) return false;
         else return $data['path'];
@@ -52,7 +52,13 @@ class FileSystemRepository extends BaseRepository
         else return $this->getConcreteDirContent($userId, $dirId);
     }
 
-    private function getRootContent(string $userId): array|false
+    public function deleteById(int $userId, int $itemId)
+    {
+        $query = $this->queryBuilder->delete()->where('id', QueryBuilder::EQUAL)->and('user_id', QueryBuilder::EQUAL)->build();
+        $this->delete($query, ['id' => $itemId, 'user_id' => $userId]);
+    }
+
+    private function getRootContent(int $userId): array|false
     {
         $query = $this->queryBuilder->select()->where('user_id', QueryBuilder::EQUAL)->and('parent_id', QueryBuilder::IS_NULL)->build();
         $content = $this->fetchAll($query, ['user_id' => $userId]);
