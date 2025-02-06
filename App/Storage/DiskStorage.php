@@ -62,7 +62,17 @@ class DiskStorage
         return rmdir($fullPath);
     }
 
-    private function getFullPath(string $partPath): string
+    public function moveItem(int $userId, string $currentPath, string $pathToMove)
+    {
+        $currentPath = $this->getFullPath($userId, $currentPath);
+        $pathToMove = $this->getFullPath($userId, $pathToMove);
+
+        $updatedPath = "$pathToMove/" . basename($currentPath);
+
+        return rename($currentPath, $updatedPath);
+    }
+
+    private function getFullPath(int $userId, string $partPath): string
     {
         $partPath = "/$userId" . $this->normalizePath($partPath, false);
         $fullPath =  $this->storagePath . $partPath;
