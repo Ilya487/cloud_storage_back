@@ -26,21 +26,21 @@ class DiskStorage
 
     public function initializeUserFolder(int $userId): bool
     {
-        $res = mkdir($this->getFullPath($userId));
+        $res = mkdir($this->getFullPath($userId, ''));
         return $res;
     }
 
     public function createDir(int $userId, string $dirName, string $path = '/'): bool
     {
         $path = $this->normalizePath($path);
-        $path = $userId . $path . $dirName;
+        $path = $path . $dirName;
 
-        return mkdir($this->getFullPath($path));
+        return mkdir($this->getFullPath($userId, $path));
     }
 
     public function renameDir(int $userId, string $newName, string $path): bool
     {
-        $oldFullPath = $this->getFullPath($userId . $this->normalizePath($path));
+        $oldFullPath = $this->getFullPath($userId, $path);
         $updatedFullPath = str_replace(basename($oldFullPath), $newName, $oldFullPath);
 
         return rename($oldFullPath, $updatedFullPath);
@@ -48,7 +48,7 @@ class DiskStorage
 
     public function deleteDir(int $userId, string $path): bool
     {
-        $fullPath = $this->getFullPath($userId . $this->normalizePath($path));
+        $fullPath = $this->getFullPath($userId, $path);
 
         $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($fullPath, FilesystemIterator::SKIP_DOTS),
@@ -64,11 +64,13 @@ class DiskStorage
 
     private function getFullPath(string $partPath): string
     {
-        $partPath = $this->normalizePath($partPath);
-        return $this->storagePath . $partPath;
+        $partPath = "/$userId" . $this->normalizePath($partPath, false);
+        $fullPath =  $this->storagePath . $partPath;
+
+        return $fullPath;
     }
 
-    private function normalizePath(string $path): string
+    private function normalizePath(string $path, bool $processLastSlash = true): string
     {
         if (strlen($path) == 0) return '/';
 
@@ -77,7 +79,7 @@ class DiskStorage
             $path = '/' . $path;
         }
 
-        if ($path[-1] !== '/') {
+        if ($processLastSlash && $path[-1] !== '/') {
             $path = $path . '/';
         }
         return $path;
