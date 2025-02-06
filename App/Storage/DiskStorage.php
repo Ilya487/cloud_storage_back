@@ -41,7 +41,7 @@ class DiskStorage
     public function renameDir(int $userId, string $newName, string $path): bool
     {
         $oldFullPath = $this->getFullPath($userId . $this->normalizePath($path));
-        $updatedFullPath = preg_replace('/(?<=\/)[^\/]+(?=\/$)/', $newName, $oldFullPath);
+        $updatedFullPath = str_replace(basename($oldFullPath), $newName, $oldFullPath);
 
         return rename($oldFullPath, $updatedFullPath);
     }

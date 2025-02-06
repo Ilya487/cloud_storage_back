@@ -44,8 +44,7 @@ class FileSystemService
         if ($folderPath === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
 
         if ($this->diskStorage->renameDir($userId, $newName, $folderPath)) {
-            $lastSlashPos = strrpos($folderPath, '/', -1);
-            $updatedPath = substr($folderPath, 0, $lastSlashPos + 1) . $newName;
+            $updatedPath = str_replace(basename($folderPath), $newName, $folderPath);
 
             $this->fsRepo->renameDir($userId, $folderPath, $updatedPath, $newName);
             return new OperationResult(true, ['updatedPath' => $updatedPath]);
