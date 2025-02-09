@@ -25,10 +25,10 @@ class FileSystemRepository extends BaseRepository
         return $newDirId;
     }
 
-    public function getPathById(int $id): null|string|false
+    public function getPathById(int $id, int $userId): null|string|false
     {
-        $query = $this->queryBuilder->select(['path'])->where('id', QueryBuilder::EQUAL)->build();
-        $data = $this->fetchOne($query, ['id' => $id]);
+        $query = $this->queryBuilder->select(['path'])->where('id', QueryBuilder::EQUAL)->and('user_id', QueryBuilder::EQUAL)->build();
+        $data = $this->fetchOne($query, ['id' => $id, 'user_id' => $userId]);
 
         if ($data === false) return false;
         else return $data['path'];

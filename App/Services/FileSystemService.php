@@ -10,9 +10,9 @@ class FileSystemService
 {
     public function __construct(private DiskStorage $diskStorage, private FileSystemRepository $fsRepo) {}
 
-    public function createFolder(int $userId, string $dirName, ?int $parentDirId = null): ?OperationResult
+    public function createFolder(int $userId, string $dirName, ?int $parentDirId = null): OperationResult
     {
-        $parentPath = $parentDirId ? $this->fsRepo->getPathById($parentDirId) : '';
+        $parentPath = $parentDirId ? $this->fsRepo->getPathById($parentDirId, $userId) : '';
         if ($parentPath === false) return new OperationResult(false, null, ['message' => 'Неверный айди родительского каталога']);
 
         if ($this->diskStorage->createDir($userId, $dirName, $parentPath)) {
@@ -22,9 +22,9 @@ class FileSystemService
         } else return new OperationResult(false, null, ['message' => 'Папка с таким именем уже существует']);
     }
 
-    public function getFolderContent(int $userId, ?int $dirId = null): ?OperationResult
+    public function getFolderContent(int $userId, ?int $dirId = null): OperationResult
     {
-        $pathToSelectedDir = is_null($dirId) ? '/' : $this->fsRepo->getPathById($dirId);
+        $pathToSelectedDir = is_null($dirId) ? '/' : $this->fsRepo->getPathById($dirId, $userId);
         if ($pathToSelectedDir === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
 
         $catalogData = $this->fsRepo->getDirContent($userId, $dirId);
@@ -38,9 +38,9 @@ class FileSystemService
         return $this->diskStorage->initializeUserFolder($userId);
     }
 
-    public function renameFolder(int $userId, int $dirId, string $newName)
+    public function renameFolder(int $userId, int $dirId, string $newName): OperationResult
     {
-        $folderPath = $this->fsRepo->getPathById($dirId);
+        $folderPath = $this->fsRepo->getPathById($dirId, $userId);
         if ($folderPath === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
 
         if ($this->diskStorage->renameDir($userId, $newName, $folderPath)) {
@@ -53,9 +53,9 @@ class FileSystemService
         }
     }
 
-    public function deleteFolder(int $userId, int $dirId)
+    public function deleteFolder(int $userId, int $dirId): OperationResult
     {
-        $folderPath = $this->fsRepo->getPathById($dirId);
+        $folderPath = $this->fsRepo->getPathById($dirId, $userId);
         if ($folderPath === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
 
         if ($this->diskStorage->deleteDir($userId, $folderPath)) {
