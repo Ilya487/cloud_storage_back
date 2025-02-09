@@ -12,28 +12,9 @@ class FolderController implements ControllerInterface
 {
     public function __construct(private Request $request, private Response $response, private AuthenticationInterface $authService, private FileSystemService $fsService) {}
 
-    public function resolve(): void
-    {
-        switch ($this->request->method) {
-            case 'POST':
-                $this->create();
-                break;
+    public function resolve(): void {}
 
-            case 'GET':
-                $this->getFolderContent();
-                break;
-
-            case 'PATCH':
-                $this->renameFolder();
-                break;
-
-            case 'DELETE':
-                $this->delete();
-                break;
-        }
-    }
-
-    private function create()
+    public function create()
     {
         $data = $this->request->json();
 
@@ -50,7 +31,7 @@ class FolderController implements ControllerInterface
         }
     }
 
-    private function getFolderContent()
+    public function getFolderContent()
     {
         $userId = $this->authService->getAuthUser()->getId();
         $dirId = $this->request->get('dirId') ?: null;
@@ -60,7 +41,7 @@ class FolderController implements ControllerInterface
         else $this->response->setStatusCode(400)->sendJson($result->errors);
     }
 
-    private function renameFolder()
+    public function renameFolder()
     {
         $data = $this->request->json();
 
@@ -74,7 +55,7 @@ class FolderController implements ControllerInterface
         } else $this->response->setStatusCode(400)->sendJson($renameRes->errors);
     }
 
-    private function delete()
+    public function delete()
     {
         $dirId = $this->request->get('dirId');
         $userId = $this->authService->getAuthUser()->getId();

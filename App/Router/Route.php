@@ -5,19 +5,14 @@ namespace App\Router;
 use App\Controllers\ControllerInterface;
 use App\Http\Middleware\MiddlewareInterface;
 use Exception;
-use ReflectionClass;
 
 class Route
 {
     private string $method;
 
-    public function __construct(private string $endPoint, string $method, public readonly string $controllerClassName, public readonly array $middlewares = [])
+    public function __construct(private string $endPoint, string $method, public readonly ControllerSetup $controllerSetup, public readonly array $middlewares = [])
     {
         $this->method = strtolower($method);
-
-        if (!is_subclass_of($controllerClassName, ControllerInterface::class)) {
-            throw new Exception($controllerClassName . ' не является Controller');
-        }
 
         foreach ($middlewares as $middleware) {
             if (is_array($middleware)) {

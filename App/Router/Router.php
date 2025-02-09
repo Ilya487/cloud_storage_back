@@ -47,7 +47,7 @@ class Router
         foreach ($this->routes as $route) {
             if ($route->match($method, $uri)) {
                 $this->resolveMiddlewares($route->middlewares);
-                $this->resolveController($route->controllerClassName);
+                $this->resolveController($route->controllerSetup);
             }
         }
     }
@@ -66,9 +66,9 @@ class Router
         }
     }
 
-    private function resolveController(string $className)
+    private function resolveController(ControllerSetup $controllerSetup)
     {
-        $controller = $this->container->resolve($className);
-        $controller->resolve();
+        $controller = $this->container->resolve($controllerSetup->controllerClassName);
+        call_user_func([$controller, $controllerSetup->method]);
     }
 }
