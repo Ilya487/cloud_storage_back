@@ -5,7 +5,7 @@ namespace App\Http\Middleware\ValidationMiddlewares;
 use App\Http\Middleware\MiddlewareInterface;
 use App\Validators\FileSystemNameValidator;
 
-class FolderValidationMiddleware extends ValidationMiddleware implements MiddlewareInterface
+class FileSytemValidationMiddleware extends ValidationMiddleware implements MiddlewareInterface
 {
     public function handle() {}
 
@@ -39,5 +39,11 @@ class FolderValidationMiddleware extends ValidationMiddleware implements Middlew
     public function deleteFolder()
     {
         $this->validate(self::REQUIRE | self::INT, 'dirId', self::GET);
+    }
+
+    public function moveItem()
+    {
+        $this->validate(self::REQUIRE | self::INT, 'itemId', self::JSON);
+        $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'toDirId', self::JSON);
     }
 }

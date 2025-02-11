@@ -13,10 +13,11 @@ use App\Core\DiContainer\ContainerParam;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
 use App\Http\Middleware\OptionsRequestMiddleware;
-use App\Http\Middleware\ValidationMiddlewares\FolderValidationMiddleware;
+use App\Http\Middleware\ValidationMiddlewares\FileSytemValidationMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\UserValidationMiddleware;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\UserRepository;
+use App\Router\ControllerSetup;
 use App\Router\Route;
 use App\Router\Router;
 use App\Storage\DiskStorage;
@@ -41,15 +42,16 @@ function executeApp()
 
     $router->setGlobalMiddleware(OptionsRequestMiddleware::class);
     $router->setRoutes([
-        new Route('/signup', 'POST', SignUpController::class, [GuestMiddleware::class, [UserValidationMiddleware::class, 'signup']]),
-        new Route('/signin', 'POST', SignInController::class, [GuestMiddleware::class, [UserValidationMiddleware::class, 'signin']]),
-        new Route('/check-auth', 'GET', AuthCheckController::class),
-        new Route('/logout', 'POST', LogOutController::class, [AuthMiddleware::class]),
+        new Route('/signup', 'POST', new ControllerSetup(SignUpController::class), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signup']]),
+        new Route('/signin', 'POST', new ControllerSetup(SignInController::class), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signin']]),
+        new Route('/check-auth', 'GET', new ControllerSetup(AuthCheckController::class)),
+        new Route('/logout', 'POST', new ControllerSetup(LogOutController::class), [AuthMiddleware::class]),
 
-        new Route('/folder', 'POST', FolderController::class, [AuthMiddleware::class, [FolderValidationMiddleware::class, 'create']]),
-        new Route('/folder', 'GET', FolderController::class, [AuthMiddleware::class, [FolderValidationMiddleware::class, 'getContent']]),
-        new Route('/folder/rename', 'PATCH', FolderController::class, [AuthMiddleware::class, [FolderValidationMiddleware::class, 'renameFolder']]),
-        new Route('/folder/delete', 'DELETE', FolderController::class, [AuthMiddleware::class, [FolderValidationMiddleware::class, 'deleteFolder']]),
+        new Route('/folder', 'POST', new ControllerSetup(FolderController::class, 'create'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'create']]),
+        new Route('/folder', 'GET', new ControllerSetup(FolderController::class, 'getFolderContent'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'getContent']]),
+        new Route('/folder/rename', 'PATCH', new ControllerSetup(FolderController::class, 'renameFolder'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'renameFolder']]),
+        new Route('/folder/delete', 'DELETE', new ControllerSetup(FolderController::class, 'delete'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'deleteFolder']]),
+        new Route('/folder/move', 'PATCH', new ControllerSetup(FolderController::class, 'moveFolder'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'moveItem']]),
     ]);
     $router->resolve();
 }

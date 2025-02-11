@@ -65,4 +65,16 @@ class FolderController implements ControllerInterface
         if ($deleteResult->success) $this->response->setStatusCode(200)->sendJson($deleteResult->data);
         else $this->response->setStatusCode(400)->sendJson($deleteResult->errors);
     }
+
+    public function moveFolder()
+    {
+        $dirId = $this->request->json()['itemId'];
+        $toDirId = $this->request->json()['toDirId'] ?: null;
+        $userId = $this->authService->getAuthUser()->getId();
+
+        $moveResult = $this->fsService->moveFolder($userId, $dirId, $toDirId);
+
+        if ($moveResult->success) $this->response->setStatusCode(200)->sendJson($moveResult->data);
+        else $this->response->setStatusCode(400)->sendJson($moveResult->errors);
+    }
 }
