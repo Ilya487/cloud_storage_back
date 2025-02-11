@@ -3,6 +3,9 @@
 namespace App\Storage;
 
 use Exception;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 class DiskStorage
 {
@@ -23,33 +26,61 @@ class DiskStorage
 
     public function initializeUserFolder(int $userId): bool
     {
-        $res = mkdir($this->getFullPath($userId));
+        $res = mkdir($this->getFullPath($userId, ''));
         return $res;
     }
 
     public function createDir(int $userId, string $dirName, string $path = '/'): bool
     {
         $path = $this->normalizePath($path);
-        $path = $userId . $path . $dirName;
+        $path = $path . $dirName;
 
-        return mkdir($this->getFullPath($path));
+        return mkdir($this->getFullPath($userId, $path));
     }
 
     public function renameDir(int $userId, string $newName, string $path): bool
     {
-        $oldFullPath = $this->getFullPath($userId . $this->normalizePath($path));
-        $updatedFullPath = preg_replace('/(?<=\/)[^\/]+(?=\/$)/', $newName, $oldFullPath);
+        $oldFullPath = $this->getFullPath($userId, $path);
+        $updatedFullPath = dirname($oldFullPath) . "/$newName";
 
         return rename($oldFullPath, $updatedFullPath);
     }
 
-    private function getFullPath(string $partPath): string
+    public function deleteDir(int $userId, string $path): bool
     {
-        $partPath = $this->normalizePath($partPath);
-        return $this->storagePath . $partPath;
+        $fullPath = $this->getFullPath($userId, $path);
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($fullPath, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $path => $obj) {
+            if ($obj->isFile()) unlink($path);
+            if ($obj->isDir()) rmdir($path);
+        }
+
+        return rmdir($fullPath);
     }
 
-    private function normalizePath(string $path): string
+    public function moveItem(int $userId, string $currentPath, string $pathToMove)
+    {
+        $currentPath = $this->getFullPath($userId, $currentPath);
+        $pathToMove = $this->getFullPath($userId, $pathToMove);
+
+        $updatedPath = "$pathToMove/" . basename($currentPath);
+
+        return rename($currentPath, $updatedPath);
+    }
+
+    private function getFullPath(int $userId, string $partPath): string
+    {
+        $partPath = "/$userId" . $this->normalizePath($partPath, false);
+        $fullPath =  $this->storagePath . $partPath;
+
+        return $fullPath;
+    }
+
+    private function normalizePath(string $path, bool $processLastSlash = true): string
     {
         if (strlen($path) == 0) return '/';
 
@@ -58,7 +89,7 @@ class DiskStorage
             $path = '/' . $path;
         }
 
-        if ($path[-1] !== '/') {
+        if ($processLastSlash && $path[-1] !== '/') {
             $path = $path . '/';
         }
         return $path;

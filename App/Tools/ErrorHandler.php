@@ -19,6 +19,7 @@ class ErrorHandler
             (new Response)->setStatusCode(500)->sendJson(['message' => 'Произошла непредвиденная ошибка. Попробуйте еще раз позднее']);
         } catch (Exception $error) {
             self::writeLog($error);
+            (new Response)->setStatusCode(500)->sendJson(['message' => 'Произошла непредвиденная ошибка. Попробуйте еще раз позднее']);
         }
     }
 

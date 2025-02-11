@@ -46,6 +46,12 @@ abstract class BaseRepository
         $this->executeQuery($query, $columnValues);
     }
 
+    protected function delete(string $query, array $columnValues): int
+    {
+        $stmt = $this->executeQuery($query, $columnValues);
+        return $stmt->rowCount();
+    }
+
     protected function beginTransaction()
     {
         $this->pdo->beginTransaction();

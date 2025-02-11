@@ -12,24 +12,9 @@ class FolderController implements ControllerInterface
 {
     public function __construct(private Request $request, private Response $response, private AuthenticationInterface $authService, private FileSystemService $fsService) {}
 
-    public function resolve(): void
-    {
-        switch ($this->request->method) {
-            case 'POST':
-                $this->create();
-                break;
+    public function resolve(): void {}
 
-            case 'GET':
-                $this->getFolderContent();
-                break;
-
-            case 'PATCH':
-                $this->renameFolder();
-                break;
-        }
-    }
-
-    private function create()
+    public function create()
     {
         $data = $this->request->json();
 
@@ -46,7 +31,7 @@ class FolderController implements ControllerInterface
         }
     }
 
-    private function getFolderContent()
+    public function getFolderContent()
     {
         $userId = $this->authService->getAuthUser()->getId();
         $dirId = $this->request->get('dirId') ?: null;
@@ -56,7 +41,7 @@ class FolderController implements ControllerInterface
         else $this->response->setStatusCode(400)->sendJson($result->errors);
     }
 
-    private function renameFolder()
+    public function renameFolder()
     {
         $data = $this->request->json();
 
@@ -68,5 +53,28 @@ class FolderController implements ControllerInterface
         if ($renameRes->success) {
             $this->response->sendJson($renameRes->data);
         } else $this->response->setStatusCode(400)->sendJson($renameRes->errors);
+    }
+
+    public function delete()
+    {
+        $dirId = $this->request->get('dirId');
+        $userId = $this->authService->getAuthUser()->getId();
+
+        $deleteResult = $this->fsService->deleteFolder($userId, $dirId);
+
+        if ($deleteResult->success) $this->response->setStatusCode(200)->sendJson($deleteResult->data);
+        else $this->response->setStatusCode(400)->sendJson($deleteResult->errors);
+    }
+
+    public function moveFolder()
+    {
+        $dirId = $this->request->json()['itemId'];
+        $toDirId = $this->request->json()['toDirId'] ?: null;
+        $userId = $this->authService->getAuthUser()->getId();
+
+        $moveResult = $this->fsService->moveFolder($userId, $dirId, $toDirId);
+
+        if ($moveResult->success) $this->response->setStatusCode(200)->sendJson($moveResult->data);
+        else $this->response->setStatusCode(400)->sendJson($moveResult->errors);
     }
 }
