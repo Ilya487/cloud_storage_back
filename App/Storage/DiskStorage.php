@@ -2,28 +2,13 @@
 
 namespace App\Storage;
 
-use Exception;
 use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use App\Storage\BaseStorage;
 
-class DiskStorage
+class DiskStorage extends BaseStorage
 {
-    private string $storagePath;
-
-    public function __construct(string $storagePath)
-    {
-        if (!is_dir($storagePath)) throw new Exception('Некорретный путь к хранилищу!');
-        $storagePath = str_replace('\\', '/', $storagePath);
-
-        $lastChar = $storagePath[mb_strlen($storagePath) - 1];
-        if ($lastChar == '/') {
-            $storagePath = substr($storagePath, 0, mb_strlen($storagePath) - 1);
-        }
-
-        $this->storagePath = $storagePath;
-    }
-
     public function initializeUserFolder(int $userId): bool
     {
         $res = mkdir($this->getFullPath($userId, ''));
@@ -70,28 +55,5 @@ class DiskStorage
         $updatedPath = "$pathToMove/" . basename($currentPath);
 
         return rename($currentPath, $updatedPath);
-    }
-
-    private function getFullPath(int $userId, string $partPath): string
-    {
-        $partPath = "/$userId" . $this->normalizePath($partPath, false);
-        $fullPath =  $this->storagePath . $partPath;
-
-        return $fullPath;
-    }
-
-    private function normalizePath(string $path, bool $processLastSlash = true): string
-    {
-        if (strlen($path) == 0) return '/';
-
-        $path = str_replace('\\', '/', $path);
-        if ($path[0] !== '/') {
-            $path = '/' . $path;
-        }
-
-        if ($processLastSlash && $path[-1] !== '/') {
-            $path = $path . '/';
-        }
-        return $path;
     }
 }
