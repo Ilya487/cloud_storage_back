@@ -58,6 +58,14 @@ class FileSystemRepository extends BaseRepository
         $this->delete($query, ['id' => $itemId, 'user_id' => $userId]);
     }
 
+    public function moveFolder(int $userId, string $currentPath, string $updatedPath, ?int $toDirId = null)
+    {
+        $this->beginTransaction();
+        $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
+        $this->moveInnerItems($userId, $currentPath, $updatedPath);
+        $this->submitTransaction();
+    }
+
     private function getRootContent(int $userId): array|false
     {
         $query = $this->queryBuilder->select()->where('user_id', QueryBuilder::EQUAL)->and('parent_id', QueryBuilder::IS_NULL)->build();
@@ -93,6 +101,32 @@ class FileSystemRepository extends BaseRepository
             'updatedPath' => $updatedPath,
             'oldPath' => $path . '/%',
             'user_id' => $userId,
+        ]);
+    }
+
+    private function moveTopItem(int $userId, string $currentPath, string $updatedPath, ?int $toDirId)
+    {
+        $query = $this->queryBuilder->update(['parent_id', 'path'])->where('user_id', QueryBuilder::EQUAL)->and('path', QueryBuilder::LIKE, 'currentPath')->build();
+        $this->update($query, [
+            'parent_id' => $toDirId,
+            'path' => $updatedPath,
+            'user_id' => $userId,
+            'currentPath' => $currentPath
+        ]);
+    }
+
+    private function moveInnerItems(int $userId, string $currentPath, string $updatedPath)
+    {
+        $currentPathLen = mb_strlen($currentPath) + 1;
+        $query = "UPDATE file_system
+        SET path = CONCAT(:updatedPath, SUBSTR(path, $currentPathLen))
+        WHERE path LIKE :pathPattern AND user_id = :user_id;
+        ";
+
+        $this->update($query, [
+            'updatedPath' => $updatedPath,
+            'pathPattern' => $currentPath . '/%',
+            'user_id' => $userId
         ]);
     }
 }
