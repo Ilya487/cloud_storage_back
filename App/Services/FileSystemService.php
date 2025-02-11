@@ -66,4 +66,27 @@ class FileSystemService
             return new OperationResult(false, null, ['message' => 'Не удалось удалить папку']);
         }
     }
+
+    public function moveFolder(int $userId, int $dirId, ?int $toDirId = null)
+    {
+        if ($dirId == $toDirId) {
+            return new OperationResult(false, null, ['message' => 'Попытка переместить в ту же самую папку']);
+        }
+
+        $toDirPath = is_null($toDirId) ? '' : $this->fsRepo->getPathById($toDirId, $userId);
+        $currentPath = $this->fsRepo->getPathById($dirId, $userId);
+
+        $updatedPath = "$toDirPath/" . basename($currentPath);
+
+        if ($currentPath == $updatedPath) {
+            return new OperationResult(false, null, ['message' => 'Попытка переместить в ту же самую папку']);
+        }
+        if ($this->diskStorage->moveItem($userId, $currentPath, $toDirPath)) {
+            $this->fsRepo->moveFolder($userId, $currentPath, $updatedPath, $toDirId);
+
+            return new OperationResult(true, ['updatedPath' => $updatedPath]);
+        } else {
+            return new OperationResult(false, null, ['message' => 'Не удалось переместить папку']);
+        }
+    }
 }
