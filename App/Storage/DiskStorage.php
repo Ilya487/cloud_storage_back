@@ -56,4 +56,12 @@ class DiskStorage extends BaseStorage
 
         return rename($currentPath, $updatedPath);
     }
+
+    private function getFullPath(int $userId, string $partPath): string
+    {
+        $partPath = "/$userId" . $this->normalizePath($partPath, false);
+        $fullPath =  $this->storagePath . $partPath;
+
+        return $fullPath;
+    }
 }

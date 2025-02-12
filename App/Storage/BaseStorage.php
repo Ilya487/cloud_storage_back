@@ -26,14 +26,6 @@ class BaseStorage
         $this->storagePath = $storagePath;
     }
 
-    protected function getFullPath(int $userId, string $partPath): string
-    {
-        $partPath = "/$userId" . $this->normalizePath($partPath, false);
-        $fullPath =  $this->storagePath . $partPath;
-
-        return $fullPath;
-    }
-
     protected function normalizePath(string $path, bool $processLastSlash = true): string
     {
         if (strlen($path) == 0) return '/';
