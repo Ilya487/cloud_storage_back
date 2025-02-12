@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Tools\QueryBuilder;
 use App\Repositories\BaseRepository;
+use PDO;
 
 class FileSystemRepository extends BaseRepository
 {
@@ -64,6 +65,20 @@ class FileSystemRepository extends BaseRepository
         $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
         $this->moveInnerItems($userId, $currentPath, $updatedPath);
         $this->submitTransaction();
+    }
+
+    public function isNameAvailable(int $userId, string $name, ?int $dirId = null)
+    {
+        $query = $this->queryBuilder->count()->where('user_id', '=')->and('name', '=');
+        if (is_null($dirId)) {
+            $query = $query->and('parent_id', QueryBuilder::IS_NULL)->build();
+            $params = ['user_id' => $userId, 'name' => $name];
+        } else {
+            $query = $query->and('parent_id', '=')->build();
+            $params = ['user_id' => $userId, 'name' => $name, 'parent_id' => $dirId];
+        }
+
+        return $this->fetchOne($query, $params, PDO::FETCH_NUM)[0] == 0;
     }
 
     private function getRootContent(int $userId): array|false

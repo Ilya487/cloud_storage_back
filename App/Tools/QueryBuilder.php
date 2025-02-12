@@ -47,6 +47,13 @@ class QueryBuilder
         return $this;
     }
 
+    public function count()
+    {
+        $this->resetQuery();
+        $this->query .= "SELECT COUNT(*) FROM $this->tableName ";
+        return $this;
+    }
+
     public function where(string $field, string $operation, string $value = '')
     {
         $this->query .= str_contains($this->query, 'WHERE') ? '' : 'WHERE ';
