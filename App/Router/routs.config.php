@@ -5,9 +5,11 @@ use App\Controllers\FolderController;
 use App\Controllers\LogOutController;
 use App\Controllers\SignInController;
 use App\Controllers\SignUpController;
+use App\Controllers\UploadController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\FileSytemValidationMiddleware;
+use App\Http\Middleware\ValidationMiddlewares\UploadValidationMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\UserValidationMiddleware;
 use App\Router\ControllerSetup;
 use App\Router\Route;
@@ -23,4 +25,6 @@ return [
     Route::patch('/folder/rename', new ControllerSetup(FolderController::class, 'renameFolder'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'renameFolder']]),
     Route::delete('/folder/delete', new ControllerSetup(FolderController::class, 'delete'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'deleteFolder']]),
     Route::patch('/folder/move', new ControllerSetup(FolderController::class, 'moveFolder'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'moveItem']]),
+
+    Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'initUpload']])
 ];
