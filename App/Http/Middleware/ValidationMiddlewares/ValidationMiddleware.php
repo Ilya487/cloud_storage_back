@@ -15,6 +15,7 @@ abstract class ValidationMiddleware implements MiddlewareInterface
     const INT_OR_EMPTY = 8;
     const JSON = 'json';
     const GET = 'get';
+    const HEADER = 'header';
 
     private array $validators = [
         self::REQUIRE => 'checkRequire',
@@ -52,6 +53,8 @@ abstract class ValidationMiddleware implements MiddlewareInterface
             $value = $data[$name];
         } else if ($source == self::GET) {
             $value = $this->request->get($name);
+        } elseif ($source == self::HEADER) {
+            $value = $this->request->header($name);
         } else throw new Exception('Указан неизвестный источник');
 
         if ($this->checkNonRequireValue($rules, $value)) {
