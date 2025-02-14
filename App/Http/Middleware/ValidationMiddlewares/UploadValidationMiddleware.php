@@ -11,7 +11,6 @@ class UploadValidationMiddleware extends ValidationMiddleware implements Middlew
     public function initUpload()
     {
         $this->validate(self::REQUIRE | self::STRING, 'fileName', self::JSON);
-        $this->validate(self::REQUIRE | self::STRING, 'fileType', self::JSON);
         $this->validate(self::REQUIRE | self::INT, 'fileSize', self::JSON);
         $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'destinationDirId', self::JSON);
     }

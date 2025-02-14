@@ -18,11 +18,10 @@ class UploadController implements ControllerInterface
     {
         $userId = $this->authService->getAuthUser()->getId();
         $fileName = $this->request->json()['fileName'];
-        $fileType = $this->request->json()['fileType'];
         $fileSize = $this->request->json()['fileSize'];
         $destinationDirId = $this->request->json()['destinationDirId'] ?: null;
 
-        $initResult = $this->uploadService->initializeUploadSession($userId, $fileName, $fileType, $fileSize, $destinationDirId);
+        $initResult = $this->uploadService->initializeUploadSession($userId, $fileName, $fileSize, $destinationDirId);
         if ($initResult->success) {
             $this->response->sendJson($initResult->data);
         } else {
