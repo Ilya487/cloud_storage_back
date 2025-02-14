@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\UploadSession;
 use App\Repositories\BaseRepository;
 
 class UploadSessionRepository  extends BaseRepository
@@ -21,5 +22,18 @@ class UploadSessionRepository  extends BaseRepository
     {
         $query = $this->queryBuilder->delete()->where('user_id', '=')->and('id', '=')->build();
         $this->delete($query, ['user_id' => $userId, 'id' => $sessionId]);
+    }
+
+    public function getById(int $userId, int $sessionId): UploadSession
+    {
+        $query = $this->queryBuilder->select()->where('user_id', '=')->and('id', '=')->build();
+        $data = $this->fetchOne($query, ['user_id' => $userId, 'id' => $sessionId]);
+        return UploadSession::createFromArr($data);
+    }
+
+    public function updateCompletedChunks(int $uploadSessionId, int $completedChunks)
+    {
+        $query = $this->queryBuilder->update(['completed_chunks'])->where('id', '=')->build();
+        $this->update($query, ['completed_chunks' => $completedChunks, 'id' => $uploadSessionId]);
     }
 }

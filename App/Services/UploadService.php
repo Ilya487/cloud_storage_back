@@ -28,4 +28,23 @@ class UploadService
 
         return new OperationResult(true, ['sessionId' => $uploadSessionId, 'chunkSize' => self::CHUNK_SIZE, 'chunksCount' => $totalChunks]);
     }
+
+    public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, string $data)
+    {
+        $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
+
+        if (!$this->uploadsStorage->uploadChunk($uploadSessionId, $chunkNum, $data)) {
+            return new OperationResult(false, null, ['message' => 'Не удалось загрузить чанк']);
+        }
+
+        $completedChunksCount = $uploadSession->incrementCompletedChunks();
+        $this->uploadSessionsRepo->updateCompletedChunks($uploadSessionId, $completedChunksCount);
+
+        if ($uploadSession->isUploadComplete()) {
+            echo 'norm';
+            die;
+        } else {
+            return new OperationResult(true, ['progress' => $uploadSession->getProgress()]);
+        }
+    }
 }
