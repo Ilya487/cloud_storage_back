@@ -28,4 +28,19 @@ class UploadController implements ControllerInterface
             $this->response->setStatusCode(400)->sendJson($initResult->errors);
         }
     }
+
+    public function uploadChunk()
+    {
+        $userId = $this->authService->getAuthUser()->getId();
+        $uploadSessionId = $this->request->header('X-Session-Id');
+        $chunkNum = $this->request->header('X-Chunk-Num');
+        $data  = $this->request->body();
+
+        $res = $this->uploadService->uploadChunk($userId, $uploadSessionId, $chunkNum, $data);
+        if ($res->success) {
+            $this->response->sendJson($res->data);
+        } else {
+            $this->response->setStatusCode(400)->sendJson($res->errors);
+        }
+    }
 }
