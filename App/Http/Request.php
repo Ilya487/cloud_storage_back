@@ -40,4 +40,9 @@ class Request
             return $data;
         } else return null;
     }
+
+    public function body(): string
+    {
+        return file_get_contents('php://input');
+    }
 }

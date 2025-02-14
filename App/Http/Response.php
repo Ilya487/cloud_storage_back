@@ -60,5 +60,6 @@ class Response
         header('Access-Control-Allow-Credentials: true');
         header("Access-Control-Allow-Methods: GET, POST, PATCH, DELETE");
         header('Access-Control-Max-Age: 3600');
+        $this->setHeader('Access-Control-Allow-Headers', 'X-Session-Id, X-Chunk-Num');
     }
 }
