@@ -3,6 +3,9 @@
 namespace App\Storage;
 
 use Exception;
+use FilesystemIterator;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 class BaseStorage
 {
@@ -24,6 +27,20 @@ class BaseStorage
         }
 
         $this->storagePath = $storagePath;
+    }
+
+    protected function deleteDirectoryRecursively(string $dirPath): bool
+    {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dirPath, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $path => $obj) {
+            if ($obj->isFile()) unlink($path);
+            if ($obj->isDir()) rmdir($path);
+        }
+
+        return rmdir($dirPath);
     }
 
     protected function normalizePath(string $path, bool $processLastSlash = true): string

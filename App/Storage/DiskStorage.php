@@ -2,9 +2,6 @@
 
 namespace App\Storage;
 
-use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use App\Storage\BaseStorage;
 
 class DiskStorage extends BaseStorage
@@ -35,16 +32,7 @@ class DiskStorage extends BaseStorage
     {
         $fullPath = $this->getFullPath($userId, $path);
 
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($fullPath, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST
-        );
-        foreach ($iterator as $path => $obj) {
-            if ($obj->isFile()) unlink($path);
-            if ($obj->isDir()) rmdir($path);
-        }
-
-        return rmdir($fullPath);
+        return $this->deleteDirectoryRecursively($fullPath);
     }
 
     public function moveItem(int $userId, string $currentPath, string $pathToMove)
@@ -55,6 +43,20 @@ class DiskStorage extends BaseStorage
         $updatedPath = "$pathToMove/" . basename($currentPath);
 
         return rename($currentPath, $updatedPath);
+    }
+
+    public function putContentInFile(int $userId, string $dirPath, string $filename, string $data = '', bool $clear = false): bool
+    {
+        $fullPath = $this->getFullPath($userId, $dirPath) . "/$filename";
+        $res = file_put_contents($fullPath, $data, $clear == true ? 0 : FILE_APPEND);
+        if ($res === false) return false;
+        else return true;
+    }
+
+    public function getFileSize(int $userId, string $path): int|false
+    {
+        $fullPath = $this->getFullPath($userId, $path);
+        return filesize($fullPath);
     }
 
     private function getFullPath(int $userId, string $partPath): string
