@@ -26,6 +26,25 @@ class FileSystemRepository extends BaseRepository
         return $newDirId;
     }
 
+    /**
+     * @return string new file id
+     */
+    public function createFile(int $userId, string $fileName, string $path, int $parentDirId = null, int $fileSize): string
+    {
+        $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path', 'size'])->build();
+        $fileId = $this->insert($query, [
+            'name' => $fileName,
+            'user_id' => $userId,
+            'created_at' => date('Y-m-d'),
+            'parent_id' => $parentDirId,
+            'type' => 'file',
+            'path' => $path,
+            'size' => $fileSize
+        ]);
+
+        return $fileId;
+    }
+
     public function getPathById(int $id, int $userId): null|string|false
     {
         $query = $this->queryBuilder->select(['path'])->where('id', QueryBuilder::EQUAL)->and('user_id', QueryBuilder::EQUAL)->build();

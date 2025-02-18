@@ -24,11 +24,11 @@ class UploadSessionRepository  extends BaseRepository
         $this->delete($query, ['user_id' => $userId, 'id' => $sessionId]);
     }
 
-    public function getById(int $userId, int $sessionId): UploadSession
+    public function getById(int $userId, int $sessionId): UploadSession|false
     {
         $query = $this->queryBuilder->select()->where('user_id', '=')->and('id', '=')->build();
         $data = $this->fetchOne($query, ['user_id' => $userId, 'id' => $sessionId]);
-        return UploadSession::createFromArr($data);
+        return $data == false ? false : UploadSession::createFromArr($data);
     }
 
     public function updateCompletedChunks(int $uploadSessionId, int $completedChunks)
