@@ -11,7 +11,7 @@ use App\Storage\UploadsStorage;
 
 class UploadService
 {
-    private const CHUNK_SIZE = 5242880; //5mb
+    private const CHUNK_SIZE = 7340032; //7mb
 
     public function __construct(
         private FileSystemRepository $fsRepo,
@@ -55,6 +55,18 @@ class UploadService
         }
 
         return new OperationResult(true, ['progress' => $uploadSession->getProgress()]);
+    }
+
+    public function cancelUploadSession(int $userId, int $uploadSessionId): OperationResult
+    {
+        $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
+        if (!$uploadSession || $uploadSession->userId !== $userId) {
+            return new OperationResult(false, null, ['message' => 'Сессия с таким айди не найдена']);
+        }
+
+        $this->uploadsStorage->deleteSessionDir($uploadSession->id);
+        $this->uploadSessionsRepo->deleteSession($userId, $uploadSession->id);
+        return new OperationResult(true);
     }
 
     private function finalizeUpload(UploadSession $uploadSession): OperationResult

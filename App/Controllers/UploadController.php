@@ -43,4 +43,14 @@ class UploadController implements ControllerInterface
             $this->response->setStatusCode(400)->sendJson($res->errors);
         }
     }
+
+    public function cancelUpload()
+    {
+        $userId = $this->authService->getAuthUser()->getId();
+        $uploadSessionId = $this->request->get('sessionId');
+
+        $res = $this->uploadService->cancelUploadSession($userId, $uploadSessionId);
+        if ($res->success) $this->response->setStatusCode(204)->send();
+        else $this->response->setStatusCode(400)->sendJson($res->errors);
+    }
 }

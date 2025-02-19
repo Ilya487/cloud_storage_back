@@ -26,4 +26,9 @@ class UploadValidationMiddleware extends ValidationMiddleware implements Middlew
         $this->validate(self::REQUIRE | self::INT, 'X-Session-Id', self::HEADER);
         $this->validate(self::REQUIRE | self::INT, 'X-Chunk-Num', self::HEADER);
     }
+
+    public function cancelUpload()
+    {
+        $this->validate(self::REQUIRE | self::INT, 'sessionId', self::GET);
+    }
 }
