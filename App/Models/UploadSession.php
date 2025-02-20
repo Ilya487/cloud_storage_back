@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use DateTime;
+
 class UploadSession
 {
     public function __construct(
@@ -9,6 +11,7 @@ class UploadSession
         public readonly string $fileName,
         public readonly int $userId,
         public readonly ?int $destinationDirId,
+        public readonly DateTime $lastUpdated,
         private int $completedChunksCount,
         public readonly int $totalChunksCount
     ) {}
@@ -20,6 +23,7 @@ class UploadSession
             $data['filename'],
             $data['user_id'],
             $data['destination_dir_id'],
+            new DateTime($data['last_updated_at']),
             $data['completed_chunks'],
             $data['total_chunks']
         );

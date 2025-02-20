@@ -36,4 +36,18 @@ class UploadSessionRepository  extends BaseRepository
         $query = $this->queryBuilder->update(['completed_chunks'])->where('id', '=')->build();
         $this->update($query, ['completed_chunks' => $completedChunks, 'id' => $uploadSessionId]);
     }
+
+    /**
+     * @return UploadSession[]
+     */
+    public function getUserSessions(int $userId): array
+    {
+        $query = $this->queryBuilder->select()->where('user_id', '=')->build();
+        $data = $this->fetchAll($query, ['user_id' => $userId]);
+        $res = [];
+        foreach ($data as $session) {
+            $res[] = UploadSession::createFromArr($session);
+        }
+        return $res;
+    }
 }

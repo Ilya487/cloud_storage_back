@@ -12,6 +12,7 @@ use App\Storage\UploadsStorage;
 class UploadService
 {
     private const CHUNK_SIZE = 7340032; //7mb
+    private const SESSION_MAX_LIFETIME = 300; //5min
 
     public function __construct(
         private FileSystemRepository $fsRepo,
@@ -22,6 +23,7 @@ class UploadService
 
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
     {
+        $this->deleteExpiredSessions($userId);
         if (!$this->fsRepo->isNameAvailable($userId, $fileName, $destinationDirId)) {
             return new OperationResult(false, null, ['message' => 'Файл с таким именем уже существует!']);
         }
@@ -67,6 +69,17 @@ class UploadService
         $this->uploadsStorage->deleteSessionDir($uploadSession->id);
         $this->uploadSessionsRepo->deleteSession($userId, $uploadSession->id);
         return new OperationResult(true);
+    }
+
+    private function deleteExpiredSessions($userId)
+    {
+        $sessions = $this->uploadSessionsRepo->getUserSessions($userId);
+        foreach ($sessions as $session) {
+            $timeDiff = time() - $session->lastUpdated->getTimestamp();
+            if ($timeDiff >= self::SESSION_MAX_LIFETIME) {
+                $this->cancelUploadSession($session->userId, $session->id);
+            }
+        }
     }
 
     private function finalizeUpload(UploadSession $uploadSession): OperationResult
