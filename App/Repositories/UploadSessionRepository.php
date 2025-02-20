@@ -4,6 +4,8 @@ namespace App\Repositories;
 
 use App\Models\UploadSession;
 use App\Repositories\BaseRepository;
+use App\Tools\QueryBuilder;
+use PDO;
 
 class UploadSessionRepository  extends BaseRepository
 {
@@ -35,6 +37,26 @@ class UploadSessionRepository  extends BaseRepository
     {
         $query = $this->queryBuilder->update(['completed_chunks'])->where('id', '=')->build();
         $this->update($query, ['completed_chunks' => $completedChunks, 'id' => $uploadSessionId]);
+    }
+
+    public function isNameExist(int $userId, string $fileName, ?int $destinationDirId)
+    {
+        $query = $this->queryBuilder->count()->where('user_id', '=')->and('filename', '=');
+        if (is_null($destinationDirId)) {
+            $query = $query->and('destination_dir_id', QueryBuilder::IS_NULL)->build();
+            $params = ['user_id' => $userId, 'filename' => $fileName];
+        } else {
+            $query = $query->and('destination_dir_id', '=')->build();
+            $params = ['user_id' => $userId, 'filename' => $fileName, 'destination_dir_id' => $destinationDirId];
+        }
+
+        return $this->fetchOne($query, $params, PDO::FETCH_NUM)[0] != 0;
+    }
+
+    public function getUserSessionsCount(int $userId): int
+    {
+        $query = $this->queryBuilder->count()->where('user_id', '=')->build();
+        return $this->fetchOne($query, ['user_id' => $userId], PDO::FETCH_NUM)[0];
     }
 
     /**

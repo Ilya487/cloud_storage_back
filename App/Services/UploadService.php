@@ -12,6 +12,7 @@ use App\Storage\UploadsStorage;
 class UploadService
 {
     private const CHUNK_SIZE = 7340032; //7mb
+    private const MAX_ACTIVE_SESSION_FOR_USER = 3;
     private const SESSION_MAX_LIFETIME = 300; //5min
 
     public function __construct(
@@ -24,7 +25,14 @@ class UploadService
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
     {
         $this->deleteExpiredSessions($userId);
-        if (!$this->fsRepo->isNameAvailable($userId, $fileName, $destinationDirId)) {
+        if ($this->uploadSessionsRepo->getUserSessionsCount($userId) == self::MAX_ACTIVE_SESSION_FOR_USER) {
+            return new OperationResult(false, null, ['message' => 'Вы превысили максимальное количество активных сессий']);
+        }
+
+        if (
+            $this->fsRepo->isNameExist($userId, $fileName, $destinationDirId) ||
+            $this->uploadSessionsRepo->isNameExist($userId, $fileName, $destinationDirId)
+        ) {
             return new OperationResult(false, null, ['message' => 'Файл с таким именем уже существует!']);
         }
 

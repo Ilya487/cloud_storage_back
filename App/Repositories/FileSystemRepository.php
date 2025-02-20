@@ -86,7 +86,7 @@ class FileSystemRepository extends BaseRepository
         $this->submitTransaction();
     }
 
-    public function isNameAvailable(int $userId, string $name, ?int $dirId = null)
+    public function isNameExist(int $userId, string $name, ?int $dirId = null)
     {
         $query = $this->queryBuilder->count()->where('user_id', '=')->and('name', '=');
         if (is_null($dirId)) {
@@ -97,7 +97,7 @@ class FileSystemRepository extends BaseRepository
             $params = ['user_id' => $userId, 'name' => $name, 'parent_id' => $dirId];
         }
 
-        return $this->fetchOne($query, $params, PDO::FETCH_NUM)[0] == 0;
+        return $this->fetchOne($query, $params, PDO::FETCH_NUM)[0] != 0;
     }
 
     private function getRootContent(int $userId): array|false
