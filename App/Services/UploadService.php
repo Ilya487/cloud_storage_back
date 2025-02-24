@@ -29,6 +29,12 @@ class UploadService
             return new OperationResult(false, null, ['message' => 'Вы превысили максимальное количество активных сессий']);
         }
 
+        if (!is_null($destinationDirId)) {
+            if (!$this->fsRepo->checkDirExist($userId, $destinationDirId)) {
+                return new OperationResult(false, null, ['message' => 'Указана неверная папка назначения']);
+            }
+        }
+
         if (
             $this->fsRepo->isNameExist($userId, $fileName, $destinationDirId) ||
             $this->uploadSessionsRepo->isNameExist($userId, $fileName, $destinationDirId)
@@ -43,7 +49,7 @@ class UploadService
             return new OperationResult(false, null, ['message' => 'Не удалась инициализировать сессию загрузки']);
         }
 
-        return new OperationResult(true, ['sessionId' => $uploadSessionId, 'chunkSize' => self::CHUNK_SIZE, 'chunksCount' => $totalChunks]);
+        return new OperationResult(true, ['sessionId' => (int)$uploadSessionId, 'chunkSize' => self::CHUNK_SIZE, 'chunksCount' => $totalChunks]);
     }
 
     public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, string $data): OperationResult

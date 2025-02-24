@@ -72,6 +72,14 @@ class FileSystemRepository extends BaseRepository
         else return $this->getConcreteDirContent($userId, $dirId);
     }
 
+    public function checkDirExist(int $userId, int $dirId)
+    {
+        $query = $this->queryBuilder->count()->where('user_id', '=')->and('type', '=')->and('id', '=')->build();
+        $res = $this->fetchOne($query, ['user_id' => $userId, 'id' => $dirId, 'type' => 'folder'], PDO::FETCH_NUM);
+        if ($res[0] == 0) return false;
+        else return true;
+    }
+
     public function deleteById(int $userId, int $itemId)
     {
         $query = $this->queryBuilder->delete()->where('id', QueryBuilder::EQUAL)->and('user_id', QueryBuilder::EQUAL)->build();
