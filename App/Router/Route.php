@@ -29,6 +29,11 @@ class Route
         return new self($endPoint, 'DELETE', $controllerSetup, $middlewares);
     }
 
+    public static function all(ControllerSetup $controllerSetup)
+    {
+        return new self('*', '*', $controllerSetup);
+    }
+
     public function __construct(private string $endPoint, string $method, public readonly ControllerSetup $controllerSetup, public readonly array $middlewares = [])
     {
         $this->method = strtolower($method);
@@ -55,6 +60,7 @@ class Route
 
     public function match(string $method, string $uri): bool
     {
+        if ($this->method == '*' && $this->endPoint == '*') return true;
         if (strtolower($method) == $this->method && $uri == $this->endPoint) return true;
         else return false;
     }
