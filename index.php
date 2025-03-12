@@ -10,6 +10,7 @@ use App\Repositories\FileSystemRepository;
 use App\Repositories\UploadSessionRepository;
 use App\Repositories\UserRepository;
 use App\Router\Router;
+use App\Storage\ArchiveStorage;
 use App\Storage\DiskStorage;
 use App\Storage\UploadsStorage;
 use App\Tools\DbConnect;
@@ -24,6 +25,7 @@ function executeApp()
     $containerBuilder->share(Session::class);
     $containerBuilder->setParam(new ContainerParam(DiskStorage::class, 'storagePath', 'C:\Users\Илья\Desktop\storage'));
     $containerBuilder->setParam(new ContainerParam(UploadsStorage::class, 'storagePath', 'C:\Users\Илья\Desktop\storage'));
+    $containerBuilder->setParam(new ContainerParam(ArchiveStorage::class, 'storagePath', 'C:\Users\Илья\Desktop\storage'));
     $containerBuilder->setParam(new ContainerParam(UserRepository::class, 'tableName', 'users'));
     $containerBuilder->setParam(new ContainerParam(FileSystemRepository::class, 'tableName', 'file_system'));
     $containerBuilder->setParam(new ContainerParam(UploadSessionRepository::class, 'tableName', 'upload_sessions'));

@@ -1,6 +1,7 @@
 <?php
 
 use App\Controllers\AuthCheckController;
+use App\Controllers\DownloadController;
 use App\Controllers\FolderController;
 use App\Controllers\LogOutController;
 use App\Controllers\NotFoundController;
@@ -9,6 +10,7 @@ use App\Controllers\SignUpController;
 use App\Controllers\UploadController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
+use App\Http\Middleware\ValidationMiddlewares\DownloadValidationMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\FileSytemValidationMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\UploadValidationMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\UserValidationMiddleware;
@@ -30,6 +32,8 @@ return [
     Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'initUpload']]),
     Route::post('/upload/chunk', new ControllerSetup(UploadController::class, 'uploadChunk'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'uploadChunk']]),
     Route::delete('/upload/cancel', new ControllerSetup(UploadController::class, 'cancelUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'cancelUpload']]),
+
+    Route::get('/download', new ControllerSetup(DownloadController::class), [AuthMiddleware::class, DownloadValidationMiddleware::class]),
 
     Route::all(new ControllerSetup(NotFoundController::class))
 ];
