@@ -53,6 +53,13 @@ class DiskStorage extends BaseStorage
         else return true;
     }
 
+    public function getPath(int $userId, string $partPath): string|false
+    {
+        $fullPath = $this->getFullPath($userId, $partPath);
+        if (is_file($fullPath) || is_dir($fullPath)) return $fullPath;
+        else return false;
+    }
+
     public function getFileSize(int $userId, string $path): int|false
     {
         $fullPath = $this->getFullPath($userId, $path);

@@ -6,6 +6,14 @@ use App\Storage\BaseStorage;
 
 class UploadsStorage extends BaseStorage
 {
+    public function __construct(string $storagePath)
+    {
+        parent::__construct($storagePath);
+        if (!is_dir("$storagePath/uploads")) {
+            mkdir("$storagePath/uploads");
+        }
+    }
+
     public function initializeUploadDir($uploadSessionId): bool
     {
         return mkdir($this->getFullPath($uploadSessionId));

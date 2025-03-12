@@ -22,10 +22,6 @@ class BaseStorage
             $lastChar = $path[-1];
         }
 
-        if (!is_dir("$storagePath/uploads")) {
-            mkdir("$storagePath/uploads");
-        }
-
         $this->storagePath = $storagePath;
     }
 

@@ -108,6 +108,14 @@ class FileSystemRepository extends BaseRepository
         return $this->fetchOne($query, $params, PDO::FETCH_NUM)[0] != 0;
     }
 
+    public function getTypeById(int $userId, int $fileId): string|false
+    {
+        $query = $this->queryBuilder->select(['type'])->where('user_id', '=')->and('id', '=')->build();
+        $res =  $this->fetchOne($query, ['user_id' => $userId, 'id' => $fileId], PDO::FETCH_NUM);
+        if ($res === false) return false;
+        else return $res[0];
+    }
+
     private function getRootContent(int $userId): array|false
     {
         $query = $this->queryBuilder->select()->where('user_id', QueryBuilder::EQUAL)->and('parent_id', QueryBuilder::IS_NULL)->build();

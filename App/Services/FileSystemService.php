@@ -4,11 +4,12 @@ namespace App\Services;
 
 use App\DTO\OperationResult;
 use App\Repositories\FileSystemRepository;
+use App\Storage\ArchiveStorage;
 use App\Storage\DiskStorage;
 
 class FileSystemService
 {
-    public function __construct(private DiskStorage $diskStorage, private FileSystemRepository $fsRepo) {}
+    public function __construct(private DiskStorage $diskStorage, private FileSystemRepository $fsRepo, private ArchiveStorage $archiveStorage) {}
 
     public function createFolder(int $userId, string $dirName, ?int $parentDirId = null): OperationResult
     {
@@ -67,7 +68,7 @@ class FileSystemService
         }
     }
 
-    public function moveFolder(int $userId, int $dirId, ?int $toDirId = null)
+    public function moveFolder(int $userId, int $dirId, ?int $toDirId = null): OperationResult
     {
         if ($dirId == $toDirId) {
             return new OperationResult(false, null, ['message' => 'Попытка переместить в ту же самую папку']);
@@ -87,6 +88,25 @@ class FileSystemService
             return new OperationResult(true, ['updatedPath' => $updatedPath]);
         } else {
             return new OperationResult(false, null, ['message' => 'Не удалось переместить папку']);
+        }
+    }
+
+    public function getPathForDownload(int $userId, int $fileId): OperationResult
+    {
+        $type =  $this->fsRepo->getTypeById($userId, $fileId);
+        if (!$type) {
+            return new OperationResult(false, null, ['message' => 'Объект с таким айди не найден', 'code' => 404]);
+        }
+
+        $partPath =  $this->fsRepo->getPathById($fileId, $userId);
+        $fullPath = $this->diskStorage->getPath($userId, $partPath);
+
+        if ($type == 'file') {
+            return new OperationResult(true, ['path' => $fullPath, 'type' => 'file']);
+        } else {
+            $archivePath = $this->archiveStorage->createArchive($userId, $fileId, $fullPath);
+            if (!$archivePath) return new OperationResult(false, null, ['message' => 'Не удалось создать архив для загрузки папки', 'code' => 500]);
+            return new OperationResult(true, ['path' => $archivePath, 'type' => 'folder']);
         }
     }
 }
