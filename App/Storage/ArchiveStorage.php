@@ -23,13 +23,15 @@ class ArchiveStorage extends BaseStorage
     {
         if (!is_dir($path)) return false;
 
-        $zip = $this->getZip($userId, $dirId, basename($path));
+        $dirName = basename($path);
+        $zip = $this->getZip($userId, $dirId, $dirName);
         if ($zip === false) return false;
 
         $iterator = $this->getIterator($path);
 
+        $zip->addEmptyDir($dirName);
         foreach ($iterator as $file) {
-            $relativePath = mb_substr($file->getPathname(), mb_strlen($path) + 1);
+            $relativePath = "$dirName/" . mb_substr($file->getPathname(), mb_strlen($path) + 1);
 
             if ($file->isDir()) {
                 $zip->addEmptyDir($relativePath);

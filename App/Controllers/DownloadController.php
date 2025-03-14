@@ -29,11 +29,14 @@ class DownloadController implements ControllerInterface
 
     private function sendResponseForDownload(string $path)
     {
-        $baseName = basename($path);
+        $baseName = rawurlencode(basename($path));
         $size = filesize($path);
 
         $this->response->setHeader('Content-Type', 'application/octet-stream');
-        $this->response->setHeader('Content-Disposition', "attachment; filename=$baseName");
+        $this->response->setHeader(
+            'Content-Disposition',
+            "attachment; filename=$baseName"
+        );
         $this->response->setHeader('Content-Length', $size);
         readfile($path);
     }
