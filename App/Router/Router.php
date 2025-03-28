@@ -19,6 +19,7 @@ class Router
     public function __construct(private Container $container)
     {
         $this->request = $container->resolve(Request::class);
+        $this->routes = $this->loadRoutesFromConfig();
     }
 
     /**
@@ -70,5 +71,11 @@ class Router
     {
         $controller = $this->container->resolve($controllerSetup->controllerClassName);
         call_user_func([$controller, $controllerSetup->method]);
+    }
+
+    private function loadRoutesFromConfig(): array
+    {
+        $routes = require __DIR__ . '/routs.config.php';
+        return $routes;
     }
 }

@@ -2,13 +2,37 @@
 
 namespace App\Router;
 
-use App\Controllers\ControllerInterface;
 use App\Http\Middleware\MiddlewareInterface;
 use Exception;
 
 class Route
 {
     private string $method;
+
+    public static function get(string $endPoint, ControllerSetup $controllerSetup, array $middlewares = [])
+    {
+        return new self($endPoint, 'GET', $controllerSetup, $middlewares);
+    }
+
+    public static function post(string $endPoint, ControllerSetup $controllerSetup, array $middlewares = [])
+    {
+        return new self($endPoint, 'POST', $controllerSetup, $middlewares);
+    }
+
+    public static function patch(string $endPoint, ControllerSetup $controllerSetup, array $middlewares = [])
+    {
+        return new self($endPoint, 'PATCH', $controllerSetup, $middlewares);
+    }
+
+    public static function delete(string $endPoint, ControllerSetup $controllerSetup, array $middlewares = [])
+    {
+        return new self($endPoint, 'DELETE', $controllerSetup, $middlewares);
+    }
+
+    public static function all(ControllerSetup $controllerSetup)
+    {
+        return new self('*', '*', $controllerSetup);
+    }
 
     public function __construct(private string $endPoint, string $method, public readonly ControllerSetup $controllerSetup, public readonly array $middlewares = [])
     {
@@ -36,6 +60,7 @@ class Route
 
     public function match(string $method, string $uri): bool
     {
+        if ($this->method == '*' && $this->endPoint == '*') return true;
         if (strtolower($method) == $this->method && $uri == $this->endPoint) return true;
         else return false;
     }

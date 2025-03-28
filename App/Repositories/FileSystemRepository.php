@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Tools\QueryBuilder;
 use App\Repositories\BaseRepository;
+use PDO;
 
 class FileSystemRepository extends BaseRepository
 {
@@ -25,7 +26,26 @@ class FileSystemRepository extends BaseRepository
         return $newDirId;
     }
 
-    public function getPathById(int $id, int $userId): null|string|false
+    /**
+     * @return string new file id
+     */
+    public function createFile(int $userId, string $fileName, string $path, int $parentDirId = null, int $fileSize): string
+    {
+        $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path', 'size'])->build();
+        $fileId = $this->insert($query, [
+            'name' => $fileName,
+            'user_id' => $userId,
+            'created_at' => date('Y-m-d'),
+            'parent_id' => $parentDirId,
+            'type' => 'file',
+            'path' => $path,
+            'size' => $fileSize
+        ]);
+
+        return $fileId;
+    }
+
+    public function getPathById(int $id, int $userId): string|false
     {
         $query = $this->queryBuilder->select(['path'])->where('id', QueryBuilder::EQUAL)->and('user_id', QueryBuilder::EQUAL)->build();
         $data = $this->fetchOne($query, ['id' => $id, 'user_id' => $userId]);
@@ -52,6 +72,14 @@ class FileSystemRepository extends BaseRepository
         else return $this->getConcreteDirContent($userId, $dirId);
     }
 
+    public function checkDirExist(int $userId, int $dirId)
+    {
+        $query = $this->queryBuilder->count()->where('user_id', '=')->and('type', '=')->and('id', '=')->build();
+        $res = $this->fetchOne($query, ['user_id' => $userId, 'id' => $dirId, 'type' => 'folder'], PDO::FETCH_NUM);
+        if ($res[0] == 0) return false;
+        else return true;
+    }
+
     public function deleteById(int $userId, int $itemId)
     {
         $query = $this->queryBuilder->delete()->where('id', QueryBuilder::EQUAL)->and('user_id', QueryBuilder::EQUAL)->build();
@@ -64,6 +92,28 @@ class FileSystemRepository extends BaseRepository
         $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
         $this->moveInnerItems($userId, $currentPath, $updatedPath);
         $this->submitTransaction();
+    }
+
+    public function isNameExist(int $userId, string $name, ?int $dirId = null)
+    {
+        $query = $this->queryBuilder->count()->where('user_id', '=')->and('name', '=');
+        if (is_null($dirId)) {
+            $query = $query->and('parent_id', QueryBuilder::IS_NULL)->build();
+            $params = ['user_id' => $userId, 'name' => $name];
+        } else {
+            $query = $query->and('parent_id', '=')->build();
+            $params = ['user_id' => $userId, 'name' => $name, 'parent_id' => $dirId];
+        }
+
+        return $this->fetchOne($query, $params, PDO::FETCH_NUM)[0] != 0;
+    }
+
+    public function getTypeById(int $userId, int $fileId): string|false
+    {
+        $query = $this->queryBuilder->select(['type'])->where('user_id', '=')->and('id', '=')->build();
+        $res =  $this->fetchOne($query, ['user_id' => $userId, 'id' => $fileId], PDO::FETCH_NUM);
+        if ($res === false) return false;
+        else return $res[0];
     }
 
     private function getRootContent(int $userId): array|false

@@ -2,28 +2,10 @@
 
 namespace App\Storage;
 
-use Exception;
-use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
+use App\Storage\BaseStorage;
 
-class DiskStorage
+class DiskStorage extends BaseStorage
 {
-    private string $storagePath;
-
-    public function __construct(string $storagePath)
-    {
-        if (!is_dir($storagePath)) throw new Exception('Некорретный путь к хранилищу!');
-        $storagePath = str_replace('\\', '/', $storagePath);
-
-        $lastChar = $storagePath[mb_strlen($storagePath) - 1];
-        if ($lastChar == '/') {
-            $storagePath = substr($storagePath, 0, mb_strlen($storagePath) - 1);
-        }
-
-        $this->storagePath = $storagePath;
-    }
-
     public function initializeUserFolder(int $userId): bool
     {
         $res = mkdir($this->getFullPath($userId, ''));
@@ -50,16 +32,7 @@ class DiskStorage
     {
         $fullPath = $this->getFullPath($userId, $path);
 
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($fullPath, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST
-        );
-        foreach ($iterator as $path => $obj) {
-            if ($obj->isFile()) unlink($path);
-            if ($obj->isDir()) rmdir($path);
-        }
-
-        return rmdir($fullPath);
+        return $this->deleteDirectoryRecursively($fullPath);
     }
 
     public function moveItem(int $userId, string $currentPath, string $pathToMove)
@@ -72,26 +45,32 @@ class DiskStorage
         return rename($currentPath, $updatedPath);
     }
 
+    public function putContentInFile(int $userId, string $dirPath, string $filename, string $data = '', bool $clear = false): bool
+    {
+        $fullPath = $this->getFullPath($userId, $dirPath) . "/$filename";
+        $res = file_put_contents($fullPath, $data, $clear == true ? 0 : FILE_APPEND);
+        if ($res === false) return false;
+        else return true;
+    }
+
+    public function getPath(int $userId, string $partPath): string|false
+    {
+        $fullPath = $this->getFullPath($userId, $partPath);
+        if (is_file($fullPath) || is_dir($fullPath)) return $fullPath;
+        else return false;
+    }
+
+    public function getFileSize(int $userId, string $path): int|false
+    {
+        $fullPath = $this->getFullPath($userId, $path);
+        return filesize($fullPath);
+    }
+
     private function getFullPath(int $userId, string $partPath): string
     {
         $partPath = "/$userId" . $this->normalizePath($partPath, false);
         $fullPath =  $this->storagePath . $partPath;
 
         return $fullPath;
-    }
-
-    private function normalizePath(string $path, bool $processLastSlash = true): string
-    {
-        if (strlen($path) == 0) return '/';
-
-        $path = str_replace('\\', '/', $path);
-        if ($path[0] !== '/') {
-            $path = '/' . $path;
-        }
-
-        if ($processLastSlash && $path[-1] !== '/') {
-            $path = $path . '/';
-        }
-        return $path;
     }
 }

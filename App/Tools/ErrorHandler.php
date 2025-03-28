@@ -5,8 +5,10 @@ namespace App\Tools;
 use App\Http\Response;
 use DateTime;
 use DateTimeZone;
+use Error;
 use Exception;
 use PDOException;
+use Throwable;
 
 class ErrorHandler
 {
@@ -20,10 +22,13 @@ class ErrorHandler
         } catch (Exception $error) {
             self::writeLog($error);
             (new Response)->setStatusCode(500)->sendJson(['message' => 'Произошла непредвиденная ошибка. Попробуйте еще раз позднее']);
+        } catch (Error $error) {
+            self::writeLog($error);
+            (new Response)->setStatusCode(500)->sendJson(['message' => 'Произошла непредвиденная ошибка. Попробуйте еще раз позднее']);
         }
     }
 
-    private static function writeLog(Exception $error)
+    private static function writeLog(Throwable $error)
     {
         $timezone = new DateTimeZone('GMT+09:00');
         $date = (new DateTime('now', $timezone))->format('d.m.Y H:i:s');
