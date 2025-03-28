@@ -35,6 +35,13 @@ class DiskStorage extends BaseStorage
         return $this->deleteDirectoryRecursively($fullPath);
     }
 
+    public function deleteFile(int $userId, string $path): bool
+    {
+        $fullPath = $this->getFullPath($userId, $path);
+
+        return unlink($fullPath);
+    }
+
     public function moveItem(int $userId, string $currentPath, string $pathToMove)
     {
         $currentPath = $this->getFullPath($userId, $currentPath);

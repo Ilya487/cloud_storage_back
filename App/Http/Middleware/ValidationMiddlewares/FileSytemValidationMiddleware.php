@@ -36,9 +36,9 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
         }
     }
 
-    public function deleteFolder()
+    public function delete()
     {
-        $this->validate(self::REQUIRE | self::INT, 'dirId', self::GET);
+        $this->validate(self::REQUIRE | self::INT, 'objectId', self::GET);
     }
 
     public function moveItem()

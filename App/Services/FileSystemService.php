@@ -58,16 +58,34 @@ class FileSystemService
         }
     }
 
-    public function deleteFolder(int $userId, int $dirId): OperationResult
+    public function deleteObject(int $userId, int $objectId): OperationResult
     {
-        $folderPath = $this->fsRepo->getPathById($dirId, $userId);
-        if ($folderPath === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
+        $type = $this->fsRepo->getTypeById($userId, $objectId);
+        if ($type === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
 
-        if ($this->diskStorage->deleteDir($userId, $folderPath)) {
+        $objectPath = $this->fsRepo->getPathById($objectId, $userId);
+
+        if ($type == 'folder') return $this->deleteFolder($userId, $objectId, $objectPath);
+        else  return $this->deleteFile($userId, $objectId, $objectPath);
+    }
+
+    private function deleteFolder(int $userId, int $dirId, string $dirPath): OperationResult
+    {
+        if ($this->diskStorage->deleteDir($userId, $dirPath)) {
             $this->fsRepo->deleteById($userId, $dirId);
             return new OperationResult(true, ['message' => 'Папка успешно удалена']);
         } else {
             return new OperationResult(false, null, ['message' => 'Не удалось удалить папку']);
+        }
+    }
+
+    private function deleteFile(int $userId, int $fileId, string $filePath): OperationResult
+    {
+        if ($this->diskStorage->deleteFile($userId, $filePath)) {
+            $this->fsRepo->deleteById($userId, $fileId);
+            return new OperationResult(true, ['message' => 'Файл успешно удален']);
+        } else {
+            return new OperationResult(false, null, ['message' => 'Не удалось удалить файл']);
         }
     }
 
