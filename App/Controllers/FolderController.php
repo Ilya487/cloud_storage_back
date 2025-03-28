@@ -41,7 +41,7 @@ class FolderController implements ControllerInterface
         else $this->response->setStatusCode(400)->sendJson($result->errors);
     }
 
-    public function renameFolder()
+    public function renameObject()
     {
         $data = $this->request->json();
 
@@ -49,7 +49,7 @@ class FolderController implements ControllerInterface
         $updatedDirName = trim($data['newName']);
         $userId = $this->authService->getAuthUser()->getId();
 
-        $renameRes = $this->fsService->renameFolder($userId, $dirId, $updatedDirName);
+        $renameRes = $this->fsService->renameObject($userId, $dirId, $updatedDirName);
         if ($renameRes->success) {
             $this->response->sendJson($renameRes->data);
         } else $this->response->setStatusCode(400)->sendJson($renameRes->errors);

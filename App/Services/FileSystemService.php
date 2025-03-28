@@ -39,16 +39,19 @@ class FileSystemService
         return $this->diskStorage->initializeUserFolder($userId);
     }
 
-    public function renameFolder(int $userId, int $dirId, string $newName): OperationResult
+    public function renameObject(int $userId, int $objectId, string $newName): OperationResult
     {
-        $folderPath = $this->fsRepo->getPathById($dirId, $userId);
-        if ($folderPath === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
+        $type = $this->fsRepo->getTypeById($userId, $objectId);
+        if ($type === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
 
-        if ($this->diskStorage->renameDir($userId, $newName, $folderPath)) {
-            $parentDir = dirname($folderPath);
-            $updatedPath = $parentDir == '\\' ? '' . "/$newName" : $parentDir . "/$newName";
+        $objectPath = $this->fsRepo->getPathById($objectId, $userId);
+        if ($this->diskStorage->renameObject($userId, $newName, $objectPath)) {
+            $parentDir = dirname($objectPath);
+            $updatedPath = $parentDir == DIRECTORY_SEPARATOR ? '' . "/$newName" : $parentDir . "/$newName";
 
-            $this->fsRepo->renameDir($userId, $folderPath, $updatedPath, $newName);
+            if ($type == 'folder') $this->fsRepo->renameDir($userId, $objectPath, $updatedPath, $newName);
+            if ($type == 'file') $this->fsRepo->renameFile($userId, $objectPath, $updatedPath, $newName);
+
             return new OperationResult(true, ['updatedPath' => $updatedPath]);
         } else {
             return new OperationResult(false, null, ['error' => 'Не удалось переименовать папку']);

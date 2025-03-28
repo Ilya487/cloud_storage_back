@@ -61,9 +61,17 @@ class FileSystemRepository extends BaseRepository
     public function renameDir(int $userId, string $path, string $updatedPath, string $newName)
     {
         $this->beginTransaction();
-        $this->renameOneFolder($userId, $path, $updatedPath, $newName);
+        $this->renameObject($userId, $path, $updatedPath, $newName);
         $this->renameInnerFolders($userId, $path, $updatedPath);
         $this->submitTransaction();
+    }
+
+    /**
+     * @param string $updatedPath в конце не должно быть слеша
+     */
+    public function renameFile(int $userId, string $path, string $updatedPath, string $newName)
+    {
+        $this->renameObject($userId, $path, $updatedPath, $newName);
     }
 
     public function getDirContent(int $userId, int $dirId = null): array|false
@@ -132,7 +140,7 @@ class FileSystemRepository extends BaseRepository
         return $content;
     }
 
-    private function renameOneFolder(int $userId, string $path, string $updatedPath, string $newName)
+    private function renameObject(int $userId, string $path, string $updatedPath, string $newName)
     {
         $query = $this->queryBuilder->update(['path', 'name'])->where('path', QueryBuilder::LIKE, 'pathPattern')->and('user_id', QueryBuilder::EQUAL)->build();
         $this->update($query, ['path' => $updatedPath, 'name' => $newName, 'pathPattern' => $path, 'user_id' => $userId]);

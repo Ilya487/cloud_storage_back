@@ -20,7 +20,7 @@ class DiskStorage extends BaseStorage
         return mkdir($this->getFullPath($userId, $path));
     }
 
-    public function renameDir(int $userId, string $newName, string $path): bool
+    public function renameObject(int $userId, string $newName, string $path): bool
     {
         $oldFullPath = $this->getFullPath($userId, $path);
         $updatedFullPath = dirname($oldFullPath) . "/$newName";
