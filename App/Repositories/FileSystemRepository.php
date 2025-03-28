@@ -45,7 +45,7 @@ class FileSystemRepository extends BaseRepository
         return $fileId;
     }
 
-    public function getPathById(int $id, int $userId): null|string|false
+    public function getPathById(int $id, int $userId): string|false
     {
         $query = $this->queryBuilder->select(['path'])->where('id', QueryBuilder::EQUAL)->and('user_id', QueryBuilder::EQUAL)->build();
         $data = $this->fetchOne($query, ['id' => $id, 'user_id' => $userId]);

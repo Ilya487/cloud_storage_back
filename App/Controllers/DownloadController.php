@@ -23,8 +23,12 @@ class DownloadController implements ControllerInterface
             $this->response->setStatusCode($res->errors['code'])->sendJson(['message' => $res->errors['message']]);
         }
 
-        $this->sendResponseForDownload($res->data['path']);
-        if ($res->data['type'] == 'folder') unlink($res->data['path']);
+        try {
+            $this->sendResponseForDownload($res->data['path']);
+        } finally {
+            if ($res->data['type'] == 'folder') unlink($res->data['path']);
+            $this->response->send();
+        }
     }
 
     private function sendResponseForDownload(string $path)

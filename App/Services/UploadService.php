@@ -30,10 +30,11 @@ class UploadService
         }
 
         if (!is_null($destinationDirId)) {
-            if (!$this->fsRepo->checkDirExist($userId, $destinationDirId)) {
+            $destinationDirPath = $this->fsRepo->getPathById($destinationDirId, $userId);
+            if ($destinationDirPath === false) {
                 return new OperationResult(false, null, ['message' => 'Указана неверная папка назначения']);
             }
-        }
+        } else $destinationDirPath = '/';
 
         if (
             $this->fsRepo->isNameExist($userId, $fileName, $destinationDirId) ||
@@ -49,7 +50,12 @@ class UploadService
             return new OperationResult(false, null, ['message' => 'Не удалась инициализировать сессию загрузки']);
         }
 
-        return new OperationResult(true, ['sessionId' => (int)$uploadSessionId, 'chunkSize' => self::CHUNK_SIZE, 'chunksCount' => $totalChunks]);
+        return new OperationResult(true, [
+            'sessionId' => (int)$uploadSessionId,
+            'chunkSize' => self::CHUNK_SIZE,
+            'chunksCount' => $totalChunks,
+            'path' => $destinationDirPath
+        ]);
     }
 
     public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, string $data): OperationResult
