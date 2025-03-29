@@ -102,6 +102,11 @@ class FileSystemRepository extends BaseRepository
         $this->submitTransaction();
     }
 
+    public function moveFile(int $userId, string $currentPath, string $updatedPath, ?int $toDirId = null)
+    {
+        $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
+    }
+
     public function isNameExist(int $userId, string $name, ?int $dirId = null)
     {
         $query = $this->queryBuilder->count()->where('user_id', '=')->and('name', '=');

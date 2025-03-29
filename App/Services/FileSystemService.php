@@ -89,13 +89,16 @@ class FileSystemService
         }
     }
 
-    public function moveFolder(int $userId, int $dirId, ?int $toDirId = null): OperationResult
+    public function moveObject(int $userId, int $objectId, ?int $toDirId = null): OperationResult
     {
-        if ($dirId == $toDirId) {
+        $type = $this->fsRepo->getTypeById($userId, $objectId);
+        if ($type === false) return new OperationResult(false, null, ['message' => 'Указан некорректный айди перемещаемого ресурса']);
+
+        if ($objectId == $toDirId) {
             return new OperationResult(false, null, ['message' => 'Путь источника и назначения совпадают']);
         }
 
-        $currentPath = $this->fsRepo->getPathById($dirId, $userId);
+        $currentPath = $this->fsRepo->getPathById($objectId, $userId);
         if ($currentPath === false) {
             return new OperationResult(false, null, ['message' => 'Указан некорректный айди перемещаемого ресурса']);
         }
@@ -110,12 +113,16 @@ class FileSystemService
         if ($currentPath == $updatedPath) {
             return new OperationResult(false, null, ['message' => 'Путь источника и назначения совпадают']);
         }
+
         if ($this->diskStorage->moveItem($userId, $currentPath, $toDirPath)) {
-            $this->fsRepo->moveFolder($userId, $currentPath, $updatedPath, $toDirId);
+            if ($type == 'folder') $this->fsRepo->moveFolder($userId, $currentPath, $updatedPath, $toDirId);
+            else $this->fsRepo->moveFile($userId, $currentPath, $updatedPath, $toDirId);
 
             return new OperationResult(true, ['updatedPath' => $updatedPath]);
         } else {
-            return new OperationResult(false, null, ['message' => 'Не удалось переместить папку']);
+            return new OperationResult(false, null, [
+                'message' => 'Не удалось переместить ' . ($type == 'folder' ? 'папку' : 'файл')
+            ]);
         }
     }
 
