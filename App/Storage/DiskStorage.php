@@ -24,6 +24,7 @@ class DiskStorage extends BaseStorage
     {
         $oldFullPath = $this->getFullPath($userId, $path);
         $updatedFullPath = dirname($oldFullPath) . "/$newName";
+        if (is_file($updatedFullPath)) return false;
 
         return rename($oldFullPath, $updatedFullPath);
     }

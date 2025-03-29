@@ -54,7 +54,7 @@ class FileSystemService
 
             return new OperationResult(true, ['updatedPath' => $updatedPath]);
         } else {
-            return new OperationResult(false, null, ['error' => 'Не удалось переименовать папку']);
+            return new OperationResult(false, null, ['error' => 'Не удалось переименовать ' . ($type == 'folder' ? 'папку' : 'файл')]);
         }
     }
 
