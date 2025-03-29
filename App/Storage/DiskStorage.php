@@ -42,12 +42,13 @@ class DiskStorage extends BaseStorage
         return unlink($fullPath);
     }
 
-    public function moveItem(int $userId, string $currentPath, string $pathToMove)
+    public function moveItem(int $userId, string $currentPath, string $pathToMove): bool
     {
         $currentPath = $this->getFullPath($userId, $currentPath);
         $pathToMove = $this->getFullPath($userId, $pathToMove);
 
         $updatedPath = "$pathToMove/" . basename($currentPath);
+        if (is_file($updatedPath)) return false;
 
         return rename($currentPath, $updatedPath);
     }
