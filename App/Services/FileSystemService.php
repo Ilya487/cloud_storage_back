@@ -92,16 +92,23 @@ class FileSystemService
     public function moveFolder(int $userId, int $dirId, ?int $toDirId = null): OperationResult
     {
         if ($dirId == $toDirId) {
-            return new OperationResult(false, null, ['message' => 'Попытка переместить в ту же самую папку']);
+            return new OperationResult(false, null, ['message' => 'Путь источника и назначения совпадают']);
+        }
+
+        $currentPath = $this->fsRepo->getPathById($dirId, $userId);
+        if ($currentPath === false) {
+            return new OperationResult(false, null, ['message' => 'Указан некорректный айди перемещаемого ресурса']);
         }
 
         $toDirPath = is_null($toDirId) ? '' : $this->fsRepo->getPathById($toDirId, $userId);
-        $currentPath = $this->fsRepo->getPathById($dirId, $userId);
+        if ($toDirPath === false) {
+            return new OperationResult(false, null, ['message' => 'Указана некорректная папка назначения']);
+        }
 
         $updatedPath = "$toDirPath/" . basename($currentPath);
 
         if ($currentPath == $updatedPath) {
-            return new OperationResult(false, null, ['message' => 'Попытка переместить в ту же самую папку']);
+            return new OperationResult(false, null, ['message' => 'Путь источника и назначения совпадают']);
         }
         if ($this->diskStorage->moveItem($userId, $currentPath, $toDirPath)) {
             $this->fsRepo->moveFolder($userId, $currentPath, $updatedPath, $toDirId);
