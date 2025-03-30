@@ -45,11 +45,11 @@ class FolderController implements ControllerInterface
     {
         $data = $this->request->json();
 
-        $dirId = $data['dirId'];
+        $objectId = $data['objectId'];
         $updatedDirName = trim($data['newName']);
         $userId = $this->authService->getAuthUser()->getId();
 
-        $renameRes = $this->fsService->renameObject($userId, $dirId, $updatedDirName);
+        $renameRes = $this->fsService->renameObject($userId, $objectId, $updatedDirName);
         if ($renameRes->success) {
             $this->response->sendJson($renameRes->data);
         } else $this->response->setStatusCode(400)->sendJson($renameRes->errors);
@@ -57,10 +57,10 @@ class FolderController implements ControllerInterface
 
     public function delete()
     {
-        $dirId = $this->request->get('objectId');
+        $objectId = $this->request->get('objectId');
         $userId = $this->authService->getAuthUser()->getId();
 
-        $deleteResult = $this->fsService->deleteObject($userId, $dirId);
+        $deleteResult = $this->fsService->deleteObject($userId, $objectId);
 
         if ($deleteResult->success) $this->response->setStatusCode(200)->sendJson($deleteResult->data);
         else $this->response->setStatusCode(400)->sendJson($deleteResult->errors);
