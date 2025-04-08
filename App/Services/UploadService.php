@@ -12,7 +12,7 @@ use App\Storage\UploadsStorage;
 class UploadService
 {
     private const CHUNK_SIZE = 7340032; //7mb
-    private const MAX_ACTIVE_SESSION_FOR_USER = 3;
+    private const MAX_ACTIVE_SESSION_FOR_USER = 5;
     private const SESSION_MAX_LIFETIME = 300; //5min
 
     public function __construct(

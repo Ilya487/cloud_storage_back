@@ -42,6 +42,11 @@ class DownloadController implements ControllerInterface
             "attachment; filename=$baseName"
         );
         $this->response->setHeader('Content-Length', $size);
-        readfile($path);
+
+        $source = fopen($path, 'r');
+        $output = fopen('php://output', 'w');
+        stream_copy_to_stream($source, $output);
+        fclose($source);
+        fclose($output);
     }
 }
