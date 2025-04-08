@@ -41,15 +41,15 @@ class FolderController implements ControllerInterface
         else $this->response->setStatusCode(400)->sendJson($result->errors);
     }
 
-    public function renameFolder()
+    public function renameObject()
     {
         $data = $this->request->json();
 
-        $dirId = $data['dirId'];
+        $objectId = $data['objectId'];
         $updatedDirName = trim($data['newName']);
         $userId = $this->authService->getAuthUser()->getId();
 
-        $renameRes = $this->fsService->renameFolder($userId, $dirId, $updatedDirName);
+        $renameRes = $this->fsService->renameObject($userId, $objectId, $updatedDirName);
         if ($renameRes->success) {
             $this->response->sendJson($renameRes->data);
         } else $this->response->setStatusCode(400)->sendJson($renameRes->errors);
@@ -57,22 +57,22 @@ class FolderController implements ControllerInterface
 
     public function delete()
     {
-        $dirId = $this->request->get('dirId');
+        $objectId = $this->request->get('objectId');
         $userId = $this->authService->getAuthUser()->getId();
 
-        $deleteResult = $this->fsService->deleteFolder($userId, $dirId);
+        $deleteResult = $this->fsService->deleteObject($userId, $objectId);
 
         if ($deleteResult->success) $this->response->setStatusCode(200)->sendJson($deleteResult->data);
         else $this->response->setStatusCode(400)->sendJson($deleteResult->errors);
     }
 
-    public function moveFolder()
+    public function move()
     {
-        $dirId = $this->request->json()['itemId'];
+        $objectId = $this->request->json()['itemId'];
         $toDirId = $this->request->json()['toDirId'] ?: null;
         $userId = $this->authService->getAuthUser()->getId();
 
-        $moveResult = $this->fsService->moveFolder($userId, $dirId, $toDirId);
+        $moveResult = $this->fsService->moveObject($userId, $objectId, $toDirId);
 
         if ($moveResult->success) $this->response->setStatusCode(200)->sendJson($moveResult->data);
         else $this->response->setStatusCode(400)->sendJson($moveResult->errors);

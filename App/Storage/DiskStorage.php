@@ -20,10 +20,11 @@ class DiskStorage extends BaseStorage
         return mkdir($this->getFullPath($userId, $path));
     }
 
-    public function renameDir(int $userId, string $newName, string $path): bool
+    public function renameObject(int $userId, string $newName, string $path): bool
     {
         $oldFullPath = $this->getFullPath($userId, $path);
         $updatedFullPath = dirname($oldFullPath) . "/$newName";
+        if (is_file($updatedFullPath)) return false;
 
         return rename($oldFullPath, $updatedFullPath);
     }
@@ -35,12 +36,20 @@ class DiskStorage extends BaseStorage
         return $this->deleteDirectoryRecursively($fullPath);
     }
 
-    public function moveItem(int $userId, string $currentPath, string $pathToMove)
+    public function deleteFile(int $userId, string $path): bool
+    {
+        $fullPath = $this->getFullPath($userId, $path);
+
+        return unlink($fullPath);
+    }
+
+    public function moveItem(int $userId, string $currentPath, string $pathToMove): bool
     {
         $currentPath = $this->getFullPath($userId, $currentPath);
         $pathToMove = $this->getFullPath($userId, $pathToMove);
 
         $updatedPath = "$pathToMove/" . basename($currentPath);
+        if (is_file($updatedPath)) return false;
 
         return rename($currentPath, $updatedPath);
     }

@@ -25,9 +25,9 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
         $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'dirId', self::GET);
     }
 
-    public function renameFolder()
+    public function rename()
     {
-        $this->validate(self::REQUIRE | self::INT, 'dirId', self::JSON);
+        $this->validate(self::REQUIRE | self::INT, 'objectId', self::JSON);
         $updatedDirName = $this->validate(self::REQUIRE | self::STRING, 'newName', self::JSON);
 
         $nameValidationResult = (new FileSystemNameValidator($updatedDirName))->validate();
@@ -36,9 +36,9 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
         }
     }
 
-    public function deleteFolder()
+    public function delete()
     {
-        $this->validate(self::REQUIRE | self::INT, 'dirId', self::GET);
+        $this->validate(self::REQUIRE | self::INT, 'objectId', self::GET);
     }
 
     public function moveItem()
