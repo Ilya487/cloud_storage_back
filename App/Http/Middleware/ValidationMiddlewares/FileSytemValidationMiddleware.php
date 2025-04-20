@@ -46,4 +46,9 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
         $this->validate(self::REQUIRE | self::INT, 'itemId', self::JSON);
         $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'toDirId', self::JSON);
     }
+
+    public function getFolderIdByPath()
+    {
+        $this->validate(self::REQUIRE | self::STRING, 'path', self::GET);
+    }
 }

@@ -144,4 +144,15 @@ class FileSystemService
             return new OperationResult(true, ['path' => $archivePath, 'type' => 'folder']);
         }
     }
+
+    public function getDirIdByPath(int $userId, string $path): OperationResult
+    {
+        $path = str_replace('\\', '/', $path);
+
+        if ($path == '/') return new OperationResult(true, ['dirId' => 'root']);
+
+        $dirId = $this->fsRepo->getDirIdByPath($userId, $path);
+        if ($dirId === false) return new OperationResult(false, null, ['message' => 'Папка с данным расположением не найдена']);
+        else return new OperationResult(true, ['dirId' => $dirId]);
+    }
 }

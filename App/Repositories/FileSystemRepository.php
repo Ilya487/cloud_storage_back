@@ -129,6 +129,15 @@ class FileSystemRepository extends BaseRepository
         else return $res[0];
     }
 
+    public function getDirIdByPath(int $userId, string $path): int|false
+    {
+        $query = $this->queryBuilder->select(['id'])->where('path', '=')->and('user_id', '=')->and('type', '=')->build();
+        $res = $this->fetchOne($query, ['user_id' => $userId, 'path' => $path, 'type' => 'folder']);
+
+        if ($res === false) return false;
+        else return $res['id'];
+    }
+
     private function getRootContent(int $userId): array|false
     {
         $query = $this->queryBuilder->select()->where('user_id', QueryBuilder::EQUAL)->and('parent_id', QueryBuilder::IS_NULL)->build();
