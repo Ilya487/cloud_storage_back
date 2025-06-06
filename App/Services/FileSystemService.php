@@ -25,13 +25,16 @@ class FileSystemService
 
     public function getFolderContent(int $userId, ?int $dirId = null): OperationResult
     {
+        if ($this->fsRepo->getTypeById($userId, $dirId) == 'file')
+            return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
+
         $pathToSelectedDir = is_null($dirId) ? '/' : $this->fsRepo->getPathById($dirId, $userId);
         if ($pathToSelectedDir === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
 
         $catalogData = $this->fsRepo->getDirContent($userId, $dirId);
 
         if ($catalogData !== false) return new OperationResult(true, ['path' => $pathToSelectedDir, 'contents' => $catalogData]);
-        else return new OperationResult(false, null, ['message' => 'Неверный айди пользователя или каталога']);
+        else return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
     }
 
     public function initializeUserStorage(int $userId): bool
