@@ -25,7 +25,7 @@ class FileSystemService
 
     public function getFolderContent(int $userId, ?int $dirId = null): OperationResult
     {
-        if ($this->fsRepo->getTypeById($userId, $dirId) == 'file')
+        if (!is_null($dirId) && $this->fsRepo->getTypeById($userId, $dirId) == 'file')
             return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
 
         $pathToSelectedDir = is_null($dirId) ? '/' : $this->fsRepo->getPathById($dirId, $userId);
