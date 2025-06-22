@@ -35,17 +35,13 @@ class Session
 
     public function clear()
     {
-        $_SESSION = [];
+        session_unset();
     }
 
     public function destroy()
     {
         $this->clear();
         session_destroy();
-        setcookie(
-            session_name(),
-            '',
-            [...$this->sessionCookieParams, 'expires' => time() - 1]
-        );
+        setcookie(session_name(), '', time() - 3600);
     }
 }
