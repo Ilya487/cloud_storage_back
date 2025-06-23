@@ -47,7 +47,8 @@ class RememberMeTokenManager
                 'expires' => time() + self::TOKEN_LIFETIME,
                 'secure' => true,
                 'samesite' => 'None',
-                'httponly' => true
+                'httponly' => true,
+                'path' => '/'
             ]
         );
     }
