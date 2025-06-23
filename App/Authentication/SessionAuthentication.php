@@ -10,7 +10,7 @@ class SessionAuthentication implements AuthenticationInterface
 {
     private ?User $user = null;
     private bool $isAuth  = false;
-    private const SESSION_LIFETIME = 60 * 15;
+    private const SESSION_LIFETIME = 0;
 
     public function __construct(private Session $session, UserRepository $userRepository, private RememberMeTokenManager $tokenManager)
     {
@@ -53,7 +53,9 @@ class SessionAuthentication implements AuthenticationInterface
         if ($this->isAuth) return false;
 
         $this->session->set('userId', $user->getId());
-        $this->session->set('loginTimeStamp', time());
+        if (self::SESSION_LIFETIME > 0) {
+            $this->session->set('loginTimeStamp', time());
+        }
         $this->isAuth = true;
         $this->user = $user;
 
@@ -63,6 +65,8 @@ class SessionAuthentication implements AuthenticationInterface
 
     private function checkSessionLifetime(): bool
     {
+        if (!$this->session->isSet('loginTimeStamp')) return true;
+
         $createdAt = $this->session->get('loginTimeStamp');
         if (time() - $createdAt > self::SESSION_LIFETIME) {
             $this->isAuth = false;
