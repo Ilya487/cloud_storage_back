@@ -23,6 +23,11 @@ class Session
         $_SESSION[$key] = $value;
     }
 
+    public function isSet(string $key): bool
+    {
+        return isset($_SESSION[$key]);
+    }
+
     public function get(string $key): mixed
     {
         return $_SESSION[$key] ?: null;
