@@ -19,6 +19,7 @@ return [
     Route::post('/auth/signin', new ControllerSetup(AuthController::class, 'signin'), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signin']]),
     Route::get('/auth/check-auth', new ControllerSetup(AuthController::class)),
     Route::post('/auth/logout', new ControllerSetup(AuthController::class, 'logout'), [AuthMiddleware::class]),
+    Route::post('/auth/refresh', new ControllerSetup(AuthController::class, 'refresh'), [GuestMiddleware::class]),
 
     Route::post('/folder', new ControllerSetup(FolderController::class, 'create'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'create']]),
     Route::get('/folder', new ControllerSetup(FolderController::class, 'getFolderContent'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'getContent']]),

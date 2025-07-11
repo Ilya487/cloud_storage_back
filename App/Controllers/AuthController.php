@@ -51,4 +51,14 @@ class AuthController implements ControllerInterface
         $this->authManager->logoutUser();
         $this->response->sendJson(['message' => 'Успешный выход из системы']);
     }
+
+    public function refresh()
+    {
+        $result = $this->authManager->refreshUserToken();
+        if ($result->success) {
+            $this->response->sendJson($result->data);
+        } else {
+            $this->response->setStatusCode(400)->sendJson($result->data);
+        }
+    }
 }

@@ -45,11 +45,12 @@ class AuthManager
         $this->tokenManager->deleteToken();
     }
 
-    public function refreshUserToken()
+    public function refreshUserToken(): OperationResult
     {
         $user = $this->tokenManager->getUserFromToken();
-        if ($user === false) return;
+        if ($user === false) return new OperationResult(false, errors: ['message' => 'Не удалось пересоздать токен']);
         $this->authenticator->signIn($user);
+        return new OperationResult(true, ['userId' => $user->getId()]);
     }
 
     public function auth(): bool

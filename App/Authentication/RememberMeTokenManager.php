@@ -29,7 +29,13 @@ class RememberMeTokenManager
         if (!$token->verifyValidator($validator)) return false;
 
         $user = $this->userRepo->getById($token->userId);
-        if (is_null($user)) return false;
+        if (is_null($user)) {
+            $this->tokenRepo->deleteBySelector($selector);
+            return false;
+        }
+
+        $this->tokenRepo->deleteBySelector($selector);
+        $this->generateToken($user->getId());
         return $user;
     }
 
