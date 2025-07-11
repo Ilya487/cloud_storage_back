@@ -15,7 +15,7 @@ class SessionAuthentication implements AuthenticationInterface
     public function __construct(private Session $session, UserRepository $userRepository)
     {
         if ($userId =  $this->session->get('userId')) {
-            if ($this->checkSessionLifetime()) return;
+            if ($this->isSessionExpired()) return;
 
             $user = $userRepository->getById($userId);
             if (!is_null($user)) {
@@ -57,9 +57,9 @@ class SessionAuthentication implements AuthenticationInterface
         return true;
     }
 
-    private function checkSessionLifetime(): bool
+    private function isSessionExpired(): bool
     {
-        if (!$this->session->isSet('loginTimeStamp')) return true;
+        if (!$this->session->isSet('loginTimeStamp')) return false;
 
         $createdAt = $this->session->get('loginTimeStamp');
         if (time() - $createdAt > self::SESSION_LIFETIME) {
