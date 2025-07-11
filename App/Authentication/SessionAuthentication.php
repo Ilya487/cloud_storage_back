@@ -12,19 +12,15 @@ class SessionAuthentication implements AuthenticationInterface
     private bool $isAuth  = false;
     private const SESSION_LIFETIME = 0;
 
-    public function __construct(private Session $session, UserRepository $userRepository, private RememberMeTokenManager $tokenManager)
+    public function __construct(private Session $session, UserRepository $userRepository)
     {
-        if (($userId =  $this->session->get('userId')) && $this->checkSessionLifetime()) {
+        if ($userId =  $this->session->get('userId')) {
+            if ($this->checkSessionLifetime()) return;
+
             $user = $userRepository->getById($userId);
             if (!is_null($user)) {
                 $this->user = $user;
                 $this->isAuth = true;
-            }
-        } else {
-            $userId = $this->tokenManager->checkToken();
-            if ($userId) {
-                $user = $userRepository->getById($userId);
-                if (!is_null($user)) $this->signIn($user);
             }
         }
     }
@@ -45,7 +41,6 @@ class SessionAuthentication implements AuthenticationInterface
         $this->user = null;
 
         $this->session->destroy();
-        $this->tokenManager->deleteToken();
     }
 
     public function signIn(User $user): bool
@@ -59,7 +54,6 @@ class SessionAuthentication implements AuthenticationInterface
         $this->isAuth = true;
         $this->user = $user;
 
-        $this->tokenManager->generateToken($user->getId());
         return true;
     }
 
@@ -69,12 +63,9 @@ class SessionAuthentication implements AuthenticationInterface
 
         $createdAt = $this->session->get('loginTimeStamp');
         if (time() - $createdAt > self::SESSION_LIFETIME) {
-            $this->isAuth = false;
-            $this->user = null;
-            $this->session->destroy();
-
-            return false;
+            $this->logOut();
+            return true;
         }
-        return true;
+        return false;
     }
 }
