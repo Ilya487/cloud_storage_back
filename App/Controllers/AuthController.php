@@ -2,20 +2,19 @@
 
 namespace App\Controllers;
 
-use App\Authentication\AuthenticationInterface;
 use App\Http\Request;
 use App\Http\Response;
 use App\Controllers\ControllerInterface;
-use App\Services\UserService;
+use App\Services\AuthManager;
 
 class AuthController implements ControllerInterface
 {
-    public function __construct(private Request $request, private Response $response, private AuthenticationInterface $authService, private UserService $userService) {}
+    public function __construct(private Request $request, private Response $response,  private AuthManager $authManager) {}
 
     public function resolve(): void
     {
-        if ($this->authService->auth()) {
-            $this->response->sendJson(['authenticated' => true, 'userId' => $this->authService->getAuthUser()->getId()]);
+        if ($this->authManager->auth()) {
+            $this->response->sendJson(['authenticated' => true, 'userId' => $this->authManager->getAuthUser()->getId()]);
         } else $this->response->sendJson(['authenticated' => false]);
     }
 
@@ -26,7 +25,7 @@ class AuthController implements ControllerInterface
         $login = trim($data['login']);
         $password = trim($data['password']);
 
-        $registrationResult = $this->userService->registerUser($login, $password);
+        $registrationResult = $this->authManager->registerUser($login, $password);
 
         if ($registrationResult->success) {
             $this->response->sendJson($registrationResult->data);
@@ -40,7 +39,7 @@ class AuthController implements ControllerInterface
         $login = trim($data['login']);
         $password = trim($data['password']);
 
-        $authResult = $this->userService->authUser($login, $password);
+        $authResult = $this->authManager->signinUser($login, $password);
 
         if ($authResult->success) {
             $this->response->sendJson($authResult->data);
@@ -49,7 +48,7 @@ class AuthController implements ControllerInterface
 
     public function logout()
     {
-        $this->authService->logOut();
+        $this->authManager->logoutUser();
         $this->response->sendJson(['message' => 'Успешный выход из системы']);
     }
 }
