@@ -3,16 +3,18 @@
 namespace App\Authentication;
 
 use App\Models\RememberMeToken;
+use App\Models\User;
 use App\Repositories\RememberMeTokenRepository;
+use App\Repositories\UserRepository;
 use DateTime;
 
 class RememberMeTokenManager
 {
     private const TOKEN_LIFETIME = 3600 * 24 * 10;
 
-    public function __construct(private RememberMeTokenRepository $tokenRepo) {}
+    public function __construct(private RememberMeTokenRepository $tokenRepo, private UserRepository $userRepo) {}
 
-    public function checkToken(): int|false
+    public function getUserFromToken(): User|false
     {
         if (empty($_COOKIE['remember'])) return false;
 
@@ -20,11 +22,15 @@ class RememberMeTokenManager
         $token = $this->tokenRepo->getBySelector($selector);
 
         if (!$token) return false;
-        if ($token->isExpired()) return false;
+        if ($token->isExpired()) {
+            $this->tokenRepo->deleteBySelector($selector);
+            return false;
+        }
         if (!$token->verifyValidator($validator)) return false;
 
-        $this->tokenRepo->deleteBySelector($selector);
-        return $token->userId;
+        $user = $this->userRepo->getById($token->userId);
+        if (is_null($user)) return false;
+        return $user;
     }
 
     public function generateToken(int $userId): void
@@ -48,7 +54,7 @@ class RememberMeTokenManager
                 'secure' => true,
                 'samesite' => 'None',
                 'httponly' => true,
-                'path' => '/'
+                'path' => '/auth'
             ]
         );
     }
@@ -62,7 +68,8 @@ class RememberMeTokenManager
         setcookie(
             'remember',
             '',
-            time() - 3600
+            1,
+            '/auth'
         );
 
         return true;
