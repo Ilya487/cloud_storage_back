@@ -15,10 +15,10 @@ use App\Router\ControllerSetup;
 use App\Router\Route;
 
 return [
-    Route::post('/signup', new ControllerSetup(AuthController::class, 'signup'), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signup']]),
-    Route::post('/signin', new ControllerSetup(AuthController::class, 'signin'), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signin']]),
-    Route::get('/check-auth', new ControllerSetup(AuthController::class)),
-    Route::post('/logout', new ControllerSetup(AuthController::class, 'logout'), [AuthMiddleware::class]),
+    Route::post('/auth/signup', new ControllerSetup(AuthController::class, 'signup'), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signup']]),
+    Route::post('/auth/signin', new ControllerSetup(AuthController::class, 'signin'), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signin']]),
+    Route::get('/auth/check-auth', new ControllerSetup(AuthController::class)),
+    Route::post('/auth/logout', new ControllerSetup(AuthController::class, 'logout'), [AuthMiddleware::class]),
 
     Route::post('/folder', new ControllerSetup(FolderController::class, 'create'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'create']]),
     Route::get('/folder', new ControllerSetup(FolderController::class, 'getFolderContent'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'getContent']]),
