@@ -2,19 +2,19 @@
 
 namespace App\Controllers;
 
-use App\Authentication\AuthenticationInterface;
 use App\Http\Request;
 use App\Http\Response;
 use App\Controllers\ControllerInterface;
+use App\Services\AuthManager;
 use App\Services\FileSystemService;
 
 class DownloadController implements ControllerInterface
 {
-    public function __construct(private Request $request, private Response $response, private AuthenticationInterface $authService, private FileSystemService $fsService) {}
+    public function __construct(private Request $request, private Response $response, private AuthManager $authManager, private FileSystemService $fsService) {}
 
     public function resolve(): void
     {
-        $userId = $this->authService->getAuthUser()->getId();
+        $userId = $this->authManager->getAuthUser()->getId();
         $fileId = $this->request->get('fileId');
 
         $res = $this->fsService->getPathForDownload($userId, $fileId);

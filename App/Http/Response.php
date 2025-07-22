@@ -45,7 +45,7 @@ class Response
     public function sendJson(array $data)
     {
         header('Content-type: application/json; charset=utf-8');
-        $json = json_encode(['code' => http_response_code(), ...$data]);
+        $json = json_encode($data);
         if (!$json) {
             throw new Exception('Ошибка JSON: ' . json_last_error_msg());
         }

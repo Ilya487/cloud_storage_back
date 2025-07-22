@@ -7,6 +7,7 @@ use App\Core\DiContainer\ContainerBuilder;
 use App\Core\DiContainer\ContainerParam;
 use App\Http\Middleware\OptionsRequestMiddleware;
 use App\Repositories\FileSystemRepository;
+use App\Repositories\RememberMeTokenRepository;
 use App\Repositories\UploadSessionRepository;
 use App\Repositories\UserRepository;
 use App\Router\Router;
@@ -23,12 +24,13 @@ function executeApp()
     $containerBuilder->bind(AuthenticationInterface::class, SessionAuthentication::class);
     $containerBuilder->share(DbConnect::class);
     $containerBuilder->share(Session::class);
-    $containerBuilder->setParam(new ContainerParam(DiskStorage::class, 'storagePath', 'C:\Users\Илья\Desktop\storage'));
-    $containerBuilder->setParam(new ContainerParam(UploadsStorage::class, 'storagePath', 'C:\Users\Илья\Desktop\storage'));
-    $containerBuilder->setParam(new ContainerParam(ArchiveStorage::class, 'storagePath', 'C:\Users\Илья\Desktop\storage'));
+    $containerBuilder->setParam(new ContainerParam(DiskStorage::class, 'storagePath', 'C:\Users\ilya\Desktop\storage'));
+    $containerBuilder->setParam(new ContainerParam(UploadsStorage::class, 'storagePath', 'C:\Users\ilya\Desktop\storage'));
+    $containerBuilder->setParam(new ContainerParam(ArchiveStorage::class, 'storagePath', 'C:\Users\ilya\Desktop\storage'));
     $containerBuilder->setParam(new ContainerParam(UserRepository::class, 'tableName', 'users'));
     $containerBuilder->setParam(new ContainerParam(FileSystemRepository::class, 'tableName', 'file_system'));
     $containerBuilder->setParam(new ContainerParam(UploadSessionRepository::class, 'tableName', 'upload_sessions'));
+    $containerBuilder->setParam(new ContainerParam(RememberMeTokenRepository::class, 'tableName', 'auth_tokens'));
 
     $container = $containerBuilder->build();
 
@@ -39,3 +41,4 @@ function executeApp()
 }
 
 ErrorHandler::handle('executeApp');
+die;

@@ -1,12 +1,9 @@
 <?php
 
-use App\Controllers\AuthCheckController;
+use App\Controllers\AuthController;
 use App\Controllers\DownloadController;
 use App\Controllers\FolderController;
-use App\Controllers\LogOutController;
 use App\Controllers\NotFoundController;
-use App\Controllers\SignInController;
-use App\Controllers\SignUpController;
 use App\Controllers\UploadController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
@@ -18,10 +15,11 @@ use App\Router\ControllerSetup;
 use App\Router\Route;
 
 return [
-    Route::post('/signup', new ControllerSetup(SignUpController::class), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signup']]),
-    Route::post('/signin', new ControllerSetup(SignInController::class), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signin']]),
-    Route::get('/check-auth', new ControllerSetup(AuthCheckController::class)),
-    Route::post('/logout', new ControllerSetup(LogOutController::class), [AuthMiddleware::class]),
+    Route::post('/auth/signup', new ControllerSetup(AuthController::class, 'signup'), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signup']]),
+    Route::post('/auth/signin', new ControllerSetup(AuthController::class, 'signin'), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signin']]),
+    Route::get('/auth/user', new ControllerSetup(AuthController::class, 'getUser')),
+    Route::post('/auth/logout', new ControllerSetup(AuthController::class, 'logout'), [AuthMiddleware::class]),
+    Route::post('/auth/refresh', new ControllerSetup(AuthController::class, 'refresh'), [GuestMiddleware::class]),
 
     Route::post('/folder', new ControllerSetup(FolderController::class, 'create'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'create']]),
     Route::get('/folder', new ControllerSetup(FolderController::class, 'getFolderContent'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'getContent']]),

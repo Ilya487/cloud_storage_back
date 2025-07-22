@@ -8,6 +8,6 @@ interface AuthenticationInterface
 {
     public function auth(): bool;
     public function getAuthUser(): ?User;
-    public function logOut(): bool;
+    public function logOut(): void;
     public function signIn(User $user): bool;
 }
