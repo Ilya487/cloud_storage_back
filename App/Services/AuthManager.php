@@ -50,7 +50,7 @@ class AuthManager
         $user = $this->tokenManager->getUserFromToken();
         if ($user === false) return new OperationResult(false, errors: ['message' => 'Не удалось пересоздать токен']);
         $this->authenticator->signIn($user);
-        return new OperationResult(true, ['userId' => $user->getId()]);
+        return new OperationResult(true, ['auth' => true, 'login' => $user->getLogin()]);
     }
 
     public function auth(): bool

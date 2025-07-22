@@ -11,11 +11,16 @@ class AuthController implements ControllerInterface
 {
     public function __construct(private Request $request, private Response $response,  private AuthManager $authManager) {}
 
-    public function resolve(): void
+    public function resolve(): void {}
+
+    public function getUser()
     {
-        if ($this->authManager->auth()) {
-            $this->response->sendJson(['authenticated' => true, 'userId' => $this->authManager->getAuthUser()->getId()]);
-        } else $this->response->sendJson(['authenticated' => false]);
+        $user = $this->authManager->getAuthUser();
+        if (is_null($user)) {
+            $this->response->setStatusCode(401)->sendJson(['auth' => false]);
+        } else {
+            $this->response->sendJson(['auth' => true, 'login' => $user->getLogin()]);
+        }
     }
 
     public function signup()
@@ -58,7 +63,7 @@ class AuthController implements ControllerInterface
         if ($result->success) {
             $this->response->sendJson($result->data);
         } else {
-            $this->response->setStatusCode(400)->sendJson($result->data);
+            $this->response->setStatusCode(401)->sendJson($result->errors);
         }
     }
 }

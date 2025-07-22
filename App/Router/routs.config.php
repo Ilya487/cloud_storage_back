@@ -17,7 +17,7 @@ use App\Router\Route;
 return [
     Route::post('/auth/signup', new ControllerSetup(AuthController::class, 'signup'), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signup']]),
     Route::post('/auth/signin', new ControllerSetup(AuthController::class, 'signin'), [GuestMiddleware::class, [UserValidationMiddleware::class, 'signin']]),
-    Route::get('/auth/check-auth', new ControllerSetup(AuthController::class)),
+    Route::get('/auth/user', new ControllerSetup(AuthController::class, 'getUser')),
     Route::post('/auth/logout', new ControllerSetup(AuthController::class, 'logout'), [AuthMiddleware::class]),
     Route::post('/auth/refresh', new ControllerSetup(AuthController::class, 'refresh'), [GuestMiddleware::class]),
 
