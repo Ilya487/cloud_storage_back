@@ -54,6 +54,7 @@ abstract class BaseRepository
 
     protected function beginTransaction()
     {
+        if ($this->pdo->inTransaction()) return;
         $this->pdo->beginTransaction();
     }
 
