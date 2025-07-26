@@ -68,14 +68,19 @@ class FolderController implements ControllerInterface
 
     public function move()
     {
-        $objectId = $this->request->json()['itemId'];
+        $objectId = $this->request->json()['items'];
         $toDirId = $this->request->json()['toDirId'] ?: null;
         $userId = $this->authManager->getAuthUser()->getId();
 
-        $moveResult = $this->fsService->moveObject($userId, $objectId, $toDirId);
+        $moveResult = $this->fsService->moveObjects($userId, $objectId, $toDirId);
 
-        if ($moveResult->success) $this->response->setStatusCode(200)->sendJson($moveResult->data);
-        else $this->response->setStatusCode(400)->sendJson($moveResult->errors);
+        if ($moveResult->success) $this->response->setStatusCode(200)->sendJson([
+            'successMoves' => $moveResult->numSuccessMoves,
+            'errorMoves' => $moveResult->numErrorMoves
+        ]);
+        else $this->response->setStatusCode(400)->sendJson([
+            'message' => $moveResult->errorMsg
+        ]);
     }
 
     public function getFolderIdByPath()
