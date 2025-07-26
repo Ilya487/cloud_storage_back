@@ -12,6 +12,7 @@ abstract class ValidationMiddleware implements MiddlewareInterface
     const REQUIRE = 1;
     const STRING = 2;
     const INT = 4;
+    const ARRAY = 8;
     const JSON = 'json';
     const GET = 'get';
     const HEADER = 'header';
@@ -19,7 +20,8 @@ abstract class ValidationMiddleware implements MiddlewareInterface
     private array $validators = [
         self::REQUIRE => 'checkRequire',
         self::STRING => 'checkStr',
-        self::INT => 'checkInt'
+        self::INT => 'checkInt',
+        self::ARRAY => 'checkArr'
     ];
 
     public function __construct(protected Request $request, protected Response $response) {}
@@ -93,6 +95,13 @@ abstract class ValidationMiddleware implements MiddlewareInterface
         $res = is_null($value);
         if ($res) {
             $this->sendError("Отсутствует обязательное поле $name");
+        }
+    }
+
+    private function checkArr(string $name, $value)
+    {
+        if (!is_array($value)) {
+            $this->sendError("$name имеет неверный тип");
         }
     }
 }

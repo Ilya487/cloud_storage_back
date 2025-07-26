@@ -41,9 +41,14 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
         $this->validate(self::REQUIRE | self::INT, 'objectId', self::GET);
     }
 
-    public function moveItem()
+    public function moveItems()
     {
-        $this->validate(self::REQUIRE | self::INT, 'itemId', self::JSON);
+        $items = $this->validate(self::REQUIRE | self::ARRAY, 'items', self::JSON);
+        $key = array_find_key($items, fn($val) => !(filter_var($val, FILTER_VALIDATE_INT) && $val > 0));
+        if (!is_null($key)) {
+            $this->sendError('items должен состоять из целых неотрицательных чисел');
+        }
+
         $this->validate(self::INT, 'toDirId', self::JSON);
     }
 
