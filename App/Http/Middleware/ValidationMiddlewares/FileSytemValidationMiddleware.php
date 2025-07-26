@@ -12,7 +12,7 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
     public function create()
     {
         $dirName = $this->validate(self::REQUIRE | self::STRING, 'dirName', self::JSON);
-        $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'parentDirId', self::JSON);
+        $this->validate(self::INT, 'parentDirId', self::JSON);
 
         $nameValidationResult = (new FileSystemNameValidator($dirName))->validate();
         if (!$nameValidationResult->success) {
@@ -22,7 +22,7 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
 
     public function getContent()
     {
-        $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'dirId', self::GET);
+        $this->validate(self::INT, 'dirId', self::GET);
     }
 
     public function rename()
@@ -44,7 +44,7 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
     public function moveItem()
     {
         $this->validate(self::REQUIRE | self::INT, 'itemId', self::JSON);
-        $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'toDirId', self::JSON);
+        $this->validate(self::INT, 'toDirId', self::JSON);
     }
 
     public function getFolderIdByPath()

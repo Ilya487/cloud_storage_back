@@ -12,14 +12,12 @@ abstract class ValidationMiddleware implements MiddlewareInterface
     const REQUIRE = 1;
     const STRING = 2;
     const INT = 4;
-    const INT_OR_EMPTY = 8;
     const JSON = 'json';
     const GET = 'get';
     const HEADER = 'header';
 
     private array $validators = [
         self::REQUIRE => 'checkRequire',
-        self::INT_OR_EMPTY => 'checkIntOrEmpty',
         self::STRING => 'checkStr',
         self::INT => 'checkInt'
     ];
@@ -96,13 +94,5 @@ abstract class ValidationMiddleware implements MiddlewareInterface
         if ($res) {
             $this->sendError("Отсутствует обязательное поле $name");
         }
-    }
-
-    private function checkIntOrEmpty(string $name, $value)
-    {
-        if (is_string($value) && $value === '') {
-            return;
-        }
-        $this->checkInt($name, $value);
     }
 }

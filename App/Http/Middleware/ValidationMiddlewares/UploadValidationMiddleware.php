@@ -13,7 +13,7 @@ class UploadValidationMiddleware extends ValidationMiddleware implements Middlew
     {
         $fileName = $this->validate(self::REQUIRE | self::STRING, 'fileName', self::JSON);
         $this->validate(self::REQUIRE | self::INT, 'fileSize', self::JSON);
-        $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'destinationDirId', self::JSON);
+        $this->validate(self::INT, 'destinationDirId', self::JSON);
 
         $nameValidationResult = (new FileSystemNameValidator($fileName))->validate();
         if (!$nameValidationResult->success) {
