@@ -10,7 +10,7 @@ class MoveFilesUseCase
 {
     public function __construct(private FileSystemRepository $fsRepo, private DiskStorage $diskStorage) {}
 
-    public function __invoke(int $userId, array $items, ?int $toDirId = null): MoveFilesResult
+    public function execute(int $userId, array $items, ?int $toDirId = null): MoveFilesResult
     {
         $toDirPath = is_null($toDirId) ? '' : $this->fsRepo->getPathById($toDirId, $userId);
         if ($toDirPath === false) {

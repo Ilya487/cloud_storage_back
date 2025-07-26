@@ -6,10 +6,17 @@ use App\DTO\OperationResult;
 use App\Repositories\FileSystemRepository;
 use App\Storage\ArchiveStorage;
 use App\Storage\DiskStorage;
+use App\UseCases\MoveFiles\MoveFilesResult;
+use App\UseCases\MoveFiles\MoveFilesUseCase;
 
 class FileSystemService
 {
-    public function __construct(private DiskStorage $diskStorage, private FileSystemRepository $fsRepo, private ArchiveStorage $archiveStorage) {}
+    public function __construct(
+        private DiskStorage $diskStorage,
+        private FileSystemRepository $fsRepo,
+        private ArchiveStorage $archiveStorage,
+        private MoveFilesUseCase $moveFiles
+    ) {}
 
     public function createFolder(int $userId, string $dirName, ?int $parentDirId = null): OperationResult
     {
@@ -92,41 +99,9 @@ class FileSystemService
         }
     }
 
-    public function moveObject(int $userId, int $objectId, ?int $toDirId = null): OperationResult
+    public function moveObjects(int $userId, array $items, ?int $toDirId = null): MoveFilesResult
     {
-        $type = $this->fsRepo->getTypeById($userId, $objectId);
-        if ($type === false) return new OperationResult(false, null, ['message' => 'Указан некорректный айди перемещаемого ресурса']);
-
-        if ($objectId == $toDirId) {
-            return new OperationResult(false, null, ['message' => 'Путь источника и назначения совпадают']);
-        }
-
-        $currentPath = $this->fsRepo->getPathById($objectId, $userId);
-        if ($currentPath === false) {
-            return new OperationResult(false, null, ['message' => 'Указан некорректный айди перемещаемого ресурса']);
-        }
-
-        $toDirPath = is_null($toDirId) ? '' : $this->fsRepo->getPathById($toDirId, $userId);
-        if ($toDirPath === false) {
-            return new OperationResult(false, null, ['message' => 'Указана некорректная папка назначения']);
-        }
-
-        $updatedPath = "$toDirPath/" . basename($currentPath);
-
-        if ($currentPath == $updatedPath) {
-            return new OperationResult(false, null, ['message' => 'Путь источника и назначения совпадают']);
-        }
-
-        if ($this->diskStorage->moveItem($userId, $currentPath, $toDirPath)) {
-            if ($type == 'folder') $this->fsRepo->moveFolder($userId, $currentPath, $updatedPath, $toDirId);
-            else $this->fsRepo->moveFile($userId, $currentPath, $updatedPath, $toDirId);
-
-            return new OperationResult(true, ['updatedPath' => $updatedPath]);
-        } else {
-            return new OperationResult(false, null, [
-                'message' => 'Не удалось переместить ' . ($type == 'folder' ? 'папку' : 'файл')
-            ]);
-        }
+        return $this->moveFiles->execute($userId, $items, $toDirId);
     }
 
     public function getPathForDownload(int $userId, int $fileId): OperationResult
