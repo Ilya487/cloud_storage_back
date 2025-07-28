@@ -15,7 +15,8 @@ class FileSystemService
         private DiskStorage $diskStorage,
         private FileSystemRepository $fsRepo,
         private ArchiveStorage $archiveStorage,
-        private MoveFilesUseCase $moveFiles
+        private MoveFilesUseCase $moveFiles,
+        private DeleteFilesUseCase $deleteFiles
     ) {}
 
     public function createFolder(int $userId, string $dirName, ?int $parentDirId = null): OperationResult
@@ -23,11 +24,15 @@ class FileSystemService
         $parentPath = $parentDirId ? $this->fsRepo->getPathById($parentDirId, $userId) : '';
         if ($parentPath === false) return new OperationResult(false, null, ['message' => 'Неверный айди родительского каталога']);
 
+        $path = "$parentPath/$dirName";
+        $dirId = $this->fsRepo->createDir($userId, $dirName, $path, $parentDirId);
         if ($this->diskStorage->createDir($userId, $dirName, $parentPath)) {
-            $path = "$parentPath/$dirName";
-            $dirId = $this->fsRepo->createDir($userId, $dirName, $path, $parentDirId);
+            $this->fsRepo->confirmChanges();
             return new OperationResult(true, ['dirId' => $dirId]);
-        } else return new OperationResult(false, null, ['message' => 'Папка с таким именем уже существует']);
+        } else {
+            $this->fsRepo->cancelLastChanges();
+            return new OperationResult(false, null, ['message' => 'Папка с таким именем уже существует']);
+        }
     }
 
     public function getFolderContent(int $userId, ?int $dirId = null): OperationResult
@@ -55,15 +60,17 @@ class FileSystemService
         if ($type === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
 
         $objectPath = $this->fsRepo->getPathById($objectId, $userId);
+        $parentDir = dirname($objectPath);
+        $updatedPath = $parentDir == DIRECTORY_SEPARATOR ? '' . "/$newName" : $parentDir . "/$newName";
+
+        if ($type == 'folder') $this->fsRepo->renameDir($userId, $objectPath, $updatedPath, $newName);
+        if ($type == 'file') $this->fsRepo->renameFile($userId, $objectPath, $updatedPath, $newName);
+
         if ($this->diskStorage->renameObject($userId, $newName, $objectPath)) {
-            $parentDir = dirname($objectPath);
-            $updatedPath = $parentDir == DIRECTORY_SEPARATOR ? '' . "/$newName" : $parentDir . "/$newName";
-
-            if ($type == 'folder') $this->fsRepo->renameDir($userId, $objectPath, $updatedPath, $newName);
-            if ($type == 'file') $this->fsRepo->renameFile($userId, $objectPath, $updatedPath, $newName);
-
+            $this->fsRepo->confirmChanges();
             return new OperationResult(true, ['updatedPath' => $updatedPath]);
         } else {
+            $this->fsRepo->cancelLastChanges();
             return new OperationResult(false, null, ['message' => 'Не удалось переименовать ' . ($type == 'folder' ? 'папку' : 'файл')]);
         }
     }

@@ -4,7 +4,6 @@ namespace App\UseCases\MoveFiles;
 
 use App\Repositories\FileSystemRepository;
 use App\Storage\DiskStorage;
-use Error;
 
 class MoveFilesUseCase
 {
@@ -41,17 +40,16 @@ class MoveFilesUseCase
                 continue;
             }
 
+            if ($type == 'folder') $this->fsRepo->moveFolder($userId, $currentPath, $updatedPath, $toDirId);
+            else $this->fsRepo->moveFile($userId, $currentPath, $updatedPath, $toDirId);
+
             if ($this->diskStorage->moveItem($userId, $currentPath, $toDirPath)) {
-                try {
-                    if ($type == 'folder') $this->fsRepo->moveFolder($userId, $currentPath, $updatedPath, $toDirId);
-                    else $this->fsRepo->moveFile($userId, $currentPath, $updatedPath, $toDirId);
-                    $succesMove++;
-                } catch (Error $err) {
-                    $this->fsRepo->moveFile($userId, $updatedPath, $currentPath);
-                    throw $err;
-                }
-            } else
+                $this->fsRepo->confirmChanges();
+                $succesMove++;
+            } else {
+                $this->fsRepo->cancelLastChanges();
                 $errorMove++;
+            }
         }
 
         if ($errorMove === count($items)) return MoveFilesResult::createErrorResult('Не удалось переместить объекты', $errorMove);
