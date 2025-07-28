@@ -57,10 +57,10 @@ class FolderController implements ControllerInterface
 
     public function delete()
     {
-        $objectId = $this->request->get('objectId');
+        $items = $this->request->json()['items'];
         $userId = $this->authManager->getAuthUser()->getId();
 
-        $deleteResult = $this->fsService->deleteObject($userId, $objectId);
+        $deleteResult = $this->fsService->deleteObjects($userId, $items);
 
         if ($deleteResult->success) $this->response->setStatusCode(200)->sendJson($deleteResult->data);
         else $this->response->setStatusCode(400)->sendJson($deleteResult->errors);
