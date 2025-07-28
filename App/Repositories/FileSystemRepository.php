@@ -4,15 +4,19 @@ namespace App\Repositories;
 
 use App\Tools\QueryBuilder;
 use App\Repositories\BaseRepository;
+use Exception;
 use PDO;
 
 class FileSystemRepository extends BaseRepository
 {
+    private bool $isOperationConfirm = true;
     /**
      * @return string new dir id
      */
     public function createDir(int $userId, string $dirName, string $path, int $parentDirId = null): string
     {
+        $this->processOperationStatus();
+
         $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path'])->build();
         $newDirId = $this->insert($query, [
             'name' => $dirName,
@@ -31,6 +35,8 @@ class FileSystemRepository extends BaseRepository
      */
     public function createFile(int $userId, string $fileName, string $path, int $parentDirId = null, int $fileSize): string
     {
+        $this->processOperationStatus();
+
         $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path', 'size'])->build();
         $fileId = $this->insert($query, [
             'name' => $fileName,
@@ -60,10 +66,10 @@ class FileSystemRepository extends BaseRepository
      */
     public function renameDir(int $userId, string $path, string $updatedPath, string $newName)
     {
-        $this->beginTransaction();
+        $this->processOperationStatus();
+
         $this->renameObject($userId, $path, $updatedPath, $newName);
         $this->renameInnerFolders($userId, $path, $updatedPath);
-        $this->submitTransaction();
     }
 
     /**
@@ -71,6 +77,8 @@ class FileSystemRepository extends BaseRepository
      */
     public function renameFile(int $userId, string $path, string $updatedPath, string $newName)
     {
+        $this->processOperationStatus();
+
         $this->renameObject($userId, $path, $updatedPath, $newName);
     }
 
@@ -90,20 +98,24 @@ class FileSystemRepository extends BaseRepository
 
     public function deleteById(int $userId, int $itemId)
     {
+        $this->processOperationStatus();
+
         $query = $this->queryBuilder->delete()->where('id', QueryBuilder::EQUAL)->and('user_id', QueryBuilder::EQUAL)->build();
         $this->delete($query, ['id' => $itemId, 'user_id' => $userId]);
     }
 
     public function moveFolder(int $userId, string $currentPath, string $updatedPath, ?int $toDirId = null)
     {
-        $this->beginTransaction();
+        $this->processOperationStatus();
+
         $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
         $this->moveInnerItems($userId, $currentPath, $updatedPath);
-        $this->submitTransaction();
     }
 
     public function moveFile(int $userId, string $currentPath, string $updatedPath, ?int $toDirId = null)
     {
+        $this->processOperationStatus();
+
         $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
     }
 
@@ -136,6 +148,27 @@ class FileSystemRepository extends BaseRepository
 
         if ($res === false) return false;
         else return $res['id'];
+    }
+
+    public function confirmChanges()
+    {
+        $this->isOperationConfirm = true;
+        $this->submitTransaction();
+    }
+
+    public function cancelLastChanges()
+    {
+        $this->isOperationConfirm = true;
+        $this->rollBackTransaction();
+    }
+
+    private function processOperationStatus()
+    {
+        if (!$this->isOperationConfirm) {
+            throw new Exception('You must confirm last operation');
+        }
+        $this->isOperationConfirm = false;
+        $this->beginTransaction();
     }
 
     private function getRootContent(int $userId): array|false
