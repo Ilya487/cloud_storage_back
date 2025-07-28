@@ -6,8 +6,8 @@ use App\DTO\OperationResult;
 use App\Repositories\FileSystemRepository;
 use App\Storage\ArchiveStorage;
 use App\Storage\DiskStorage;
-use App\UseCases\MoveFiles\MoveFilesResult;
-use App\UseCases\MoveFiles\MoveFilesUseCase;
+use App\UseCases\DeleteFilesUseCase;
+use App\UseCases\MoveFilesUseCase;
 
 class FileSystemService
 {
@@ -75,38 +75,12 @@ class FileSystemService
         }
     }
 
-    public function deleteObject(int $userId, int $objectId): OperationResult
+    public function deleteObjects(int $userId, array $items): OperationResult
     {
-        $type = $this->fsRepo->getTypeById($userId, $objectId);
-        if ($type === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
-
-        $objectPath = $this->fsRepo->getPathById($objectId, $userId);
-
-        if ($type == 'folder') return $this->deleteFolder($userId, $objectId, $objectPath);
-        else  return $this->deleteFile($userId, $objectId, $objectPath);
+        return $this->deleteFiles->execute($userId, $items);
     }
 
-    private function deleteFolder(int $userId, int $dirId, string $dirPath): OperationResult
-    {
-        if ($this->diskStorage->deleteDir($userId, $dirPath)) {
-            $this->fsRepo->deleteById($userId, $dirId);
-            return new OperationResult(true, ['message' => 'Папка успешно удалена']);
-        } else {
-            return new OperationResult(false, null, ['message' => 'Не удалось удалить папку']);
-        }
-    }
-
-    private function deleteFile(int $userId, int $fileId, string $filePath): OperationResult
-    {
-        if ($this->diskStorage->deleteFile($userId, $filePath)) {
-            $this->fsRepo->deleteById($userId, $fileId);
-            return new OperationResult(true, ['message' => 'Файл успешно удален']);
-        } else {
-            return new OperationResult(false, null, ['message' => 'Не удалось удалить файл']);
-        }
-    }
-
-    public function moveObjects(int $userId, array $items, ?int $toDirId = null): MoveFilesResult
+    public function moveObjects(int $userId, array $items, ?int $toDirId = null): OperationResult
     {
         return $this->moveFiles->execute($userId, $items, $toDirId);
     }

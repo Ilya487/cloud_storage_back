@@ -1,6 +1,6 @@
 <?php
 
-namespace App\UseCases\MoveFiles;
+namespace App\UseCases;
 
 use App\DTO\OperationResult;
 use App\Repositories\FileSystemRepository;
