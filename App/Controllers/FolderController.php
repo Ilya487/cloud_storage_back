@@ -74,13 +74,8 @@ class FolderController implements ControllerInterface
 
         $moveResult = $this->fsService->moveObjects($userId, $objectId, $toDirId);
 
-        if ($moveResult->success) $this->response->setStatusCode(200)->sendJson([
-            'successMoves' => $moveResult->numSuccessMoves,
-            'errorMoves' => $moveResult->numErrorMoves
-        ]);
-        else $this->response->setStatusCode(400)->sendJson([
-            'message' => $moveResult->errorMsg
-        ]);
+        if ($moveResult->success) $this->response->setStatusCode(200)->sendJson($moveResult->data);
+        else $this->response->setStatusCode(400)->sendJson($moveResult->errors);
     }
 
     public function getFolderIdByPath()

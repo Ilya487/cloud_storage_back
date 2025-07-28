@@ -2,6 +2,7 @@
 
 namespace App\UseCases\MoveFiles;
 
+use App\DTO\OperationResult;
 use App\Repositories\FileSystemRepository;
 use App\Storage\DiskStorage;
 
@@ -9,11 +10,11 @@ class MoveFilesUseCase
 {
     public function __construct(private FileSystemRepository $fsRepo, private DiskStorage $diskStorage) {}
 
-    public function execute(int $userId, array $items, ?int $toDirId = null): MoveFilesResult
+    public function execute(int $userId, array $items, ?int $toDirId = null): OperationResult
     {
         $toDirPath = is_null($toDirId) ? '' : $this->fsRepo->getPathById($toDirId, $userId);
         if ($toDirPath === false) {
-            return MoveFilesResult::createErrorResult('Указана некорректная папка назначения');
+            return OperationResult::createError(['message' => 'Указана некорректная папка назначения']);
         }
 
         $errorMove = 0;
@@ -52,7 +53,12 @@ class MoveFilesUseCase
             }
         }
 
-        if ($errorMove === count($items)) return MoveFilesResult::createErrorResult('Не удалось переместить объекты', $errorMove);
-        else return MoveFilesResult::createSuccessResult($succesMove, $errorMove);
+        if ($errorMove === count($items)) return OperationResult::createError(
+            ['message' => 'Не удалось переместить объекты', 'errorMoves' => $errorMove]
+        );
+        else return OperationResult::createSuccess([
+            'successMoves' => $succesMove,
+            'errorMoves' => $errorMove
+        ]);
     }
 }
