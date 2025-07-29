@@ -88,15 +88,14 @@ class FileSystemService
 
     public function getPathForDownload(int $userId, int $fileId): OperationResult
     {
-        $type =  $this->fsRepo->getTypeById($userId, $fileId);
-        if (!$type) {
+        $fsObject =  $this->fsRepo->getById($userId, $fileId);
+        if (!$fsObject) {
             return OperationResult::createError(['message' => 'Объект с таким айди не найден', 'code' => 404]);
         }
 
-        $partPath =  $this->fsRepo->getPathById($fileId, $userId);
-        $fullPath = $this->diskStorage->getPath($userId, $partPath);
+        $fullPath = $this->diskStorage->getPath($userId, $fsObject->getPath());
 
-        if ($type == 'file') {
+        if ($fsObject->type == FsObjectType::FILE) {
             return OperationResult::createSuccess(['path' => $fullPath, 'type' => 'file']);
         } else {
             $archivePath = $this->archiveStorage->createArchive($userId, $fileId, $fullPath);
