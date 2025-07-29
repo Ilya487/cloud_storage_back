@@ -33,6 +33,8 @@ class FileSystemObject
         $updatedPath = $pathToDir == DIRECTORY_SEPARATOR ? '' . "/$newName" : $pathToDir . "/$newName";
         $this->name = $newName;
         $this->path = $updatedPath;
+
+        return $updatedPath;
     }
 
     public function changeDir(?int $toDirId, string $newDirPath): string|false

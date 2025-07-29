@@ -66,22 +66,18 @@ class FileSystemRepository extends BaseRepository
      * @param string $path в конце не должно быть слеша
      * @param string $updatedPath в конце не должно быть слеша
      */
-    public function renameDir(int $userId, string $path, string $updatedPath, string $newName)
+    public function rename(int $userId, FsObjectType $type, string $currentPath, string $updatedPath, string $newName)
     {
-        $this->processOperationStatus();
+        if ($type == FsObjectType::DIR) {
+            $this->processOperationStatus();
 
-        $this->renameObject($userId, $path, $updatedPath, $newName);
-        $this->renameInnerFolders($userId, $path, $updatedPath);
-    }
+            $this->renameObject($userId, $currentPath, $updatedPath, $newName);
+            $this->renameInnerFolders($userId, $currentPath, $updatedPath);
+        } else if ($type == FsObjectType::FILE) {
+            $this->processOperationStatus();
 
-    /**
-     * @param string $updatedPath в конце не должно быть слеша
-     */
-    public function renameFile(int $userId, string $path, string $updatedPath, string $newName)
-    {
-        $this->processOperationStatus();
-
-        $this->renameObject($userId, $path, $updatedPath, $newName);
+            $this->renameObject($userId, $currentPath, $updatedPath, $newName);
+        } else throw new Exception('Unknown fs object type');
     }
 
     public function getDirContent(int $userId, int $dirId = null): array|false
