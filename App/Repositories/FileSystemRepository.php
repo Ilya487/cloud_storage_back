@@ -2,6 +2,8 @@
 
 namespace App\Repositories;
 
+use App\Models\FileSystemObject;
+use App\Models\FsObjectType;
 use App\Tools\QueryBuilder;
 use App\Repositories\BaseRepository;
 use Exception;
@@ -88,7 +90,7 @@ class FileSystemRepository extends BaseRepository
         else return $this->getConcreteDirContent($userId, $dirId);
     }
 
-    public function checkDirExist(int $userId, int $dirId)
+    public function checkDirExist(int $userId, int $dirId): bool
     {
         $query = $this->queryBuilder->count()->where('user_id', '=')->and('type', '=')->and('id', '=')->build();
         $res = $this->fetchOne($query, ['user_id' => $userId, 'id' => $dirId, 'type' => 'folder'], PDO::FETCH_NUM);
@@ -104,19 +106,23 @@ class FileSystemRepository extends BaseRepository
         $this->delete($query, ['id' => $itemId, 'user_id' => $userId]);
     }
 
-    public function moveFolder(int $userId, string $currentPath, string $updatedPath, ?int $toDirId = null)
-    {
-        $this->processOperationStatus();
+    public function moveObject(
+        int $userId,
+        FsObjectType $type,
+        string $currentPath,
+        string $updatedPath,
+        ?int $toDirId = null
+    ) {
+        if ($type == FsObjectType::DIR) {
+            $this->processOperationStatus();
 
-        $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
-        $this->moveInnerItems($userId, $currentPath, $updatedPath);
-    }
+            $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
+            $this->moveInnerItems($userId, $currentPath, $updatedPath);
+        } else if ($type == FsObjectType::FILE) {
+            $this->processOperationStatus();
 
-    public function moveFile(int $userId, string $currentPath, string $updatedPath, ?int $toDirId = null)
-    {
-        $this->processOperationStatus();
-
-        $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
+            $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
+        } else throw new Exception('Unknown fs object type');
     }
 
     public function isNameExist(int $userId, string $name, ?int $dirId = null)
