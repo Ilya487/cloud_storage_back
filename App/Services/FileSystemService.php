@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\DTO\OperationResult;
+use App\Models\FsObjectType;
 use App\Repositories\FileSystemRepository;
 use App\Storage\ArchiveStorage;
 use App\Storage\DiskStorage;
@@ -56,22 +57,22 @@ class FileSystemService
 
     public function renameObject(int $userId, int $objectId, string $newName): OperationResult
     {
-        $type = $this->fsRepo->getTypeById($userId, $objectId);
-        if ($type === false) return OperationResult::createError(['message' => 'Указан неверный айди']);
+        $fsObject = $this->fsRepo->getById($userId, $objectId);
+        if ($fsObject === false) return OperationResult::createError(['message' => 'Указан неверный айди']);
 
-        $objectPath = $this->fsRepo->getPathById($objectId, $userId);
-        $parentDir = dirname($objectPath);
-        $updatedPath = $parentDir == DIRECTORY_SEPARATOR ? '' . "/$newName" : $parentDir . "/$newName";
+        $currentPath = $fsObject->getPath();
+        $updatedPath = $fsObject->rename($newName);
 
-        if ($type == 'folder') $this->fsRepo->renameDir($userId, $objectPath, $updatedPath, $newName);
-        if ($type == 'file') $this->fsRepo->renameFile($userId, $objectPath, $updatedPath, $newName);
+        $this->fsRepo->rename($fsObject->ownerId, $fsObject->type, $currentPath, $updatedPath, $fsObject->getName());
 
-        if ($this->diskStorage->renameObject($userId, $newName, $objectPath)) {
+        if ($this->diskStorage->renameObject($userId, $newName, $currentPath)) {
             $this->fsRepo->confirmChanges();
             return OperationResult::createSuccess(['updatedPath' => $updatedPath]);
         } else {
             $this->fsRepo->cancelLastChanges();
-            return OperationResult::createError(['message' => 'Не удалось переименовать ' . ($type == 'folder' ? 'папку' : 'файл')]);
+            return OperationResult::createError([
+                'message' => 'Не удалось переименовать ' . ($fsObject->type == FsObjectType::DIR ? 'папку' : 'файл')
+            ]);
         }
     }
 
