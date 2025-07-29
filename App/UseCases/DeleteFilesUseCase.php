@@ -18,15 +18,14 @@ class DeleteFilesUseCase
         $failDelete = 0;
 
         foreach ($items as $objectId) {
-            $type = $this->fsRepo->getTypeById($userId, $objectId);
-            if ($type === false) {
+            $fsObject = $this->fsRepo->getById($userId, $objectId);
+            if ($fsObject === false) {
                 $failDelete++;
                 continue;
             }
 
-            $objectPath = $this->fsRepo->getPathById($objectId, $userId);
             $this->fsRepo->deleteById($userId, $objectId);
-            if ($this->diskStorage->delete($userId, $objectPath)) {
+            if ($this->diskStorage->delete($userId, $fsObject->getPath())) {
                 $this->fsRepo->confirmChanges();
             } else {
                 $this->fsRepo->cancelLastChanges();
