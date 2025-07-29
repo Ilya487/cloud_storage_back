@@ -150,6 +150,14 @@ class FileSystemRepository extends BaseRepository
         else return $res['id'];
     }
 
+    public function getById(int $userId, int $objectId): FileSystemObject|false
+    {
+        $query = $this->queryBuilder->select()->where('user_id', '=')->and('id', '=')->build();
+        $res = $this->fetchOne($query, ['user_id' => $userId, 'id' => $objectId]);
+        if ($res === false) return false;
+        return FileSystemObject::createFromArr($res);
+    }
+
     public function confirmChanges()
     {
         $this->isOperationConfirm = true;
