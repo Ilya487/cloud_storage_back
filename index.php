@@ -11,8 +11,8 @@ use App\Repositories\RememberMeTokenRepository;
 use App\Repositories\UploadSessionRepository;
 use App\Repositories\UserRepository;
 use App\Router\Router;
-use App\Storage\ArchiveStorage;
 use App\Storage\DiskStorage;
+use App\Storage\DownloadStorage;
 use App\Storage\UploadsStorage;
 use App\Tools\DbConnect;
 use App\Tools\ErrorHandler;
@@ -26,7 +26,7 @@ function executeApp()
     $containerBuilder->share(Session::class);
     $containerBuilder->setParam(new ContainerParam(DiskStorage::class, 'storagePath', 'C:\Users\ilya\Desktop\storage'));
     $containerBuilder->setParam(new ContainerParam(UploadsStorage::class, 'storagePath', 'C:\Users\ilya\Desktop\storage'));
-    $containerBuilder->setParam(new ContainerParam(ArchiveStorage::class, 'storagePath', 'C:\Users\ilya\Desktop\storage'));
+    $containerBuilder->setParam(new ContainerParam(DownloadStorage::class, 'storagePath', 'C:\Users\ilya\Desktop\storage'));
     $containerBuilder->setParam(new ContainerParam(UserRepository::class, 'tableName', 'users'));
     $containerBuilder->setParam(new ContainerParam(FileSystemRepository::class, 'tableName', 'file_system'));
     $containerBuilder->setParam(new ContainerParam(UploadSessionRepository::class, 'tableName', 'upload_sessions'));
