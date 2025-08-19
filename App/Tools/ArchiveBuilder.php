@@ -35,7 +35,7 @@ class ArchiveBuilder
         if ($path === false) return false;
 
         if (is_file($path)) {
-            return $this->zip->addFile(basename($path));
+            return $this->zip->addFile($path, basename($path));
         } elseif (is_dir($path)) {
             return $this->addFolder($path);
         }
@@ -44,10 +44,11 @@ class ArchiveBuilder
 
     public function build(): string
     {
+        $zipPath = $this->zip->filename;
         $buildRes = $this->zip->close();
         if ($buildRes === false) throw new ArchiveException('Не удалось закрыть архив');
         $this->isBuild = true;
-        return $this->zip->filename;
+        return $zipPath;
     }
 
     private function addFolder(string $path): bool
