@@ -5,9 +5,10 @@ namespace App\Services;
 use App\DTO\OperationResult;
 use App\Models\FsObjectType;
 use App\Repositories\FileSystemRepository;
-use App\Storage\ArchiveStorage;
 use App\Storage\DiskStorage;
+use App\Storage\DownloadStorage;
 use App\UseCases\DeleteFilesUseCase;
+use App\UseCases\DownloadUseCase;
 use App\UseCases\MoveFilesUseCase;
 
 class FileSystemService
@@ -15,9 +16,10 @@ class FileSystemService
     public function __construct(
         private DiskStorage $diskStorage,
         private FileSystemRepository $fsRepo,
-        private ArchiveStorage $archiveStorage,
+        private DownloadStorage $downloadStorage,
         private MoveFilesUseCase $moveFiles,
-        private DeleteFilesUseCase $deleteFiles
+        private DeleteFilesUseCase $deleteFiles,
+        private DownloadUseCase $download
     ) {}
 
     public function createFolder(int $userId, string $dirName, ?int $parentDirId = null): OperationResult
@@ -86,22 +88,9 @@ class FileSystemService
         return $this->moveFiles->execute($userId, $items, $toDirId);
     }
 
-    public function getPathForDownload(int $userId, int $fileId): OperationResult
+    public function getPathForDownload(int $userId, array $items): OperationResult
     {
-        $fsObject =  $this->fsRepo->getById($userId, $fileId);
-        if (!$fsObject) {
-            return OperationResult::createError(['message' => 'Объект с таким айди не найден', 'code' => 404]);
-        }
-
-        $fullPath = $this->diskStorage->getPath($userId, $fsObject->getPath());
-
-        if ($fsObject->type == FsObjectType::FILE) {
-            return OperationResult::createSuccess(['path' => $fullPath, 'type' => 'file']);
-        } else {
-            $archivePath = $this->archiveStorage->createArchive($userId, $fileId, $fullPath);
-            if (!$archivePath) return OperationResult::createError(['message' => 'Не удалось создать архив для загрузки папки', 'code' => 500]);
-            return OperationResult::createSuccess(['path' => $archivePath, 'type' => 'folder']);
-        }
+        return $this->download->execute($userId, $items);
     }
 
     public function getDirIdByPath(int $userId, string $path): OperationResult
