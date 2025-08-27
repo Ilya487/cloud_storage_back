@@ -17,9 +17,9 @@ class DownloadStorage extends BaseStorage
         }
     }
 
-    public function createArchive(int $userId): ArchiveBuilder|false
+    public function createArchive(int $userId, string $prefix = ''): ArchiveBuilder|false
     {
-        $path = $this->generateName($userId);
+        $path = $this->generateName($userId, $prefix);
         try {
             $zip = new ArchiveBuilder($path);
             return $zip;
@@ -28,9 +28,10 @@ class DownloadStorage extends BaseStorage
         }
     }
 
-    private function generateName(int $userId): string
+    private function generateName(int $userId, string $prefix): string
     {
-        $archiveName = date('Ymd\THis') . '_' . uniqid() . '_' . $userId;
+        $prefix = $prefix !== '' ? $prefix . '_' : '';
+        $archiveName = $prefix . date('Ymd\THis') . '_' . uniqid() . '_' . $userId;
         $generatedPath = $this->storagePath . '/archives/' . $archiveName;
 
         return $generatedPath;

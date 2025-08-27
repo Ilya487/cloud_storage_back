@@ -49,7 +49,7 @@ class DownloadUseCase
             if ($fullPath !== false) return OperationResult::createSuccess(['path' => $fullPath, 'type' => 'file']);
         }
 
-        $archive = $this->downloadStorage->createArchive($userId);
+        $archive = $this->downloadStorage->createArchive($userId, $fsObject->getName());
         if ($archive === false) return OperationResult::createError(['message' => 'Не удалось загрузить файлы']);
 
         $fullPath = $this->diskStorage->getPath($userId, $fsObject->getPath());
