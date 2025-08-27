@@ -26,13 +26,13 @@ class UploadService
     {
         $this->deleteExpiredSessions($userId);
         if ($this->uploadSessionsRepo->getUserSessionsCount($userId) == self::MAX_ACTIVE_SESSION_FOR_USER) {
-            return new OperationResult(false, null, ['message' => 'Вы превысили максимальное количество активных сессий']);
+            return OperationResult::createError(['message' => 'Вы превысили максимальное количество активных сессий']);
         }
 
         if (!is_null($destinationDirId)) {
             $destinationDirPath = $this->fsRepo->getPathById($destinationDirId, $userId);
             if ($destinationDirPath === false) {
-                return new OperationResult(false, null, ['message' => 'Указана неверная папка назначения']);
+                return OperationResult::createError(['message' => 'Указана неверная папка назначения']);
             }
         } else $destinationDirPath = '/';
 
@@ -40,17 +40,17 @@ class UploadService
             $this->fsRepo->isNameExist($userId, $fileName, $destinationDirId) ||
             $this->uploadSessionsRepo->isNameExist($userId, $fileName, $destinationDirId)
         ) {
-            return new OperationResult(false, null, ['message' => 'Файл с таким именем уже существует!']);
+            return OperationResult::createError(['message' => 'Файл с таким именем уже существует!']);
         }
 
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
         $uploadSessionId = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirId);
         if (!$this->uploadsStorage->initializeUploadDir($uploadSessionId)) {
             $this->uploadSessionsRepo->deleteSession($userId, $uploadSessionId);
-            return new OperationResult(false, null, ['message' => 'Не удалась инициализировать сессию загрузки']);
+            return OperationResult::createError(['message' => 'Не удалась инициализировать сессию загрузки']);
         }
 
-        return new OperationResult(true, [
+        return OperationResult::createSuccess([
             'sessionId' => (int)$uploadSessionId,
             'chunkSize' => self::CHUNK_SIZE,
             'chunksCount' => $totalChunks,
@@ -62,11 +62,11 @@ class UploadService
     {
         $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
         if (!$uploadSession || $uploadSession->userId !== $userId) {
-            return new OperationResult(false, null, ['message' => 'Сессия с таким айди не найдена']);
+            return OperationResult::createError(['message' => 'Сессия с таким айди не найдена']);
         }
 
         if (!$this->uploadsStorage->uploadChunk($uploadSessionId, $chunkNum, $data)) {
-            return new OperationResult(false, null, ['message' => 'Не удалось загрузить чанк']);
+            return OperationResult::createError(['message' => 'Не удалось загрузить чанк']);
         }
 
         $completedChunksCount = $uploadSession->incrementCompletedChunks();
@@ -76,19 +76,19 @@ class UploadService
             return $this->finalizeUpload($uploadSession);
         }
 
-        return new OperationResult(true, ['progress' => $uploadSession->getProgress()]);
+        return OperationResult::createSuccess(['progress' => $uploadSession->getProgress()]);
     }
 
     public function cancelUploadSession(int $userId, int $uploadSessionId): OperationResult
     {
         $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
         if (!$uploadSession || $uploadSession->userId !== $userId) {
-            return new OperationResult(false, null, ['message' => 'Сессия с таким айди не найдена']);
+            return OperationResult::createError(['message' => 'Сессия с таким айди не найдена']);
         }
 
         $this->uploadsStorage->deleteSessionDir($uploadSession->id);
         $this->uploadSessionsRepo->deleteSession($userId, $uploadSession->id);
-        return new OperationResult(true);
+        return OperationResult::createSuccess([]);
     }
 
     private function deleteExpiredSessions($userId)
@@ -106,10 +106,10 @@ class UploadService
     {
         $fileId = $this->buildFile($uploadSession);
         if (!$fileId) {
-            return new OperationResult(false, null, ['message' => 'Не удалось собрать файл']);
+            return OperationResult::createError(['message' => 'Не удалось собрать файл']);
         }
 
-        return new OperationResult(true, [
+        return OperationResult::createSuccess([
             'progress' => $uploadSession->getProgress(),
             'message' => 'Файл успешно загружен',
             'fileId' => $fileId,
@@ -122,13 +122,15 @@ class UploadService
         $buildResult = $this->fileBuilder->buildFile($session);
         if ($buildResult->success) {
             $this->uploadSessionsRepo->deleteSession($session->userId, $session->id);
-            return $this->fsRepo->createFile(
+            $id = $this->fsRepo->createFile(
                 $session->userId,
                 $session->fileName,
                 $buildResult->filePath,
                 $session->destinationDirId,
                 $buildResult->fileSize
             );
+            $this->fsRepo->confirmChanges();
+            return $id;
         } else return false;
     }
 }

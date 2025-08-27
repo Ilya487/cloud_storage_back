@@ -54,12 +54,20 @@ abstract class BaseRepository
 
     protected function beginTransaction()
     {
+        if ($this->pdo->inTransaction()) return;
         $this->pdo->beginTransaction();
     }
 
     protected function submitTransaction()
     {
-        $this->pdo->commit();
+        if ($this->pdo->inTransaction())
+            $this->pdo->commit();
+    }
+
+    protected function rollBackTransaction()
+    {
+        if ($this->pdo->inTransaction())
+            $this->pdo->rollBack();
     }
 
     private function executeQuery(string $query, array $columnValues): PDOStatement

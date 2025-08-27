@@ -12,7 +12,7 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
     public function create()
     {
         $dirName = $this->validate(self::REQUIRE | self::STRING, 'dirName', self::JSON);
-        $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'parentDirId', self::JSON);
+        $this->validate(self::INT, 'parentDirId', self::JSON);
 
         $nameValidationResult = (new FileSystemNameValidator($dirName))->validate();
         if (!$nameValidationResult->success) {
@@ -22,7 +22,7 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
 
     public function getContent()
     {
-        $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'dirId', self::GET);
+        $this->validate(self::INT, 'dirId', self::GET);
     }
 
     public function rename()
@@ -38,13 +38,22 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
 
     public function delete()
     {
-        $this->validate(self::REQUIRE | self::INT, 'objectId', self::GET);
+        $items = $this->validate(self::REQUIRE | self::ARRAY, 'items', self::JSON);
+        $key = array_find_key($items, fn($val) => !(filter_var($val, FILTER_VALIDATE_INT) && $val > 0));
+        if (!is_null($key)) {
+            $this->sendError('items должен состоять из целых неотрицательных чисел');
+        }
     }
 
-    public function moveItem()
+    public function moveItems()
     {
-        $this->validate(self::REQUIRE | self::INT, 'itemId', self::JSON);
-        $this->validate(self::REQUIRE | self::INT_OR_EMPTY, 'toDirId', self::JSON);
+        $items = $this->validate(self::REQUIRE | self::ARRAY, 'items', self::JSON);
+        $key = array_find_key($items, fn($val) => !(filter_var($val, FILTER_VALIDATE_INT) && $val > 0));
+        if (!is_null($key)) {
+            $this->sendError('items должен состоять из целых неотрицательных чисел');
+        }
+
+        $this->validate(self::INT, 'toDirId', self::JSON);
     }
 
     public function getFolderIdByPath()

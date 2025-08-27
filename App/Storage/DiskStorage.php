@@ -29,18 +29,16 @@ class DiskStorage extends BaseStorage
         return rename($oldFullPath, $updatedFullPath);
     }
 
-    public function deleteDir(int $userId, string $path): bool
+    public function delete(int $userId, string $path): bool
     {
         $fullPath = $this->getFullPath($userId, $path);
 
-        return $this->deleteDirectoryRecursively($fullPath);
-    }
-
-    public function deleteFile(int $userId, string $path): bool
-    {
-        $fullPath = $this->getFullPath($userId, $path);
-
-        return unlink($fullPath);
+        if (is_dir($fullPath)) {
+            return $this->deleteDirectoryRecursively($fullPath);
+        } else if (is_file($fullPath)) {
+            return unlink($fullPath);
+        }
+        return false;
     }
 
     public function moveItem(int $userId, string $currentPath, string $pathToMove): bool

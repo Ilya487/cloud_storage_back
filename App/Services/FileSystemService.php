@@ -3,38 +3,53 @@
 namespace App\Services;
 
 use App\DTO\OperationResult;
+use App\Models\FsObjectType;
 use App\Repositories\FileSystemRepository;
-use App\Storage\ArchiveStorage;
 use App\Storage\DiskStorage;
+use App\Storage\DownloadStorage;
+use App\UseCases\DeleteFilesUseCase;
+use App\UseCases\DownloadUseCase;
+use App\UseCases\MoveFilesUseCase;
 
 class FileSystemService
 {
-    public function __construct(private DiskStorage $diskStorage, private FileSystemRepository $fsRepo, private ArchiveStorage $archiveStorage) {}
+    public function __construct(
+        private DiskStorage $diskStorage,
+        private FileSystemRepository $fsRepo,
+        private DownloadStorage $downloadStorage,
+        private MoveFilesUseCase $moveFiles,
+        private DeleteFilesUseCase $deleteFiles,
+        private DownloadUseCase $download
+    ) {}
 
     public function createFolder(int $userId, string $dirName, ?int $parentDirId = null): OperationResult
     {
         $parentPath = $parentDirId ? $this->fsRepo->getPathById($parentDirId, $userId) : '';
-        if ($parentPath === false) return new OperationResult(false, null, ['message' => 'Неверный айди родительского каталога']);
+        if ($parentPath === false) return  OperationResult::createError(['message' => 'Неверный айди родительского каталога']);
 
+        $path = "$parentPath/$dirName";
+        $dirId = $this->fsRepo->createDir($userId, $dirName, $path, $parentDirId);
         if ($this->diskStorage->createDir($userId, $dirName, $parentPath)) {
-            $path = "$parentPath/$dirName";
-            $dirId = $this->fsRepo->createDir($userId, $dirName, $path, $parentDirId);
-            return new OperationResult(true, ['dirId' => $dirId]);
-        } else return new OperationResult(false, null, ['message' => 'Папка с таким именем уже существует']);
+            $this->fsRepo->confirmChanges();
+            return OperationResult::createSuccess(['dirId' => $dirId]);
+        } else {
+            $this->fsRepo->cancelLastChanges();
+            return  OperationResult::createError(['message' => 'Папка с таким именем уже существует']);
+        }
     }
 
     public function getFolderContent(int $userId, ?int $dirId = null): OperationResult
     {
         if (!is_null($dirId) && $this->fsRepo->getTypeById($userId, $dirId) == 'file')
-            return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
+            return OperationResult::createError(['message' => 'Указан неверный айди']);
 
         $pathToSelectedDir = is_null($dirId) ? '/' : $this->fsRepo->getPathById($dirId, $userId);
-        if ($pathToSelectedDir === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
+        if ($pathToSelectedDir === false) return OperationResult::createError(['message' => 'Указан неверный айди']);
 
         $catalogData = $this->fsRepo->getDirContent($userId, $dirId);
 
-        if ($catalogData !== false) return new OperationResult(true, ['path' => $pathToSelectedDir, 'contents' => $catalogData]);
-        else return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
+        if ($catalogData !== false) return OperationResult::createSuccess(['path' => $pathToSelectedDir, 'contents' => $catalogData]);
+        else return OperationResult::createError(['message' => 'Указан неверный айди']);
     }
 
     public function initializeUserStorage(int $userId): bool
@@ -44,118 +59,48 @@ class FileSystemService
 
     public function renameObject(int $userId, int $objectId, string $newName): OperationResult
     {
-        $type = $this->fsRepo->getTypeById($userId, $objectId);
-        if ($type === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
+        $fsObject = $this->fsRepo->getById($userId, $objectId);
+        if ($fsObject === false) return OperationResult::createError(['message' => 'Указан неверный айди']);
 
-        $objectPath = $this->fsRepo->getPathById($objectId, $userId);
-        if ($this->diskStorage->renameObject($userId, $newName, $objectPath)) {
-            $parentDir = dirname($objectPath);
-            $updatedPath = $parentDir == DIRECTORY_SEPARATOR ? '' . "/$newName" : $parentDir . "/$newName";
+        $currentPath = $fsObject->getPath();
+        $updatedPath = $fsObject->rename($newName);
 
-            if ($type == 'folder') $this->fsRepo->renameDir($userId, $objectPath, $updatedPath, $newName);
-            if ($type == 'file') $this->fsRepo->renameFile($userId, $objectPath, $updatedPath, $newName);
+        $this->fsRepo->rename($fsObject->ownerId, $fsObject->type, $currentPath, $updatedPath, $fsObject->getName());
 
-            return new OperationResult(true, ['updatedPath' => $updatedPath]);
+        if ($this->diskStorage->renameObject($userId, $newName, $currentPath)) {
+            $this->fsRepo->confirmChanges();
+            return OperationResult::createSuccess(['updatedPath' => $updatedPath]);
         } else {
-            return new OperationResult(false, null, ['message' => 'Не удалось переименовать ' . ($type == 'folder' ? 'папку' : 'файл')]);
-        }
-    }
-
-    public function deleteObject(int $userId, int $objectId): OperationResult
-    {
-        $type = $this->fsRepo->getTypeById($userId, $objectId);
-        if ($type === false) return new OperationResult(false, null, ['message' => 'Указан неверный айди']);
-
-        $objectPath = $this->fsRepo->getPathById($objectId, $userId);
-
-        if ($type == 'folder') return $this->deleteFolder($userId, $objectId, $objectPath);
-        else  return $this->deleteFile($userId, $objectId, $objectPath);
-    }
-
-    private function deleteFolder(int $userId, int $dirId, string $dirPath): OperationResult
-    {
-        if ($this->diskStorage->deleteDir($userId, $dirPath)) {
-            $this->fsRepo->deleteById($userId, $dirId);
-            return new OperationResult(true, ['message' => 'Папка успешно удалена']);
-        } else {
-            return new OperationResult(false, null, ['message' => 'Не удалось удалить папку']);
-        }
-    }
-
-    private function deleteFile(int $userId, int $fileId, string $filePath): OperationResult
-    {
-        if ($this->diskStorage->deleteFile($userId, $filePath)) {
-            $this->fsRepo->deleteById($userId, $fileId);
-            return new OperationResult(true, ['message' => 'Файл успешно удален']);
-        } else {
-            return new OperationResult(false, null, ['message' => 'Не удалось удалить файл']);
-        }
-    }
-
-    public function moveObject(int $userId, int $objectId, ?int $toDirId = null): OperationResult
-    {
-        $type = $this->fsRepo->getTypeById($userId, $objectId);
-        if ($type === false) return new OperationResult(false, null, ['message' => 'Указан некорректный айди перемещаемого ресурса']);
-
-        if ($objectId == $toDirId) {
-            return new OperationResult(false, null, ['message' => 'Путь источника и назначения совпадают']);
-        }
-
-        $currentPath = $this->fsRepo->getPathById($objectId, $userId);
-        if ($currentPath === false) {
-            return new OperationResult(false, null, ['message' => 'Указан некорректный айди перемещаемого ресурса']);
-        }
-
-        $toDirPath = is_null($toDirId) ? '' : $this->fsRepo->getPathById($toDirId, $userId);
-        if ($toDirPath === false) {
-            return new OperationResult(false, null, ['message' => 'Указана некорректная папка назначения']);
-        }
-
-        $updatedPath = "$toDirPath/" . basename($currentPath);
-
-        if ($currentPath == $updatedPath) {
-            return new OperationResult(false, null, ['message' => 'Путь источника и назначения совпадают']);
-        }
-
-        if ($this->diskStorage->moveItem($userId, $currentPath, $toDirPath)) {
-            if ($type == 'folder') $this->fsRepo->moveFolder($userId, $currentPath, $updatedPath, $toDirId);
-            else $this->fsRepo->moveFile($userId, $currentPath, $updatedPath, $toDirId);
-
-            return new OperationResult(true, ['updatedPath' => $updatedPath]);
-        } else {
-            return new OperationResult(false, null, [
-                'message' => 'Не удалось переместить ' . ($type == 'folder' ? 'папку' : 'файл')
+            $this->fsRepo->cancelLastChanges();
+            return OperationResult::createError([
+                'message' => 'Не удалось переименовать ' . ($fsObject->type == FsObjectType::DIR ? 'папку' : 'файл')
             ]);
         }
     }
 
-    public function getPathForDownload(int $userId, int $fileId): OperationResult
+    public function deleteObjects(int $userId, array $items): OperationResult
     {
-        $type =  $this->fsRepo->getTypeById($userId, $fileId);
-        if (!$type) {
-            return new OperationResult(false, null, ['message' => 'Объект с таким айди не найден', 'code' => 404]);
-        }
+        return $this->deleteFiles->execute($userId, $items);
+    }
 
-        $partPath =  $this->fsRepo->getPathById($fileId, $userId);
-        $fullPath = $this->diskStorage->getPath($userId, $partPath);
+    public function moveObjects(int $userId, array $items, ?int $toDirId = null): OperationResult
+    {
+        return $this->moveFiles->execute($userId, $items, $toDirId);
+    }
 
-        if ($type == 'file') {
-            return new OperationResult(true, ['path' => $fullPath, 'type' => 'file']);
-        } else {
-            $archivePath = $this->archiveStorage->createArchive($userId, $fileId, $fullPath);
-            if (!$archivePath) return new OperationResult(false, null, ['message' => 'Не удалось создать архив для загрузки папки', 'code' => 500]);
-            return new OperationResult(true, ['path' => $archivePath, 'type' => 'folder']);
-        }
+    public function getPathForDownload(int $userId, array $items): OperationResult
+    {
+        return $this->download->execute($userId, $items);
     }
 
     public function getDirIdByPath(int $userId, string $path): OperationResult
     {
         $path = str_replace('\\', '/', $path);
 
-        if ($path == '/') return new OperationResult(true, ['dirId' => 'root']);
+        if ($path == '/') return OperationResult::createSuccess(['dirId' => 'root']);
 
         $dirId = $this->fsRepo->getDirIdByPath($userId, $path);
-        if ($dirId === false) return new OperationResult(false, null, ['message' => 'Папка с данным расположением не найдена']);
-        else return new OperationResult(true, ['dirId' => $dirId]);
+        if ($dirId === false) return OperationResult::createError(['message' => 'Папка с данным расположением не найдена']);
+        else return OperationResult::createSuccess(['dirId' => $dirId]);
     }
 }

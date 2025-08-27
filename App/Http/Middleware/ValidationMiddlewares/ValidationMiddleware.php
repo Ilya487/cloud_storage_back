@@ -12,16 +12,16 @@ abstract class ValidationMiddleware implements MiddlewareInterface
     const REQUIRE = 1;
     const STRING = 2;
     const INT = 4;
-    const INT_OR_EMPTY = 8;
+    const ARRAY = 8;
     const JSON = 'json';
     const GET = 'get';
     const HEADER = 'header';
 
     private array $validators = [
         self::REQUIRE => 'checkRequire',
-        self::INT_OR_EMPTY => 'checkIntOrEmpty',
         self::STRING => 'checkStr',
-        self::INT => 'checkInt'
+        self::INT => 'checkInt',
+        self::ARRAY => 'checkArr'
     ];
 
     public function __construct(protected Request $request, protected Response $response) {}
@@ -98,11 +98,10 @@ abstract class ValidationMiddleware implements MiddlewareInterface
         }
     }
 
-    private function checkIntOrEmpty(string $name, $value)
+    private function checkArr(string $name, $value)
     {
-        if (is_string($value) && $value === '') {
-            return;
+        if (!is_array($value)) {
+            $this->sendError("$name имеет неверный тип");
         }
-        $this->checkInt($name, $value);
     }
 }
