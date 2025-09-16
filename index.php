@@ -1,5 +1,11 @@
 <?php
-spl_autoload_register();
+spl_autoload_register(function ($class) {
+    $path = __DIR__ . '/' . str_replace('\\', '/', $class) . '.php';
+
+    if (file_exists($path)) {
+        require $path;
+    }
+});
 
 use App\Authentication\AuthenticationInterface;
 use App\Authentication\SessionAuthentication;
@@ -18,15 +24,17 @@ use App\Tools\DbConnect;
 use App\Tools\ErrorHandler;
 use App\Tools\Session;
 
+error_reporting(0);
+
 function executeApp()
 {
     $containerBuilder = new ContainerBuilder;
     $containerBuilder->bind(AuthenticationInterface::class, SessionAuthentication::class);
     $containerBuilder->share(DbConnect::class);
     $containerBuilder->share(Session::class);
-    $containerBuilder->setParam(new ContainerParam(DiskStorage::class, 'storagePath', 'C:\Users\ilya\Desktop\storage'));
-    $containerBuilder->setParam(new ContainerParam(UploadsStorage::class, 'storagePath', 'C:\Users\ilya\Desktop\storage'));
-    $containerBuilder->setParam(new ContainerParam(DownloadStorage::class, 'storagePath', 'C:\Users\ilya\Desktop\storage'));
+    $containerBuilder->setParam(new ContainerParam(DiskStorage::class, 'storagePath', '/var/lib/cloud-storage'));
+    $containerBuilder->setParam(new ContainerParam(UploadsStorage::class, 'storagePath', '/var/lib/cloud-storage'));
+    $containerBuilder->setParam(new ContainerParam(DownloadStorage::class, 'storagePath', '/var/lib/cloud-storage'));
     $containerBuilder->setParam(new ContainerParam(UserRepository::class, 'tableName', 'users'));
     $containerBuilder->setParam(new ContainerParam(FileSystemRepository::class, 'tableName', 'file_system'));
     $containerBuilder->setParam(new ContainerParam(UploadSessionRepository::class, 'tableName', 'upload_sessions'));

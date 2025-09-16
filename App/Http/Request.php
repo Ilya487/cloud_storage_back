@@ -10,7 +10,7 @@ class Request
 
     public function __construct()
     {
-        $this->endPoint = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $this->endPoint = $_SERVER['PATH_INFO'];
         $this->method = $_SERVER['REQUEST_METHOD'] ?: 'GET';
     }
 

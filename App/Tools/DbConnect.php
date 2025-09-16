@@ -7,7 +7,7 @@ use PDO;
 class DbConnect
 {
     private const
-        DSN = 'mysql:host=localhost;dbname=testDb',
+        DSN = 'mysql:host=mysql;dbname=testDb',
         USER_NAME = 'root',
         USER_PASSWORD = '123';
 
