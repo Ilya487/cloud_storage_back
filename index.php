@@ -11,7 +11,6 @@ use App\Authentication\AuthenticationInterface;
 use App\Authentication\SessionAuthentication;
 use App\Core\DiContainer\ContainerBuilder;
 use App\Core\DiContainer\ContainerParam;
-use App\Http\Middleware\OptionsRequestMiddleware;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\RememberMeTokenRepository;
 use App\Repositories\UploadSessionRepository;
@@ -44,7 +43,6 @@ function executeApp()
 
 
     $router = new Router($container);
-    $router->setGlobalMiddleware(OptionsRequestMiddleware::class);
     $router->resolve();
 }
 

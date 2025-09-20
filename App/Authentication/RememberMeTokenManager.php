@@ -57,10 +57,8 @@ class RememberMeTokenManager
             $token,
             [
                 'expires' => time() + self::TOKEN_LIFETIME,
-                'secure' => true,
-                'samesite' => 'None',
                 'httponly' => true,
-                'path' => '/auth'
+                'path' => '/api/auth'
             ]
         );
     }

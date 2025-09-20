@@ -11,7 +11,6 @@ class Response
 
     public function __construct()
     {
-        $this->setCorsHeaders();
         http_response_code(200);
     }
 
@@ -74,15 +73,5 @@ class Response
 
         if (!is_null($afterSend)) $afterSend($path);
         die;
-    }
-
-    private function setCorsHeaders()
-    {
-        header("Access-Control-Allow-Origin:" . (new Request)->header('origin'));
-        header('Access-Control-Allow-Credentials: true');
-        header("Access-Control-Allow-Methods: GET, POST, PATCH, DELETE");
-        header('Access-Control-Max-Age: 3600');
-        $this->setHeader('Access-Control-Allow-Headers', 'X-Session-Id, X-Chunk-Num');
-        $this->setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
     }
 }

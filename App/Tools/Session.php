@@ -5,8 +5,6 @@ namespace App\Tools;
 class Session
 {
     private array $sessionCookieParams = [
-        'secure' => true,
-        'samesite' => 'None',
         'httponly' => true
     ];
 
