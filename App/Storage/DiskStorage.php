@@ -52,15 +52,7 @@ class DiskStorage extends BaseStorage
         return rename($currentPath, $updatedPath);
     }
 
-    public function putContentInFile(int $userId, string $dirPath, string $filename, string $data = '', bool $clear = false): bool
-    {
-        $fullPath = $this->getFullPath($userId, $dirPath) . "/$filename";
-        $res = file_put_contents($fullPath, $data, $clear == true ? 0 : FILE_APPEND);
-        if ($res === false) return false;
-        else return true;
-    }
-
-    public function getPath(int $userId, string $partPath): string|false
+    public function getPath(int $userId, string $partPath = '/'): string|false
     {
         $fullPath = $this->getFullPath($userId, $partPath);
         if (is_file($fullPath) || is_dir($fullPath)) return $fullPath;
