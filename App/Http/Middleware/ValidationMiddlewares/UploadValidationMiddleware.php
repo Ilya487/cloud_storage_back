@@ -31,4 +31,9 @@ class UploadValidationMiddleware extends ValidationMiddleware implements Middlew
     {
         $this->validate(self::REQUIRE | self::INT, 'sessionId', self::GET);
     }
+
+    public function finalize()
+    {
+        $this->validate(self::REQUIRE | self::INT, 'sessionId', self::JSON);
+    }
 }
