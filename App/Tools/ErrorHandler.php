@@ -36,7 +36,9 @@ class ErrorHandler
         $errorMsg = $error->getMessage();
         $file = $error->getFile();
         $line = $error->getLine();
-        $errorMsg = "$date  " . $errorMsg . PHP_EOL . $file . ' ' . $line . "\n\n";
+        $stack = $error->getTraceAsString();
+        // $errorMsg = "$date  $errorMsg\n" . "$stack\n\n";
+        $errorMsg = "$date  " . $errorMsg . PHP_EOL . $file . ' ' . $line . "\n$stack\n\n";
         file_put_contents('logs', $errorMsg, FILE_APPEND);
     }
 }

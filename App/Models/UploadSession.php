@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use DateTime;
+use Exception;
 
 class UploadSession
 {
@@ -29,12 +30,10 @@ class UploadSession
         );
     }
 
-    public function incrementCompletedChunks(): int|false
+    public function setChunks($count)
     {
-        if ($this->isUploadComplete()) return false;
-
-        $this->completedChunksCount++;
-        return $this->completedChunksCount;
+        if ($count < 1 || $count > $this->totalChunksCount) throw new Exception('Попытка установки невалидного значения');
+        $this->completedChunksCount = $count;
     }
 
     public function getProgress(): float

@@ -26,7 +26,6 @@ class UploadService
 
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
     {
-        $this->deleteExpiredSessions($userId);
         if ($this->uploadSessionsRepo->getUserSessionsCount($userId) == self::MAX_ACTIVE_SESSION_FOR_USER) {
             return OperationResult::createError(['message' => 'Вы превысили максимальное количество активных сессий']);
         }
@@ -106,15 +105,17 @@ class UploadService
         }
     }
 
-    private function finalizeUpload(UploadSession $uploadSession): OperationResult
+    public function finalizeUpload(int $userId, int $uploadSessionId): OperationResult
     {
+        $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
+        if ($uploadSession === false) return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
+
         $fileId = $this->buildFile($uploadSession);
         if (!$fileId) {
             return OperationResult::createError(['message' => 'Не удалось собрать файл']);
         }
 
         return OperationResult::createSuccess([
-            'progress' => $uploadSession->getProgress(),
             'message' => 'Файл успешно загружен',
             'fileId' => $fileId,
             'parentDirId' => $uploadSession->destinationDirId
@@ -123,7 +124,7 @@ class UploadService
 
     private function buildFile(UploadSession $session): int|false
     {
-        set_time_limit(120);
+        set_time_limit(0);
 
         [$buildedFilePath, $toDirPath] = $this->getOutputFileName($session);
         $buildResult = $this->fileBuilder->buildFile($session, $buildedFilePath);
@@ -139,13 +140,16 @@ class UploadService
                 $session->destinationDirId,
                 $buildResult->fileSize
             );
-            $this->diskStorage->renameObject($session->userId, $session->fileName, $toDirPath . '/' . basename($buildedFilePath));
-            $this->fsRepo->confirmChanges();
-            return $id;
-        } else {
-            unlink($buildedFilePath);
-            return false;
+            $renameRes = $this->diskStorage->renameObject($session->userId, $session->fileName, $toDirPath . '/' . basename($buildedFilePath));
+
+            if ($renameRes !== false) {
+                $this->fsRepo->confirmChanges();
+                return $id;
+            } else $this->fsRepo->cancelLastChanges();
         }
+
+        unlink($buildedFilePath);
+        return false;
     }
 
     private function getOutputFileName(UploadSession $session): array
