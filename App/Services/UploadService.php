@@ -63,20 +63,20 @@ class UploadService
     public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, string $data): OperationResult
     {
         $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
-        if (!$uploadSession || $uploadSession->userId !== $userId) {
-            return OperationResult::createError(['message' => 'Сессия с таким айди не найдена']);
+        if ($uploadSession === false) {
+            return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
+        }
+
+        if ($uploadSession->isUploadComplete()) {
+            return OperationResult::createError(['message' => 'Все чанки уже загружены']);
         }
 
         if (!$this->uploadsStorage->uploadChunk($uploadSessionId, $chunkNum, $data)) {
             return OperationResult::createError(['message' => 'Не удалось загрузить чанк']);
         }
 
-        $completedChunksCount = $uploadSession->incrementCompletedChunks();
-        $this->uploadSessionsRepo->updateCompletedChunks($uploadSessionId, $completedChunksCount);
-
-        if ($uploadSession->isUploadComplete()) {
-            return $this->finalizeUpload($uploadSession);
-        }
+        $count = $this->uploadSessionsRepo->incrementCompletedChunks($uploadSessionId, 23);
+        $uploadSession->setChunks($count);
 
         return OperationResult::createSuccess(['progress' => $uploadSession->getProgress()]);
     }
@@ -84,8 +84,8 @@ class UploadService
     public function cancelUploadSession(int $userId, int $uploadSessionId): OperationResult
     {
         $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
-        if (!$uploadSession || $uploadSession->userId !== $userId) {
-            return OperationResult::createError(['message' => 'Сессия с таким айди не найдена']);
+        if ($uploadSession === false) {
+            return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
         }
 
         [$buildedFilePath] = $this->getOutputFileName($uploadSession);
