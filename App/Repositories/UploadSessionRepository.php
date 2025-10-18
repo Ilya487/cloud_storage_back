@@ -33,10 +33,17 @@ class UploadSessionRepository  extends BaseRepository
         return $data == false ? false : UploadSession::createFromArr($data);
     }
 
-    public function updateCompletedChunks(int $uploadSessionId, int $completedChunks)
+    public function incrementCompletedChunks(int $uploadSessionId): int|false
     {
-        $query = $this->queryBuilder->update(['completed_chunks'])->where('id', '=')->build();
-        $this->update($query, ['completed_chunks' => $completedChunks, 'id' => $uploadSessionId]);
+        $updateQuery = $this->queryBuilder->incrementField('completed_chunks')->where('id', '=')->build();
+        $selectQuery = $this->queryBuilder->select(['completed_chunks'])->where('id', '=')->build();
+
+        $this->beginTransaction();
+        $this->update($updateQuery, ['id' => $uploadSessionId]);
+        $count = $this->fetchOne($selectQuery, ['id' => $uploadSessionId])['completed_chunks'];
+        $this->submitTransaction();
+
+        return $count;
     }
 
     public function isNameExist(int $userId, string $fileName, ?int $destinationDirId)
