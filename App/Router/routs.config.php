@@ -31,6 +31,7 @@ return [
     Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'initUpload']]),
     Route::post('/upload/chunk', new ControllerSetup(UploadController::class, 'uploadChunk'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'uploadChunk']]),
     Route::delete('/upload/cancel', new ControllerSetup(UploadController::class, 'cancelUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'cancelUpload']]),
+    Route::post('/upload/finalize', new ControllerSetup(UploadController::class, 'finalize'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'finalize']]),
 
     Route::get('/download', new ControllerSetup(DownloadController::class), [AuthMiddleware::class, DownloadValidationMiddleware::class]),
 

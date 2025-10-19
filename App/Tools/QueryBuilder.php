@@ -98,6 +98,13 @@ class QueryBuilder
         return $this->query;
     }
 
+    public function incrementField(string $fieldName)
+    {
+        $this->resetQuery();
+        $this->query = "UPDATE $this->tableName SET $fieldName=$fieldName+1 ";
+        return $this;
+    }
+
     private function resetQuery()
     {
         $this->query = '';
