@@ -2,7 +2,6 @@
 
 namespace App\Http;
 
-use App\Http\Request;
 use Exception;
 
 class Response
@@ -53,25 +52,19 @@ class Response
         die;
     }
 
-    public function sendDownloadResponse(string $path, ?callable $afterSend = null)
+    public function sendDownloadResponse(string $path)
     {
-        $baseName = rawurlencode(basename($path));
-        $size = filesize($path);
+        $filename = rawurlencode(basename($path));
+        $this->setHeader('Content-Type', '');
+        $this->setHeader('Content-Disposition', "attachment; filename=$filename");
+        $this->setHeader('X-Accel-Redirect', $path);
+        die;
+    }
 
-        $this->setHeader('Content-Type', 'application/octet-stream');
-        $this->setHeader(
-            'Content-Disposition',
-            "attachment; filename=$baseName"
-        );
-        $this->setHeader('Content-Length', $size);
-
-        $source = fopen($path, 'r');
-        $output = fopen('php://output', 'w');
-        stream_copy_to_stream($source, $output);
-        fclose($source);
-        fclose($output);
-
-        if (!is_null($afterSend)) $afterSend($path);
+    public function outputFile($path)
+    {
+        $this->setHeader('Content-Type', '');
+        $this->setHeader('X-Accel-Redirect', $path);
         die;
     }
 }
