@@ -192,10 +192,28 @@ class FileSystemRepository extends BaseRepository
     /**
      * @return FileSystemObject[]|false
      */
-    public function getMany(int $userId, array $ids)
+    public function getMany(int $userId, array $ids): array|false
     {
-        // $query = $this->queryBuilder->select()->where('user_id', '=')->whereIn('id', count($ids))->build();
-        // echo $query;
+        $preparedIds = [];
+        foreach ($ids as $key => $value) {
+            $preparedIds[":$key"] = $value;
+        }
+
+        $query = $this->queryBuilder
+            ->select()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::in('id', array_keys($ids)))
+            ->build();
+
+        $requestRes = $this->fetchAll($query, ['user_id' => $userId, ...$preparedIds]);
+        if (empty($requestRes)) return false;
+
+        $fsObjectsCollection = [];
+        foreach ($requestRes as $raw) {
+            $fsObjectsCollection[] = FileSystemObject::createFromArr($raw);
+        }
+
+        return $fsObjectsCollection;
     }
 
     public function confirmChanges()

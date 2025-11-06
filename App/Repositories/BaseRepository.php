@@ -20,7 +20,7 @@ abstract class BaseRepository
         $this->queryBuilder = new QueryBuilder($tableName);
     }
 
-    protected function fetchAll(string $query, array $columnValues, $returnType = PDO::FETCH_ASSOC): mixed
+    protected function fetchAll(string $query, array $columnValues, $returnType = PDO::FETCH_ASSOC): array
     {
         $stmt =  $this->executeQuery($query, $columnValues);
         return $stmt->fetchAll($returnType);
