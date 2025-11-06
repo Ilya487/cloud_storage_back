@@ -24,8 +24,6 @@ class DownloadController implements ControllerInterface
                 $this->response->setStatusCode(400)->sendJson(['message' => $res->errors['message']]);
             }
 
-            if ($res->data['type'] == 'archive')
-                $this->response->sendDownloadResponse($res->data['path'], fn($path) => unlink($path));
             $this->response->sendDownloadResponse($res->data['path']);
         } catch (NotFoundException $err) {
             $this->response->setStatusCode(404)->sendJson(['message' => $err->getMessage()]);

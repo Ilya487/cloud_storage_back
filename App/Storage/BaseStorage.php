@@ -25,6 +25,11 @@ class BaseStorage
         $this->storagePath = $storagePath;
     }
 
+    public function getStoragePath(): string
+    {
+        return $this->storagePath;
+    }
+
     protected function deleteDirectoryRecursively(string $dirPath): bool
     {
         $iterator = new RecursiveIteratorIterator(

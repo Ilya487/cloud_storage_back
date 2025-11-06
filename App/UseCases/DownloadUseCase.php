@@ -11,6 +11,8 @@ use App\Storage\DownloadStorage;
 
 class DownloadUseCase
 {
+    private const SERVER_FILES_PATH = '/files';
+
     public function __construct(
         private DownloadStorage $downloadStorage,
         private DiskStorage $diskStorage,
@@ -36,7 +38,7 @@ class DownloadUseCase
         }
 
         if (count($items) == $errorsCount) return OperationResult::createError(['message' => 'Не удалось загрузить файлы']);
-        return OperationResult::createSuccess(['path' => $archive->build(), 'type' => 'archive']);
+        return OperationResult::createSuccess(['path' => $archive->build()]);
     }
 
     private function getPathForDownloadSingleObject(int $userId, int $objectId): OperationResult
@@ -45,15 +47,25 @@ class DownloadUseCase
         if ($fsObject === false) throw new NotFoundException('Запрашиваемый файл не найден');
 
         if ($fsObject->type == FsObjectType::FILE) {
+            $filePath = $this->diskStorage->getPath($userId, $fsObject->getPath());
+        } else {
+            $archive = $this->downloadStorage->createArchive($userId, $fsObject->getName());
+            if ($archive === false) return OperationResult::createError(['message' => 'Не удалось загрузить файлы']);
+
             $fullPath = $this->diskStorage->getPath($userId, $fsObject->getPath());
-            if ($fullPath !== false) return OperationResult::createSuccess(['path' => $fullPath, 'type' => 'file']);
+            if ($archive->add($fullPath) === false) return OperationResult::createError(['message' => 'Не удалось загрузить файлы']);
+            $filePath = $archive->build();
         }
 
-        $archive = $this->downloadStorage->createArchive($userId, $fsObject->getName());
-        if ($archive === false) return OperationResult::createError(['message' => 'Не удалось загрузить файлы']);
+        if ($filePath === false) return OperationResult::createError(['message' => 'Не удалось загрузить файлы']);
+        $pathForServer = $this->getPathForServer($filePath);
 
-        $fullPath = $this->diskStorage->getPath($userId, $fsObject->getPath());
-        if ($archive->add($fullPath) === false) return OperationResult::createError(['message' => 'Не удалось загрузить файлы']);
-        return OperationResult::createSuccess(['path' => $archive->build(), 'type' => 'archive']);
+        return OperationResult::createSuccess(['path' => $pathForServer]);
+    }
+
+    private function getPathForServer(string $path): string
+    {
+        $storagePath = $this->diskStorage->getStoragePath();
+        return str_replace($storagePath, self::SERVER_FILES_PATH, $path);
     }
 }
