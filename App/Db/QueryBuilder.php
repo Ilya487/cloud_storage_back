@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Tools;
+namespace App\Db;
 
 class QueryBuilder
 {
@@ -75,15 +75,23 @@ class QueryBuilder
         return $this;
     }
 
+    public function whereIn(string $field, array $values)
+    {
+        $preparedParams = $this->getPreparedParams($values);
+        $this->query .= "$field IN ($preparedParams) ";
+        return $this;
+    }
+
     public function not()
     {
         $this->query .= 'NOT ';
         return $this;
     }
 
-    public function and(string $field, string $operation, string $value = '')
+    public function and(string $field = '', string $operation = '', string $value = '')
     {
         $this->query .= 'AND ';
+        if ($field === '') return $this;
         return $this->where($field, $operation, $value);
     }
 

@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
+use App\Db\QueryBuilder;
 use App\Tools\DbConnect;
-use App\Tools\QueryBuilder;
 use Exception;
 use PDO;
 use PDOStatement;

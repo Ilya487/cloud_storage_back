@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use App\Models\FileSystemObject;
 use App\Models\FsObjectType;
-use App\Tools\QueryBuilder;
+use App\Db\QueryBuilder;
 use App\Repositories\BaseRepository;
 use Exception;
 use PDO;
