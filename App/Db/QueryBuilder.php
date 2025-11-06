@@ -4,15 +4,6 @@ namespace App\Db;
 
 class QueryBuilder
 {
-    const EQUAL = '=';
-    const NOT_EQUAL = '!=';
-    const LESS = '<';
-    const LESS_EQUAL = '<=';
-    const MORE = '>';
-    const MORE_EQUAL = '>=';
-    const IS_NULL = 'IS NULL';
-    const LIKE = 'LIKE';
-
     private $query;
 
     public function __construct(private string $tableName) {}
@@ -54,31 +45,11 @@ class QueryBuilder
         return $this;
     }
 
-    public function where(string $field, string $operation, string $value = '')
+    public function where(Expression $expression)
     {
         $this->query .= str_contains($this->query, 'WHERE') ? '' : 'WHERE ';
+        $this->query .= $expression;
 
-        switch ($operation) {
-            case self::IS_NULL:
-                $this->query .= "$field $operation ";
-                break;
-
-            case self::LIKE:
-                $this->query .= "$field $operation :$value ";
-                break;
-
-            default:
-                $this->query .= "$field $operation :$field ";
-                break;
-        }
-
-        return $this;
-    }
-
-    public function whereIn(string $field, array $values)
-    {
-        $preparedParams = $this->getPreparedParams($values);
-        $this->query .= "$field IN ($preparedParams) ";
         return $this;
     }
 
@@ -88,17 +59,16 @@ class QueryBuilder
         return $this;
     }
 
-    public function and(string $field = '', string $operation = '', string $value = '')
+    public function and(Expression $expression)
     {
-        $this->query .= 'AND ';
-        if ($field === '') return $this;
-        return $this->where($field, $operation, $value);
+        $this->query .= "AND $expression";
+        return $this;
     }
 
-    public function or(string $field, string $operation, string $value = '')
+    public function or(Expression $expression)
     {
-        $this->query .= 'OR ';
-        return $this->where($field, $operation, $value);
+        $this->query .= "OR $expression";
+        return $this;
     }
 
     public function build()
