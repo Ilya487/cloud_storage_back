@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Db\Expression;
 use App\Models\FileSystemObject;
 use App\Models\FsObjectType;
 use App\Db\QueryBuilder;
@@ -35,7 +36,7 @@ class FileSystemRepository extends BaseRepository
     /**
      * @return string new file id
      */
-    public function createFile(int $userId, string $fileName, string $path, int $parentDirId = null, int $fileSize): string
+    public function createFile(int $userId, string $fileName, string $path, ?int $parentDirId = null, int $fileSize): string
     {
         $this->processOperationStatus();
 
@@ -55,7 +56,11 @@ class FileSystemRepository extends BaseRepository
 
     public function getPathById(int $id, int $userId): string|false
     {
-        $query = $this->queryBuilder->select(['path'])->where('id', QueryBuilder::EQUAL)->and('user_id', QueryBuilder::EQUAL)->build();
+        $query = $this->queryBuilder
+            ->select(['path'])
+            ->where(Expression::equal('id'))
+            ->and(Expression::equal('user_id'))
+            ->build();
         $data = $this->fetchOne($query, ['id' => $id, 'user_id' => $userId]);
 
         if ($data === false) return false;
@@ -80,7 +85,7 @@ class FileSystemRepository extends BaseRepository
         } else throw new Exception('Unknown fs object type');
     }
 
-    public function getDirContent(int $userId, int $dirId = null): array|false
+    public function getDirContent(int $userId, ?int $dirId = null): array|false
     {
         if (is_null($dirId)) return $this->getRootContent($userId);
         else return $this->getConcreteDirContent($userId, $dirId);
@@ -88,7 +93,12 @@ class FileSystemRepository extends BaseRepository
 
     public function checkDirExist(int $userId, int $dirId): bool
     {
-        $query = $this->queryBuilder->count()->where('user_id', '=')->and('type', '=')->and('id', '=')->build();
+        $query = $this->queryBuilder
+            ->count()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('type'))
+            ->and(Expression::equal('id'))
+            ->build();
         $res = $this->fetchOne($query, ['user_id' => $userId, 'id' => $dirId, 'type' => 'folder'], PDO::FETCH_NUM);
         if ($res[0] == 0) return false;
         else return true;
@@ -98,7 +108,11 @@ class FileSystemRepository extends BaseRepository
     {
         $this->processOperationStatus();
 
-        $query = $this->queryBuilder->delete()->where('id', QueryBuilder::EQUAL)->and('user_id', QueryBuilder::EQUAL)->build();
+        $query = $this->queryBuilder
+            ->delete()
+            ->where(Expression::equal('id'))
+            ->and(Expression::equal('user_id'))
+            ->build();
         $this->delete($query, ['id' => $itemId, 'user_id' => $userId]);
     }
 
@@ -123,12 +137,15 @@ class FileSystemRepository extends BaseRepository
 
     public function isNameExist(int $userId, string $name, ?int $dirId = null)
     {
-        $query = $this->queryBuilder->count()->where('user_id', '=')->and('name', '=');
+        $query = $this->queryBuilder
+            ->count()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('name'));
         if (is_null($dirId)) {
-            $query = $query->and('parent_id', QueryBuilder::IS_NULL)->build();
+            $query = $query->and(Expression::isNull('parent_id'))->build();
             $params = ['user_id' => $userId, 'name' => $name];
         } else {
-            $query = $query->and('parent_id', '=')->build();
+            $query = $query->and(Expression::equal('parent_id'))->build();
             $params = ['user_id' => $userId, 'name' => $name, 'parent_id' => $dirId];
         }
 
@@ -137,7 +154,10 @@ class FileSystemRepository extends BaseRepository
 
     public function getTypeById(int $userId, int $fileId): string|false
     {
-        $query = $this->queryBuilder->select(['type'])->where('user_id', '=')->and('id', '=')->build();
+        $query = $this->queryBuilder
+            ->select(['type'])
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('id'))->build();
         $res =  $this->fetchOne($query, ['user_id' => $userId, 'id' => $fileId], PDO::FETCH_NUM);
         if ($res === false) return false;
         else return $res[0];
@@ -145,7 +165,12 @@ class FileSystemRepository extends BaseRepository
 
     public function getDirIdByPath(int $userId, string $path): int|false
     {
-        $query = $this->queryBuilder->select(['id'])->where('path', '=')->and('user_id', '=')->and('type', '=')->build();
+        $query = $this->queryBuilder
+            ->select(['id'])
+            ->where(Expression::equal('path'))
+            ->and(Expression::equal('user_id'))
+            ->and(Expression::equal('type'))
+            ->build();
         $res = $this->fetchOne($query, ['user_id' => $userId, 'path' => $path, 'type' => 'folder']);
 
         if ($res === false) return false;
@@ -154,10 +179,23 @@ class FileSystemRepository extends BaseRepository
 
     public function getById(int $userId, int $objectId): FileSystemObject|false
     {
-        $query = $this->queryBuilder->select()->where('user_id', '=')->and('id', '=')->build();
+        $query = $this->queryBuilder
+            ->select()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('id'))
+            ->build();
         $res = $this->fetchOne($query, ['user_id' => $userId, 'id' => $objectId]);
         if ($res === false) return false;
         return FileSystemObject::createFromArr($res);
+    }
+
+    /**
+     * @return FileSystemObject[]|false
+     */
+    public function getMany(int $userId, array $ids)
+    {
+        // $query = $this->queryBuilder->select()->where('user_id', '=')->whereIn('id', count($ids))->build();
+        // echo $query;
     }
 
     public function confirmChanges()
@@ -183,7 +221,11 @@ class FileSystemRepository extends BaseRepository
 
     private function getRootContent(int $userId): array|false
     {
-        $query = $this->queryBuilder->select()->where('user_id', QueryBuilder::EQUAL)->and('parent_id', QueryBuilder::IS_NULL)->build();
+        $query = $this->queryBuilder
+            ->select()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::isNull('parent_id'))
+            ->build();
         $content = $this->fetchAll($query, ['user_id' => $userId]);
 
         return $content;
@@ -191,7 +233,11 @@ class FileSystemRepository extends BaseRepository
 
     private function getConcreteDirContent(int $userId, int $dirId): array|false
     {
-        $query = $this->queryBuilder->select()->where('user_id', QueryBuilder::EQUAL)->and('parent_id', QueryBuilder::EQUAL)->build();
+        $query = $this->queryBuilder
+            ->select()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('parent_id'))
+            ->build();
         $content = $this->fetchAll($query, ['user_id' => $userId, 'parent_id' => $dirId]);
 
         return $content;
@@ -199,7 +245,11 @@ class FileSystemRepository extends BaseRepository
 
     private function renameObject(int $userId, string $path, string $updatedPath, string $newName)
     {
-        $query = $this->queryBuilder->update(['path', 'name'])->where('path', QueryBuilder::LIKE, 'pathPattern')->and('user_id', QueryBuilder::EQUAL)->build();
+        $query = $this->queryBuilder
+            ->update(['path', 'name'])
+            ->where(Expression::like('path', 'pathPattern'))
+            ->and(Expression::equal('user_id'))
+            ->build();
         $this->update($query, ['path' => $updatedPath, 'name' => $newName, 'pathPattern' => $path, 'user_id' => $userId]);
     }
 
@@ -221,7 +271,11 @@ class FileSystemRepository extends BaseRepository
 
     private function moveTopItem(int $userId, string $currentPath, string $updatedPath, ?int $toDirId)
     {
-        $query = $this->queryBuilder->update(['parent_id', 'path'])->where('user_id', QueryBuilder::EQUAL)->and('path', QueryBuilder::LIKE, 'currentPath')->build();
+        $query = $this->queryBuilder
+            ->update(['parent_id', 'path'])
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::like('path', 'currentPath'))
+            ->build();
         $this->update($query, [
             'parent_id' => $toDirId,
             'path' => $updatedPath,

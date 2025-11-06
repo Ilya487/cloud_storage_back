@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Db\Expression;
 use App\Models\UploadSession;
 use App\Repositories\BaseRepository;
 use App\Tools\QueryBuilder;
@@ -22,21 +23,29 @@ class UploadSessionRepository  extends BaseRepository
 
     public function deleteSession(int $userId, int $sessionId)
     {
-        $query = $this->queryBuilder->delete()->where('user_id', '=')->and('id', '=')->build();
+        $query = $this->queryBuilder
+            ->delete()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('id'))
+            ->build();
         $this->delete($query, ['user_id' => $userId, 'id' => $sessionId]);
     }
 
     public function getById(int $userId, int $sessionId): UploadSession|false
     {
-        $query = $this->queryBuilder->select()->where('user_id', '=')->and('id', '=')->build();
+        $query = $this->queryBuilder
+            ->select()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('id'))
+            ->build();
         $data = $this->fetchOne($query, ['user_id' => $userId, 'id' => $sessionId]);
         return $data == false ? false : UploadSession::createFromArr($data);
     }
 
     public function incrementCompletedChunks(int $uploadSessionId): int|false
     {
-        $updateQuery = $this->queryBuilder->incrementField('completed_chunks')->where('id', '=')->build();
-        $selectQuery = $this->queryBuilder->select(['completed_chunks'])->where('id', '=')->build();
+        $updateQuery = $this->queryBuilder->incrementField('completed_chunks')->where(Expression::equal('id'))->build();
+        $selectQuery = $this->queryBuilder->select(['completed_chunks'])->where(Expression::equal('id'))->build();
 
         $this->beginTransaction();
         $this->update($updateQuery, ['id' => $uploadSessionId]);
@@ -48,12 +57,12 @@ class UploadSessionRepository  extends BaseRepository
 
     public function isNameExist(int $userId, string $fileName, ?int $destinationDirId)
     {
-        $query = $this->queryBuilder->count()->where('user_id', '=')->and('filename', '=');
+        $query = $this->queryBuilder->count()->where(Expression::equal('user_id'))->and(Expression::equal('filename'));
         if (is_null($destinationDirId)) {
-            $query = $query->and('destination_dir_id', QueryBuilder::IS_NULL)->build();
+            $query = $query->and(Expression::isNull('destination_dir_id'))->build();
             $params = ['user_id' => $userId, 'filename' => $fileName];
         } else {
-            $query = $query->and('destination_dir_id', '=')->build();
+            $query = $query->and(Expression::equal('destination_dir_id'))->build();
             $params = ['user_id' => $userId, 'filename' => $fileName, 'destination_dir_id' => $destinationDirId];
         }
 
@@ -62,7 +71,7 @@ class UploadSessionRepository  extends BaseRepository
 
     public function getUserSessionsCount(int $userId): int
     {
-        $query = $this->queryBuilder->count()->where('user_id', '=')->build();
+        $query = $this->queryBuilder->count()->where(Expression::equal('user_id'))->build();
         return $this->fetchOne($query, ['user_id' => $userId], PDO::FETCH_NUM)[0];
     }
 
@@ -71,7 +80,7 @@ class UploadSessionRepository  extends BaseRepository
      */
     public function getUserSessions(int $userId): array
     {
-        $query = $this->queryBuilder->select()->where('user_id', '=')->build();
+        $query = $this->queryBuilder->select()->where(Expression::equal('user_id'))->build();
         $data = $this->fetchAll($query, ['user_id' => $userId]);
         $res = [];
         foreach ($data as $session) {

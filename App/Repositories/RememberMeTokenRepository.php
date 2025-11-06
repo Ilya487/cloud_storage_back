@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Db\Expression;
 use App\Models\RememberMeToken;
 use App\Repositories\BaseRepository;
 
@@ -9,7 +10,10 @@ class RememberMeTokenRepository extends BaseRepository
 {
     public function getBySelector(string $selector): RememberMeToken|false
     {
-        $query = $this->queryBuilder->select()->where('selector', '=')->build();
+        $query = $this->queryBuilder
+            ->select()
+            ->where(Expression::equal('selector'))
+            ->build();
         $data = $this->fetchOne($query, ['selector' => $selector]);
 
         if ($data !== false) {
@@ -31,7 +35,7 @@ class RememberMeTokenRepository extends BaseRepository
 
     public function deleteBySelector(string $selector): void
     {
-        $query = $this->queryBuilder->delete()->where('selector', '=')->build();
+        $query = $this->queryBuilder->delete()->where(Expression::equal('selector'))->build();
         $this->delete($query, ['selector' => $selector]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Db\Expression;
 use App\Repositories\BaseRepository;
 use App\Models\User;
 use App\Tools\QueryBuilder;
@@ -21,7 +22,7 @@ class UserRepository extends BaseRepository
 
     public function isLoginExist(string $login): bool
     {
-        $query = $this->queryBuilder->select()->where('login', QueryBuilder::EQUAL)->build();
+        $query = $this->queryBuilder->select()->where(Expression::equal('login'))->build();
         $res = $this->fetchAll($query, ['login' => $login], PDO::FETCH_NUM);
 
         if ($res == false) return false;
@@ -30,7 +31,7 @@ class UserRepository extends BaseRepository
 
     public function getById(int $id): ?User
     {
-        $query = $this->queryBuilder->select()->where('id', QueryBuilder::EQUAL)->build();
+        $query = $this->queryBuilder->select()->where(Expression::equal('id'))->build();
         $dbRes = $this->fetchOne($query, ['id' => $id]);
 
         if ($dbRes) {
@@ -41,7 +42,7 @@ class UserRepository extends BaseRepository
 
     public function getByLogin(string $login): ?User
     {
-        $query = $this->queryBuilder->select()->where('login', QueryBuilder::EQUAL)->build();
+        $query = $this->queryBuilder->select()->where(Expression::equal('login'))->build();
         $dbRes = $this->fetchOne($query, ['login' => $login]);
 
         if ($dbRes) {
