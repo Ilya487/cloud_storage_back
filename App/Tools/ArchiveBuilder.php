@@ -42,13 +42,23 @@ class ArchiveBuilder
         return false;
     }
 
-    public function build(): string
+    public function build(): string|false
     {
         $zipPath = $this->zip->filename;
         $buildRes = $this->zip->close();
         if ($buildRes === false) throw new ArchiveException('Не удалось закрыть архив');
         $this->isBuild = true;
+
+        if (!is_file($zipPath)) return false;
         return $zipPath;
+    }
+
+    public function cancelCreating()
+    {
+        $zipPath = $this->zip->filename;
+        $this->zip->close();
+        $this->isBuild = true;
+        unlink($zipPath);
     }
 
     private function addFolder(string $path): bool
