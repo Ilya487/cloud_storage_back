@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\UploadSessionStatus;
 use DateTime;
 use Exception;
 
@@ -12,6 +13,8 @@ class UploadSession
         public readonly string $fileName,
         public readonly int $userId,
         public readonly ?int $destinationDirId,
+        public readonly int $flieSize,
+        public readonly UploadSessionStatus $status,
         public readonly DateTime $lastUpdated,
         private int $completedChunksCount,
         public readonly int $totalChunksCount
@@ -24,6 +27,8 @@ class UploadSession
             $data['filename'],
             $data['user_id'],
             $data['destination_dir_id'],
+            $data['file_size'],
+            UploadSessionStatus::from($data['status']),
             new DateTime($data['last_updated_at']),
             $data['completed_chunks'],
             $data['total_chunks']
