@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\DTO\OperationResult;
 use App\Models\UploadSession;
+use App\Models\UploadSessionStatus;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\UploadSessionRepository;
 use App\Storage\DiskStorage;
@@ -45,7 +46,7 @@ class UploadService
         }
 
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
-        $uploadSessionId = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirId);
+        $uploadSessionId = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirId, $fileSize);
         if (!$this->uploadsStorage->initializeUploadDir($uploadSessionId)) {
             $this->uploadSessionsRepo->deleteSession($userId, $uploadSessionId);
             return OperationResult::createError(['message' => 'Не удалась инициализировать сессию загрузки']);
@@ -90,7 +91,7 @@ class UploadService
         [$buildedFilePath] = $this->getOutputFileName($uploadSession);
         unlink($buildedFilePath);
         $this->uploadsStorage->deleteSessionDir($uploadSession->id);
-        $this->uploadSessionsRepo->deleteSession($userId, $uploadSession->id);
+        $this->uploadSessionsRepo->setStatus($userId, $uploadSession->id, UploadSessionStatus::CANCELLED);
         return OperationResult::createSuccess([]);
     }
 
@@ -129,25 +130,29 @@ class UploadService
         [$buildedFilePath, $toDirPath] = $this->getOutputFileName($session);
         $buildResult = $this->fileBuilder->buildFile($session, $buildedFilePath);
 
-        $this->uploadSessionsRepo->deleteSession($session->userId, $session->id);
         $this->uploadsStorage->deleteSessionDir($session->id);
 
-        if ($buildResult->success) {
+        if ($buildResult) {
             $id = $this->fsRepo->createFile(
                 $session->userId,
                 $session->fileName,
                 $toDirPath . '/' . $session->fileName,
                 $session->destinationDirId,
-                $buildResult->fileSize
+                $session->flieSize
             );
             $renameRes = $this->diskStorage->renameObject($session->userId, $session->fileName, $toDirPath . '/' . basename($buildedFilePath));
 
             if ($renameRes !== false) {
                 $this->fsRepo->confirmChanges();
+                $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::COMPLETE);
                 return $id;
-            } else $this->fsRepo->cancelLastChanges();
+            } else {
+                $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
+                $this->fsRepo->cancelLastChanges();
+            }
         }
 
+        $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
         unlink($buildedFilePath);
         return false;
     }

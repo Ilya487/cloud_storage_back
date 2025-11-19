@@ -4,20 +4,21 @@ namespace App\Repositories;
 
 use App\Db\Expression;
 use App\Models\UploadSession;
+use App\Models\UploadSessionStatus;
 use App\Repositories\BaseRepository;
-use App\Tools\QueryBuilder;
 use PDO;
 
 class UploadSessionRepository  extends BaseRepository
 {
-    public function createUploadSession(int $userId, string $fileName, int $totalChunks, ?int $destinationDirId)
+    public function createUploadSession(int $userId, string $fileName, int $totalChunks, ?int $destinationDirId, int $fileSize)
     {
-        $query = $this->queryBuilder->insert(['user_id', 'filename', 'destination_dir_id', 'total_chunks'])->build();
+        $query = $this->queryBuilder->insert(['user_id', 'filename', 'destination_dir_id', 'total_chunks', 'file_size'])->build();
         return $this->insert($query, [
             'user_id' => $userId,
             'filename' => $fileName,
             'destination_dir_id' => $destinationDirId,
-            'total_chunks' => $totalChunks
+            'total_chunks' => $totalChunks,
+            'file_size' => $fileSize
         ]);
     }
 
@@ -57,7 +58,11 @@ class UploadSessionRepository  extends BaseRepository
 
     public function isNameExist(int $userId, string $fileName, ?int $destinationDirId)
     {
-        $query = $this->queryBuilder->count()->where(Expression::equal('user_id'))->and(Expression::equal('filename'));
+        $query = $this->queryBuilder
+            ->count()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('filename'));
+
         if (is_null($destinationDirId)) {
             $query = $query->and(Expression::isNull('destination_dir_id'))->build();
             $params = ['user_id' => $userId, 'filename' => $fileName];
@@ -65,14 +70,18 @@ class UploadSessionRepository  extends BaseRepository
             $query = $query->and(Expression::equal('destination_dir_id'))->build();
             $params = ['user_id' => $userId, 'filename' => $fileName, 'destination_dir_id' => $destinationDirId];
         }
-
+        $query .= ' AND (status=\'' . UploadSessionStatus::UPLOADING->value . '\' OR status=\'' . UploadSessionStatus::BUILDING->value . '\')';
         return $this->fetchOne($query, $params, PDO::FETCH_NUM)[0] != 0;
     }
 
     public function getUserSessionsCount(int $userId): int
     {
-        $query = $this->queryBuilder->count()->where(Expression::equal('user_id'))->build();
-        return $this->fetchOne($query, ['user_id' => $userId], PDO::FETCH_NUM)[0];
+        $query = $this->queryBuilder
+            ->count()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('status'))
+            ->build();
+        return $this->fetchOne($query, ['user_id' => $userId, 'status' => UploadSessionStatus::UPLOADING->value], PDO::FETCH_NUM)[0];
     }
 
     /**
@@ -87,5 +96,16 @@ class UploadSessionRepository  extends BaseRepository
             $res[] = UploadSession::createFromArr($session);
         }
         return $res;
+    }
+
+    public function setStatus(int $userId, int $sessionId, UploadSessionStatus $status)
+    {
+        $query = $this->queryBuilder
+            ->update(['status'])
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('id'))
+            ->build();
+
+        $this->update($query, ['user_id' => $userId, 'id' => $sessionId, 'status' => $status->value]);
     }
 }
