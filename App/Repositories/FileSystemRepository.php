@@ -16,7 +16,7 @@ class FileSystemRepository extends BaseRepository
     /**
      * @return string new dir id
      */
-    public function createDir(int $userId, string $dirName, string $path, int $parentDirId = null): string
+    public function createDir(int $userId, string $dirName, string $path, ?int $parentDirId): string
     {
         $this->processOperationStatus();
 
@@ -36,7 +36,7 @@ class FileSystemRepository extends BaseRepository
     /**
      * @return string new file id
      */
-    public function createFile(int $userId, string $fileName, string $path, ?int $parentDirId = null, int $fileSize): string
+    public function createFile(int $userId, string $fileName, string $path, ?int $parentDirId, int $fileSize): string
     {
         $this->processOperationStatus();
 
