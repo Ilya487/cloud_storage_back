@@ -120,45 +120,15 @@ class UploadService
         ]);
     }
 
-    private function buildFile(UploadSession $session): int|false
+    public function getSessionStatus(int $userId, int $sessionId): OperationResult
     {
-        set_time_limit(0);
-
-        [$buildedFilePath, $toDirPath] = $this->getOutputFileName($session);
-        $buildResult = $this->fileBuilder->buildFile($session, $buildedFilePath);
-
-        $this->uploadsStorage->deleteSessionDir($session->id);
-
-        if ($buildResult) {
-            $id = $this->fsRepo->createFile(
-                $session->userId,
-                $session->fileName,
-                $toDirPath . '/' . $session->fileName,
-                $session->destinationDirId,
-                $session->flieSize
-            );
-            $renameRes = $this->diskStorage->renameObject($session->userId, $session->fileName, $toDirPath . '/' . basename($buildedFilePath));
-
-            if ($renameRes !== false) {
-                $this->fsRepo->confirmChanges();
-                $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::COMPLETE);
-                return $id;
-            } else {
-                $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
-                $this->fsRepo->cancelLastChanges();
-            }
+        $session = $this->uploadSessionsRepo->getById($userId, $sessionId);
+        if ($session === false) {
+            return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
         }
 
-        $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
-        unlink($buildedFilePath);
-        return false;
-    }
-
-    private function getOutputFileName(UploadSession $session): array
-    {
-        $toDirPath = $session->destinationDirId ? $this->fsRepo->getPathById($session->destinationDirId, $session->userId) : '/';
-        $buildedFilePath = $this->diskStorage->getPath($session->userId, $toDirPath) . '/.build' . $session->id . $session->fileName;
-
-        return [$buildedFilePath, $toDirPath];
+        return OperationResult::createSuccess([
+            'status' => $session->status->value
+        ]);
     }
 }
