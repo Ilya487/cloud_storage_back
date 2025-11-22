@@ -50,4 +50,10 @@ class UploadSession
     {
         return $this->completedChunksCount == $this->totalChunksCount;
     }
+
+    public function canBeBuilded(): bool
+    {
+        if ($this->isUploadComplete() && $this->status == UploadSessionStatus::UPLOADING)  return true;
+        else return false;
+    }
 }

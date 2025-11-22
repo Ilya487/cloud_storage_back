@@ -3,13 +3,11 @@
 namespace App\Services;
 
 use App\DTO\OperationResult;
-use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\UploadSessionRepository;
-use App\Storage\DiskStorage;
-use App\Storage\FileAssembler;
 use App\Storage\UploadsStorage;
+use App\Workers\WorkerManager;
 
 class UploadService
 {
@@ -21,8 +19,6 @@ class UploadService
         private FileSystemRepository $fsRepo,
         private UploadSessionRepository $uploadSessionsRepo,
         private UploadsStorage $uploadsStorage,
-        private FileAssembler $fileBuilder,
-        private DiskStorage $diskStorage
     ) {}
 
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
@@ -75,7 +71,7 @@ class UploadService
             return OperationResult::createError(['message' => 'Не удалось загрузить чанк']);
         }
 
-        $count = $this->uploadSessionsRepo->incrementCompletedChunks($uploadSessionId, 23);
+        $count = $this->uploadSessionsRepo->incrementCompletedChunks($uploadSessionId);
         $uploadSession->setChunks($count);
 
         return OperationResult::createSuccess(['progress' => $uploadSession->getProgress()]);
@@ -88,8 +84,10 @@ class UploadService
             return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
         }
 
-        [$buildedFilePath] = $this->getOutputFileName($uploadSession);
-        unlink($buildedFilePath);
+        if ($uploadSession->status !== UploadSessionStatus::UPLOADING) {
+            return OperationResult::createError(['message' => 'Невозможно отменить сессию']);
+        }
+
         $this->uploadsStorage->deleteSessionDir($uploadSession->id);
         $this->uploadSessionsRepo->setStatus($userId, $uploadSession->id, UploadSessionStatus::CANCELLED);
         return OperationResult::createSuccess([]);
@@ -106,20 +104,19 @@ class UploadService
         }
     }
 
-    public function finalizeUpload(int $userId, int $uploadSessionId): OperationResult
+    public function startBuild(int $userId, int $uploadSessionId): OperationResult
     {
         $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
         if ($uploadSession === false) return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
 
-        $fileId = $this->buildFile($uploadSession);
-        if (!$fileId) {
-            return OperationResult::createError(['message' => 'Не удалось собрать файл']);
+        if ($uploadSession->canBeBuilded()) {
+            $this->uploadSessionsRepo->setStatus($uploadSession->userId, $uploadSession->id, UploadSessionStatus::BUILDING);
+            WorkerManager::startFileBuildWorker($uploadSession->id, $userId);
         }
 
         return OperationResult::createSuccess([
-            'message' => 'Файл успешно загружен',
-            'fileId' => $fileId,
-            'parentDirId' => $uploadSession->destinationDirId
+            'id' => $uploadSession->id,
+            'status' => $uploadSession->status->value
         ]);
     }
 
