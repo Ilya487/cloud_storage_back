@@ -15,4 +15,9 @@ class DownloadValidationMiddleware extends ValidationMiddleware implements Middl
             $this->sendError('items должен состоять из целых неотрицательных чисел');
         }
     }
+
+    public function downloadFile()
+    {
+        $this->validate(self::REQUIRE | self::INT, 'fileId', self::GET);
+    }
 }

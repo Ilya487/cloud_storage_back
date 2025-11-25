@@ -35,6 +35,7 @@ return [
     Route::get('/upload/status', new ControllerSetup(UploadController::class, 'checkStatus'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'checkStatus']]),
 
     Route::get('/download', new ControllerSetup(DownloadController::class), [AuthMiddleware::class, DownloadValidationMiddleware::class]),
+    Route::get('/download/file', new ControllerSetup(DownloadController::class, 'downloadFile'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'downloadFile']]),
 
     Route::all(new ControllerSetup(NotFoundController::class))
 ];
