@@ -12,6 +12,7 @@ use App\Repositories\UploadSessionRepository;
 use App\Storage\DiskStorage;
 use App\Storage\FileAssembler;
 use App\Storage\UploadsStorage;
+use App\Tools\ErrorHandler;
 use Exception;
 
 class FileBuildWorker
@@ -67,7 +68,9 @@ class FileBuildWorker
     }
 }
 
-$worker = Container::getInstance()->resolve(FileBuildWorker::class);
-['s' => $sessionId, 'u' => $userId] = getopt('s::u::');
+ErrorHandler::handle(function () {
+    $worker = Container::getInstance()->resolve(FileBuildWorker::class);
+    ['s' => $sessionId, 'u' => $userId] = getopt('s::u::');
 
-$worker->run($sessionId, $userId);
+    $worker->run($sessionId, $userId);
+});
