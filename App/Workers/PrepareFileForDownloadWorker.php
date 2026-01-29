@@ -23,7 +23,7 @@ class PrepareFileForDownloadWorker
 
     public function prepare(int $userId, int $taskId)
     {
-        $task = $this->taskRepo->findById($userId, $taskId);
+        $task = $this->taskRepo->getById($userId, $taskId);
         if ($task === false) throw new Exception('Задача не найдена');
 
         $files = $this->fsRepo->getMany($task->userId, $task->filesId);

@@ -16,7 +16,7 @@ class PreapareFilesTaskRepository extends BaseRepository
         return $this->insert($query, ['user_id' => $userId, 'files_id' => $serializedArr]);
     }
 
-    public function findById(int $userId, int $taskId): PrepareFilesTask|false
+    public function getById(int $userId, int $taskId): PrepareFilesTask|false
     {
         $query = $this->queryBuilder
             ->select()

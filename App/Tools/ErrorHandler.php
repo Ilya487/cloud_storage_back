@@ -2,6 +2,7 @@
 
 namespace App\Tools;
 
+use App\Exceptions\NotFoundException;
 use App\Http\Response;
 use DateTime;
 use DateTimeZone;
@@ -19,6 +20,9 @@ class ErrorHandler
         } catch (PDOException $error) {
             self::writeLog($error);
             (new Response)->setStatusCode(500)->sendJson(['message' => 'Произошла непредвиденная ошибка. Попробуйте еще раз позднее']);
+        } catch (NotFoundException $error) {
+            self::writeLog($error);
+            new Response()->setStatusCode(404)->sendJson(['message' => $error->getMessage()]);
         } catch (Exception $error) {
             self::writeLog($error);
             (new Response)->setStatusCode(500)->sendJson(['message' => 'Произошла непредвиденная ошибка. Попробуйте еще раз позднее']);
@@ -37,7 +41,7 @@ class ErrorHandler
         $file = $error->getFile();
         $line = $error->getLine();
         $stack = $error->getTraceAsString();
-        // $errorMsg = "$date  $errorMsg\n" . "$stack\n\n";
+
         $errorMsg = "$date  " . $errorMsg . PHP_EOL . $file . ' ' . $line . "\n$stack\n\n";
         file_put_contents('logs', $errorMsg, FILE_APPEND);
     }
