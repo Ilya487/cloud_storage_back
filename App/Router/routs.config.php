@@ -3,7 +3,6 @@
 use App\Controllers\AuthController;
 use App\Controllers\DownloadController;
 use App\Controllers\FolderController;
-use App\Controllers\NotFoundController;
 use App\Controllers\UploadController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
