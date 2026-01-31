@@ -22,4 +22,9 @@ class PrepareFilesTask
             PrepareFilesTaskStatus::from($arr['status'])
         );
     }
+
+    public function isReady(): bool
+    {
+        return $this->status == PrepareFilesTaskStatus::READY;
+    }
 }

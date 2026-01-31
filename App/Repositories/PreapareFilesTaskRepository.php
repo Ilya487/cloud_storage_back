@@ -6,6 +6,7 @@ use App\Db\Expression;
 use App\Models\PrepareFilesTask;
 use App\Models\PrepareFilesTaskStatus;
 use App\Repositories\BaseRepository;
+use PDO;
 
 class PreapareFilesTaskRepository extends BaseRepository
 {
@@ -36,5 +37,20 @@ class PreapareFilesTaskRepository extends BaseRepository
             ->where(Expression::equal('user_id'))
             ->and(Expression::equal('id'))->build();
         $this->update($query, ['user_id' => $userId, 'id' => $taskId, 'status' => $status->value]);
+    }
+
+    public function getUserTaskCount(int $userId): int
+    {
+        $query = $this->queryBuilder
+            ->count()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('status'))
+            ->build();
+
+        return $this->fetchOne(
+            $query,
+            ['user_id' => $userId, 'status' => PrepareFilesTaskStatus::PREPARING->value],
+            PDO::FETCH_COLUMN
+        );
     }
 }
