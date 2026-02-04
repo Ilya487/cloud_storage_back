@@ -5,13 +5,14 @@ namespace App\Repositories;
 use App\Db\Expression;
 use App\Models\FileSystemObject;
 use App\Models\FsObjectType;
-use App\Db\QueryBuilder;
 use App\Repositories\BaseRepository;
 use Exception;
 use PDO;
 
 class FileSystemRepository extends BaseRepository
 {
+    protected string $tableName = 'file_system';
+
     private bool $isOperationConfirm = true;
     /**
      * @return string new dir id

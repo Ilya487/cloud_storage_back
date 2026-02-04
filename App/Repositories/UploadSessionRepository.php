@@ -10,6 +10,8 @@ use PDO;
 
 class UploadSessionRepository  extends BaseRepository
 {
+    protected string $tableName = 'upload_sessions';
+
     public function createUploadSession(int $userId, string $fileName, int $totalChunks, ?int $destinationDirId, int $fileSize)
     {
         $query = $this->queryBuilder->insert(['user_id', 'filename', 'destination_dir_id', 'total_chunks', 'file_size'])->build();

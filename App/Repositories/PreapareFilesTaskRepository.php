@@ -6,11 +6,12 @@ use App\Db\Expression;
 use App\Models\PrepareFilesTask;
 use App\Models\PrepareFilesTaskStatus;
 use App\Repositories\BaseRepository;
-use PDO;
 
 class PreapareFilesTaskRepository extends BaseRepository
 {
-    public function createTask($userId, array $filesId): string
+    protected string $tableName = 'prepare_files_task';
+
+    public function createTask($userId, array $filesId, int $limit): string|false
     {
         $query = $this->queryBuilder->insert(['user_id', 'files_id'])->build();
         $serializedArr = join(',', $filesId);
