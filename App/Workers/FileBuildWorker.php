@@ -31,32 +31,37 @@ class FileBuildWorker
         if ($session === false)
             throw new Exception('Сессия не найдена');
 
-        $toDirPath = $session->destinationDirId ? $this->fsRepo->getPathById($session->destinationDirId, $session->userId) : '/';
-        $buildedFilePath = $this->getOutputFileName($session, $toDirPath);
+        $buildedFilePath = $this->getOutputFileName($session, $session->destinationDirPath);
         $buildResult = $this->fileBuilder->buildFile($session, $buildedFilePath);
 
         $this->uploadsStorage->deleteSessionDir($session->id);
 
-        if ($buildResult) {
-            $this->fsRepo->createFile(
-                $session->userId,
-                $session->fileName,
-                $toDirPath . '/' . $session->fileName,
-                $session->destinationDirId,
-                $session->flieSize
-            );
-            $renameRes = $this->diskStorage->renameObject($session->userId, $session->fileName, $toDirPath . '/' . basename($buildedFilePath));
-
-            if ($renameRes !== false) {
-                $this->fsRepo->confirmChanges();
-                $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::COMPLETE);
-            } else {
-                $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
-                $this->fsRepo->cancelLastChanges();
-            }
-        } else {
+        if (!$buildResult) {
             $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
             unlink($buildedFilePath);
+        }
+
+        if ($session->destinationDirPath == '/')
+            $destinationDirId = null;
+        else
+            $destinationDirId = $this->fsRepo->getDirIdByPath($userId, $session->destinationDirPath);
+
+        $this->fsRepo->createFile(
+            $session->userId,
+            $session->fileName,
+            $session->destinationDirPath . '/' . $session->fileName,
+            $destinationDirId,
+            $session->flieSize
+        );
+
+        $renameRes = $this->diskStorage->renameObject($session->userId, $session->fileName, $session->destinationDirPath . '/' . basename($buildedFilePath));
+
+        if ($renameRes !== false) {
+            $this->fsRepo->confirmChanges();
+            $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::COMPLETE);
+        } else {
+            $this->fsRepo->cancelLastChanges();
+            $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
         }
     }
 

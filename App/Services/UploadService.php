@@ -30,19 +30,19 @@ class UploadService
         if (!is_null($destinationDirId)) {
             $destinationDirPath = $this->fsRepo->getPathById($destinationDirId, $userId);
             if ($destinationDirPath === false) {
-                return OperationResult::createError(['message' => 'Указана неверная папка назначения']);
+                return OperationResult::createError(['message' => 'Папка назначения не существует или была удалена']);
             }
         } else $destinationDirPath = '/';
 
         if (
             $this->fsRepo->isNameExist($userId, $fileName, $destinationDirId) ||
-            $this->uploadSessionsRepo->isNameExist($userId, $fileName, $destinationDirId)
+            $this->uploadSessionsRepo->isNameExist($userId, $fileName, $destinationDirPath)
         ) {
             return OperationResult::createError(['message' => 'Файл с таким именем уже существует!']);
         }
 
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
-        $uploadSessionId = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirId, $fileSize);
+        $uploadSessionId = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirPath, $fileSize);
         if (!$this->uploadsStorage->initializeUploadDir($uploadSessionId)) {
             $this->uploadSessionsRepo->deleteSession($userId, $uploadSessionId);
             return OperationResult::createError(['message' => 'Не удалась инициализировать сессию загрузки']);
