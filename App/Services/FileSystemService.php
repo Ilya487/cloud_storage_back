@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\DTO\OperationResult;
+use App\Exceptions\NotFoundException;
+use App\Models\FileSystemObject;
 use App\Models\FsObjectType;
 use App\Repositories\FileSystemRepository;
 use App\Storage\DiskStorage;
@@ -36,16 +38,15 @@ class FileSystemService
 
     public function getFolderContent(int $userId, ?int $dirId = null): OperationResult
     {
-        if (!is_null($dirId) && $this->fsRepo->getTypeById($userId, $dirId) == 'file')
-            return OperationResult::createError(['message' => 'Указан неверный айди']);
-
-        $pathToSelectedDir = is_null($dirId) ? '/' : $this->fsRepo->getPathById($dirId, $userId);
-        if ($pathToSelectedDir === false) return OperationResult::createError(['message' => 'Указан неверный айди']);
+        $selectedDir = is_null($dirId) ? FileSystemObject::createRootDir($userId) : $this->fsRepo->getById($userId, $dirId);
+        if ($selectedDir === false) throw new NotFoundException('Указаная директория не найдена');
+        if ($selectedDir->isFile())
+            return OperationResult::createError(['message' => 'Выбран файл']);
 
         $catalogData = $this->fsRepo->getDirContent($userId, $dirId);
 
-        if ($catalogData !== false) return OperationResult::createSuccess(['path' => $pathToSelectedDir, 'contents' => $catalogData]);
-        else return OperationResult::createError(['message' => 'Указан неверный айди']);
+        if ($catalogData !== false) return OperationResult::createSuccess(['path' => $selectedDir->getPath(), 'contents' => $catalogData]);
+        else return OperationResult::createError(['message' => 'Не удалось получить содержимое папки']);
     }
 
     public function initializeUserStorage(int $userId): bool

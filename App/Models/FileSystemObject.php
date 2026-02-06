@@ -5,7 +5,7 @@ namespace App\Models;
 class FileSystemObject
 {
     public function __construct(
-        public readonly int $id,
+        public readonly ?int $id,
         public readonly int $ownerId,
         private int|null $parentId,
         public readonly FsObjectType $type,
@@ -24,6 +24,19 @@ class FileSystemObject
             $arr['name'],
             $arr['path'],
             $arr['size'],
+        );
+    }
+
+    public static function createRootDir(int $ownerId): self
+    {
+        return new self(
+            id: null,
+            ownerId: $ownerId,
+            parentId: null,
+            type: FsObjectType::DIR,
+            name: 'ROOT',
+            path: '/',
+            size: null
         );
     }
 
