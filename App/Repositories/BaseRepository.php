@@ -35,6 +35,12 @@ abstract class BaseRepository
         return $stmt->fetch($returnType);
     }
 
+    protected function fetchColumn(string $query, array $columnValues, int $columnNum = 0)
+    {
+        $stmt  = $this->executeQuery($query, $columnValues);
+        return $stmt->fetchColumn($columnNum);
+    }
+
     /**
      * @return string inserted entity id
      */

@@ -7,6 +7,7 @@ require_once 'autoloader.php';
 use App\Config\Container;
 use App\Models\PrepareFilesTask;
 use App\Models\PrepareFilesTaskStatus;
+use App\Repositories\DownloadSessionsCountRepository;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\PreapareFilesTaskRepository;
 use App\Services\FilesDownloadPreparer;
@@ -18,7 +19,8 @@ class PrepareFileForDownloadWorker
     public function __construct(
         private PreapareFilesTaskRepository $taskRepo,
         private FileSystemRepository $fsRepo,
-        private FilesDownloadPreparer $filePreparer
+        private FilesDownloadPreparer $filePreparer,
+        private DownloadSessionsCountRepository $downloadSessionsCountRepo
     ) {}
 
     public function prepare(int $userId, int $taskId)
@@ -33,11 +35,13 @@ class PrepareFileForDownloadWorker
         if (!$prepareRes->success) $this->handleError($task, 'Не удалось создать архив');
 
         $this->taskRepo->setStatus($task->userId, $task->id, PrepareFilesTaskStatus::READY);
+        $this->downloadSessionsCountRepo->decrement($task->userId);
     }
 
     private function handleError(PrepareFilesTask $task, string $msg)
     {
         $this->taskRepo->setStatus($task->userId, $task->id, PrepareFilesTaskStatus::ERROR);
+        $this->downloadSessionsCountRepo->decrement($task->userId);
         throw new Exception($msg);
     }
 }
