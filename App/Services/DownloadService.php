@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
-use App\Models\FsObjectType;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\PreapareFilesTaskRepository;
 use App\Storage\DiskStorage;
@@ -20,7 +19,7 @@ class DownloadService
     public function __construct(
         private DiskStorage $diskStorage,
         private FileSystemRepository $fsRepo,
-        private PreapareFilesTaskRepository $preapareRepo,
+        private PreapareFilesTaskRepository $prepareRepo,
         private DownloadStorage $downloadStorage
     ) {}
 
@@ -28,7 +27,7 @@ class DownloadService
     {
         $file = $this->fsRepo->getById($userId, $fileId);
         if ($file === false) throw new NotFoundException('Файл не найден');
-        if ($file->type == FsObjectType::DIR) return OperationResult::createError(['message' => 'Попытка скачать папку']);
+        if (!$file->isFile()) return OperationResult::createError(['message' => 'Попытка скачать папку']);
 
         $fullPath = $this->diskStorage->getPath($userId, $file->getPath());
         if ($fullPath === false) return OperationResult::createError(['message' => 'Не удалось скачать файл']);
@@ -37,17 +36,14 @@ class DownloadService
         return OperationResult::createSuccess(['path' => $pathForServer]);
     }
 
-    public function iniArchiveCreation(int $userId, array $filesId): OperationResult
+    public function iniArchive(int $userId, array $filesId): OperationResult
     {
         $files = $this->fsRepo->getMany($userId, $filesId);
-        if ($files == false) throw new NotFoundException('Запрашиваемые файлы не найдены');
-        if (count($files) == 1 && $files[0]->type == FsObjectType::FILE) return OperationResult::createError(['message' => 'Попытка скачать один файл']);
+        if ($files === false) throw new NotFoundException('Запрашиваемые файлы не найдены');
+        if (count($files) == 1 && $files[0]->isFile()) return OperationResult::createError(['message' => 'Попытка скачать один файл']);
         if (count($files) > self::MAX_FILES_COUNT) return OperationResult::createError(['message' => 'Превышено допустимое число файлов']);
 
-        $sessionsCount = $this->preapareRepo->getUserTaskCount($userId);
-        if ($sessionsCount > self::MAX_SESSIONS_COUNT) return OperationResult::createError(['message' => 'Превышен лимит одновременных загрузок']);
-
-        $taskId = $this->preapareRepo->createTask($userId, $filesId);
+        $taskId = $this->prepareRepo->createTask($userId, $filesId, self::MAX_SESSIONS_COUNT);
         WorkerManager::startPrepareFilesForDownloadWorker($userId, $taskId);
 
         return OperationResult::createSuccess(['taskId' => $taskId]);
@@ -55,16 +51,17 @@ class DownloadService
 
     public function checkArchiveStatus(int $userId, int $taskId): OperationResult
     {
-        $task = $this->preapareRepo->getById($userId, $taskId);
+        $task = $this->prepareRepo->getById($userId, $taskId);
         if ($task === false) throw new NotFoundException('Задача с данным айди не найдена');
         return OperationResult::createSuccess(['status' => $task->status->value]);
     }
 
     public function getPathForArchiveDownlaod(int $userId, int $taskId)
     {
-        $task = $this->preapareRepo->getById($userId, $taskId);
+        $task = $this->prepareRepo->getById($userId, $taskId);
         if ($task === false) throw new NotFoundException('Задача с данным айди не найдена');
 
+        if ($task->hasError()) return OperationResult::createError(['message' => 'Произошла ошибка при создании архива']);
         if (!$task->isReady()) return OperationResult::createError(['message' => 'Архив еще не готов']);
 
         $fullPath = $this->downloadStorage->getPathById($task->id);

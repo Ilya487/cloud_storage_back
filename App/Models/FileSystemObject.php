@@ -70,6 +70,11 @@ class FileSystemObject
     {
         return $this->parentId;
     }
+
+    public function isFile(): bool
+    {
+        return $this->type == FsObjectType::FILE;
+    }
 }
 
 enum FsObjectType: string

@@ -27,4 +27,9 @@ class PrepareFilesTask
     {
         return $this->status == PrepareFilesTaskStatus::READY;
     }
+
+    public function hasError(): bool
+    {
+        return $this->status == PrepareFilesTaskStatus::ERROR;
+    }
 }
