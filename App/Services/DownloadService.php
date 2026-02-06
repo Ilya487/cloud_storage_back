@@ -44,6 +44,7 @@ class DownloadService
         if (count($files) > self::MAX_FILES_COUNT) return OperationResult::createError(['message' => 'Превышено допустимое число файлов']);
 
         $taskId = $this->prepareRepo->createTask($userId, $filesId, self::MAX_SESSIONS_COUNT);
+        if ($taskId === false) return OperationResult::createError(['message' => 'Превышен лимит одновременных скачиваний']);
         WorkerManager::startPrepareFilesForDownloadWorker($userId, $taskId);
 
         return OperationResult::createSuccess(['taskId' => $taskId]);
