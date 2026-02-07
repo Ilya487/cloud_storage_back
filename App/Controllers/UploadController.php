@@ -54,12 +54,22 @@ class UploadController implements ControllerInterface
         else $this->response->setStatusCode(400)->sendJson($res->errors);
     }
 
-    public function finalize()
+    public function startBuild()
     {
         $userId = $this->authManager->getAuthUser()->getId();
         $uploadSessionId = $this->request->json()['sessionId'];
 
-        $res = $this->uploadService->finalizeUpload($userId, $uploadSessionId);
+        $res = $this->uploadService->startBuild($userId, $uploadSessionId);
+        if ($res->success) $this->response->setStatusCode(200)->sendJson($res->data);
+        else $this->response->setStatusCode(400)->sendJson($res->errors);
+    }
+
+    public function checkStatus()
+    {
+        $userId = $this->authManager->getAuthUser()->getId();
+        $uploadSessionId = $this->request->get('sessionId');
+
+        $res = $this->uploadService->getSessionStatus($userId, $uploadSessionId);
         if ($res->success) $this->response->setStatusCode(200)->sendJson($res->data);
         else $this->response->setStatusCode(400)->sendJson($res->errors);
     }

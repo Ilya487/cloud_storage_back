@@ -83,6 +83,19 @@ class QueryBuilder
         return $this;
     }
 
+    public function decrementField(string $fieldName)
+    {
+        $this->resetQuery();
+        $this->query = "UPDATE $this->tableName SET $fieldName=$fieldName-1 ";
+        return $this;
+    }
+
+    public function forUpdate(): self
+    {
+        $this->query .= ' FOR UPDATE';
+        return $this;
+    }
+
     private function resetQuery()
     {
         $this->query = '';

@@ -11,15 +11,21 @@ class DownloadStorage extends BaseStorage
     public function __construct(string $storagePath)
     {
         parent::__construct($storagePath);
+        $archivesPath = $storagePath .  '/archives';
 
-        if (!is_dir("$storagePath/archives")) {
-            mkdir("$storagePath/archives");
+        if (!is_dir($archivesPath)) {
+            mkdir($archivesPath);
         }
+        $this->storagePath = $archivesPath;
     }
 
-    public function createArchive(int $userId, string $prefix = ''): ArchiveBuilder|false
+    public function createArchive(int $downloadId, string $prefix = ''): ArchiveBuilder|false
     {
-        $path = $this->generateName($userId, $prefix);
+        $path = $this->storagePath . "/$downloadId";
+        if (mkdir($path) === false) return false;
+        $name = $this->generateName($prefix);
+        $path = "$path/$name";
+
         try {
             $zip = new ArchiveBuilder($path);
             return $zip;
@@ -28,12 +34,17 @@ class DownloadStorage extends BaseStorage
         }
     }
 
-    private function generateName(int $userId, string $prefix): string
+    public function getPathById(int $downloadId): string|false
+    {
+        $dirPath = $this->storagePath . "/$downloadId";
+        $filePath = scandir($dirPath)[2];
+        if (is_null($filePath)) return false;
+        else return "$dirPath/$filePath";
+    }
+
+    private function generateName(string $prefix): string
     {
         $prefix = $prefix !== '' ? $prefix . '_' : '';
-        $archiveName = $prefix . date('Ymd\THis') . '_' . uniqid() . '_' . $userId;
-        $generatedPath = $this->storagePath . '/archives/' . $archiveName;
-
-        return $generatedPath;
+        return  $prefix . date('Ymd\THis') . '_' . uniqid();
     }
 }

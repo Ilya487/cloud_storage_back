@@ -5,18 +5,19 @@ namespace App\Repositories;
 use App\Db\Expression;
 use App\Models\FileSystemObject;
 use App\Models\FsObjectType;
-use App\Db\QueryBuilder;
 use App\Repositories\BaseRepository;
 use Exception;
 use PDO;
 
 class FileSystemRepository extends BaseRepository
 {
+    protected string $tableName = 'file_system';
+
     private bool $isOperationConfirm = true;
     /**
      * @return string new dir id
      */
-    public function createDir(int $userId, string $dirName, string $path, int $parentDirId = null): string
+    public function createDir(int $userId, string $dirName, string $path, ?int $parentDirId): string
     {
         $this->processOperationStatus();
 
@@ -36,7 +37,7 @@ class FileSystemRepository extends BaseRepository
     /**
      * @return string new file id
      */
-    public function createFile(int $userId, string $fileName, string $path, ?int $parentDirId = null, int $fileSize): string
+    public function createFile(int $userId, string $fileName, string $path, ?int $parentDirId, int $fileSize): string
     {
         $this->processOperationStatus();
 

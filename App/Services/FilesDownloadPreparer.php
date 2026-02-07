@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\FileSystemObject;
-use App\Models\FsObjectType;
 use App\Storage\DiskStorage;
 use App\Storage\DownloadStorage;
 use App\Tools\ArchiveException;
@@ -19,19 +18,12 @@ class FilesDownloadPreparer
     /**
      * @param array<FileSystemObject> $files
      */
-    function prepareFiles(int $userId, array $files): FilesPrepareResult
+    function prepareFiles(int $downloadId, array $files): FilesPrepareResult
     {
         $this->checkTypes($files);
 
-        if (count($files) == 1 && $files[0]->type == FsObjectType::FILE) {
-            $file = $files[0];
-            $fullPath = $this->diskStorage->getPath($userId, $file->getPath());
-            if ($fullPath === false) return FilesPrepareResult::createError();
-            else return new FilesPrepareResult(true, $fullPath, [$file], []);
-        }
-
         $archive = $this->downloadStorage->createArchive(
-            $userId,
+            $downloadId,
             count($files) == 1 ? $files[0]->getName() : ''
         );
 
@@ -43,7 +35,7 @@ class FilesDownloadPreparer
         $errorAdded = [];
 
         foreach ($files as $file) {
-            $fullPath = $this->diskStorage->getPath($userId, $file->getPath());
+            $fullPath = $this->diskStorage->getPath($file->ownerId, $file->getPath());
             if ($fullPath === false) {
                 $errorAdded[] = $file;
                 continue;

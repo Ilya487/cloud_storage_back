@@ -8,6 +8,8 @@ use App\Repositories\BaseRepository;
 
 class RememberMeTokenRepository extends BaseRepository
 {
+    protected string $tableName = 'auth_tokens';
+
     public function getBySelector(string $selector): RememberMeToken|false
     {
         $query = $this->queryBuilder

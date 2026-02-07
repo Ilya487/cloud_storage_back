@@ -3,12 +3,11 @@
 namespace App\Services;
 
 use App\DTO\OperationResult;
-use App\Models\UploadSession;
+use App\Models\UploadSessionStatus;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\UploadSessionRepository;
-use App\Storage\DiskStorage;
-use App\Storage\FileAssembler;
 use App\Storage\UploadsStorage;
+use App\Workers\WorkerManager;
 
 class UploadService
 {
@@ -20,8 +19,6 @@ class UploadService
         private FileSystemRepository $fsRepo,
         private UploadSessionRepository $uploadSessionsRepo,
         private UploadsStorage $uploadsStorage,
-        private FileAssembler $fileBuilder,
-        private DiskStorage $diskStorage
     ) {}
 
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
@@ -33,19 +30,19 @@ class UploadService
         if (!is_null($destinationDirId)) {
             $destinationDirPath = $this->fsRepo->getPathById($destinationDirId, $userId);
             if ($destinationDirPath === false) {
-                return OperationResult::createError(['message' => 'Указана неверная папка назначения']);
+                return OperationResult::createError(['message' => 'Папка назначения не существует или была удалена']);
             }
         } else $destinationDirPath = '/';
 
         if (
             $this->fsRepo->isNameExist($userId, $fileName, $destinationDirId) ||
-            $this->uploadSessionsRepo->isNameExist($userId, $fileName, $destinationDirId)
+            $this->uploadSessionsRepo->isNameExist($userId, $fileName, $destinationDirPath)
         ) {
             return OperationResult::createError(['message' => 'Файл с таким именем уже существует!']);
         }
 
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
-        $uploadSessionId = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirId);
+        $uploadSessionId = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirPath, $fileSize);
         if (!$this->uploadsStorage->initializeUploadDir($uploadSessionId)) {
             $this->uploadSessionsRepo->deleteSession($userId, $uploadSessionId);
             return OperationResult::createError(['message' => 'Не удалась инициализировать сессию загрузки']);
@@ -74,7 +71,7 @@ class UploadService
             return OperationResult::createError(['message' => 'Не удалось загрузить чанк']);
         }
 
-        $count = $this->uploadSessionsRepo->incrementCompletedChunks($uploadSessionId, 23);
+        $count = $this->uploadSessionsRepo->incrementCompletedChunks($uploadSessionId);
         $uploadSession->setChunks($count);
 
         return OperationResult::createSuccess(['progress' => $uploadSession->getProgress()]);
@@ -87,10 +84,12 @@ class UploadService
             return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
         }
 
-        [$buildedFilePath] = $this->getOutputFileName($uploadSession);
-        unlink($buildedFilePath);
+        if ($uploadSession->status !== UploadSessionStatus::UPLOADING) {
+            return OperationResult::createError(['message' => 'Невозможно отменить сессию']);
+        }
+
         $this->uploadsStorage->deleteSessionDir($uploadSession->id);
-        $this->uploadSessionsRepo->deleteSession($userId, $uploadSession->id);
+        $this->uploadSessionsRepo->setStatus($userId, $uploadSession->id, UploadSessionStatus::CANCELLED);
         return OperationResult::createSuccess([]);
     }
 
@@ -105,58 +104,31 @@ class UploadService
         }
     }
 
-    public function finalizeUpload(int $userId, int $uploadSessionId): OperationResult
+    public function startBuild(int $userId, int $uploadSessionId): OperationResult
     {
         $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
         if ($uploadSession === false) return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
 
-        $fileId = $this->buildFile($uploadSession);
-        if (!$fileId) {
-            return OperationResult::createError(['message' => 'Не удалось собрать файл']);
+        if ($uploadSession->canBeBuilded()) {
+            $this->uploadSessionsRepo->setStatus($uploadSession->userId, $uploadSession->id, UploadSessionStatus::BUILDING);
+            WorkerManager::startFileBuildWorker($uploadSession->id, $userId);
         }
 
         return OperationResult::createSuccess([
-            'message' => 'Файл успешно загружен',
-            'fileId' => $fileId,
-            'parentDirId' => $uploadSession->destinationDirId
+            'id' => $uploadSession->id,
+            'status' => $uploadSession->status->value
         ]);
     }
 
-    private function buildFile(UploadSession $session): int|false
+    public function getSessionStatus(int $userId, int $sessionId): OperationResult
     {
-        set_time_limit(0);
-
-        [$buildedFilePath, $toDirPath] = $this->getOutputFileName($session);
-        $buildResult = $this->fileBuilder->buildFile($session, $buildedFilePath);
-
-        $this->uploadSessionsRepo->deleteSession($session->userId, $session->id);
-        $this->uploadsStorage->deleteSessionDir($session->id);
-
-        if ($buildResult->success) {
-            $id = $this->fsRepo->createFile(
-                $session->userId,
-                $session->fileName,
-                $toDirPath . '/' . $session->fileName,
-                $session->destinationDirId,
-                $buildResult->fileSize
-            );
-            $renameRes = $this->diskStorage->renameObject($session->userId, $session->fileName, $toDirPath . '/' . basename($buildedFilePath));
-
-            if ($renameRes !== false) {
-                $this->fsRepo->confirmChanges();
-                return $id;
-            } else $this->fsRepo->cancelLastChanges();
+        $session = $this->uploadSessionsRepo->getById($userId, $sessionId);
+        if ($session === false) {
+            return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
         }
 
-        unlink($buildedFilePath);
-        return false;
-    }
-
-    private function getOutputFileName(UploadSession $session): array
-    {
-        $toDirPath = $session->destinationDirId ? $this->fsRepo->getPathById($session->destinationDirId, $session->userId) : '/';
-        $buildedFilePath = $this->diskStorage->getPath($session->userId, $toDirPath) . '/.build' . $session->id . $session->fileName;
-
-        return [$buildedFilePath, $toDirPath];
+        return OperationResult::createSuccess([
+            'status' => $session->status->value
+        ]);
     }
 }

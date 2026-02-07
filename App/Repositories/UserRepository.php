@@ -5,11 +5,12 @@ namespace App\Repositories;
 use App\Db\Expression;
 use App\Repositories\BaseRepository;
 use App\Models\User;
-use App\Tools\QueryBuilder;
 use PDO;
 
 class UserRepository extends BaseRepository
 {
+    protected string $tableName = 'users';
+
     /**
      * @return string new user id
      */

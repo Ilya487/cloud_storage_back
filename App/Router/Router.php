@@ -3,6 +3,7 @@
 namespace App\Router;
 
 use App\Core\DiContainer\Container;
+use App\Exceptions\NotFoundException;
 use App\Http\Middleware\MiddlewareInterface;
 use App\Http\Request;
 use Exception;
@@ -51,6 +52,8 @@ class Router
                 $this->resolveController($route->controllerSetup);
             }
         }
+
+        throw new NotFoundException('Not found');
     }
 
     private function resolveMiddlewares(array $middlewares)

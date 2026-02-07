@@ -12,12 +12,15 @@ abstract class BaseRepository
 {
     private PDO $pdo;
     protected QueryBuilder $queryBuilder;
+    protected string $tableName;
 
 
-    public function __construct(DbConnect $dbConnect, string $tableName)
+    public function __construct(DbConnect $dbConnect)
     {
+        if (is_null($this->tableName)) throw new Exception('Не задано имя таблицы');
+
         $this->pdo = $dbConnect->getConnection();
-        $this->queryBuilder = new QueryBuilder($tableName);
+        $this->queryBuilder = new QueryBuilder($this->tableName);
     }
 
     protected function fetchAll(string $query, array $columnValues, $returnType = PDO::FETCH_ASSOC): array
@@ -30,6 +33,12 @@ abstract class BaseRepository
     {
         $stmt = $this->executeQuery($query, $columnValues);
         return $stmt->fetch($returnType);
+    }
+
+    protected function fetchColumn(string $query, array $columnValues, int $columnNum = 0)
+    {
+        $stmt  = $this->executeQuery($query, $columnValues);
+        return $stmt->fetchColumn($columnNum);
     }
 
     /**

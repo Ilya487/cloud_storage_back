@@ -3,7 +3,6 @@
 use App\Controllers\AuthController;
 use App\Controllers\DownloadController;
 use App\Controllers\FolderController;
-use App\Controllers\NotFoundController;
 use App\Controllers\UploadController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
@@ -31,9 +30,11 @@ return [
     Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'initUpload']]),
     Route::post('/upload/chunk', new ControllerSetup(UploadController::class, 'uploadChunk'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'uploadChunk']]),
     Route::delete('/upload/cancel', new ControllerSetup(UploadController::class, 'cancelUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'cancelUpload']]),
-    Route::post('/upload/finalize', new ControllerSetup(UploadController::class, 'finalize'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'finalize']]),
+    Route::post('/upload/startBuild', new ControllerSetup(UploadController::class, 'startBuild'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'finalize']]),
+    Route::get('/upload/status', new ControllerSetup(UploadController::class, 'checkStatus'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'checkStatus']]),
 
-    Route::get('/download', new ControllerSetup(DownloadController::class), [AuthMiddleware::class, DownloadValidationMiddleware::class]),
-
-    Route::all(new ControllerSetup(NotFoundController::class))
+    Route::get('/download/file', new ControllerSetup(DownloadController::class, 'downloadFile'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'downloadFile']]),
+    Route::post('/download/archive/ini', new ControllerSetup(DownloadController::class, 'iniArchive'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'iniArchive']]),
+    Route::get('/download/archive/status', new ControllerSetup(DownloadController::class, 'checkArchiveStatus'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'checkArchiveStatus']]),
+    Route::get('/download/archive', new ControllerSetup(DownloadController::class, 'downloadArchive'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'downloadArchive']]),
 ];

@@ -2,7 +2,6 @@
 
 namespace App\Storage;
 
-use App\DTO\FileBuildResult;
 use App\Models\UploadSession;
 use App\Storage\UploadsStorage;
 
@@ -10,10 +9,10 @@ class FileAssembler
 {
     public function __construct(private UploadsStorage $uploadsStorage) {}
 
-    public function buildFile(UploadSession $uploadSession, string $outputPath): FileBuildResult
+    public function buildFile(UploadSession $uploadSession, string $outputPath): bool
     {
         $stream = fopen($outputPath, 'w');
-        if ($stream === false) return new FileBuildResult(false);
+        if ($stream === false) return false;
 
         for ($i = 1; $i <= $uploadSession->totalChunksCount; $i++) {
             $data = $this->uploadsStorage->getChunkData($uploadSession->id, $i);
@@ -21,7 +20,7 @@ class FileAssembler
             if ($res === false) {
                 fclose($stream);
                 unlink($outputPath);
-                return new FileBuildResult(false);
+                return false;
             }
         }
         fclose($stream);
@@ -29,9 +28,9 @@ class FileAssembler
         $size = filesize($outputPath);
         if (!$size) {
             unlink($outputPath);
-            return new FileBuildResult(false);
+            return false;
         }
 
-        return new FileBuildResult(true, $size);
+        return true;
     }
 }
