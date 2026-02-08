@@ -60,4 +60,11 @@ class FileSytemValidationMiddleware extends ValidationMiddleware implements Midd
     {
         $this->validate(self::REQUIRE | self::STRING, 'path', self::GET);
     }
+
+    public function search()
+    {
+        $minQueryLen = 2;
+        $query = $this->validate(self::REQUIRE | self::STRING, 'query', self::GET);
+        if (mb_strlen($query) < $minQueryLen) $this->sendError("Минимальная длина query $minQueryLen символа");
+    }
 }

@@ -26,6 +26,7 @@ return [
     Route::patch('/rename', new ControllerSetup(FileSystemController::class, 'renameObject'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'rename']]),
     Route::post('/delete', new ControllerSetup(FileSystemController::class, 'delete'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'delete']]),
     Route::patch('/move', new ControllerSetup(FileSystemController::class, 'move'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'moveItems']]),
+    Route::get('/search', new ControllerSetup(FileSystemController::class, 'search'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'search']]),
 
     Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'initUpload']]),
     Route::post('/upload/chunk', new ControllerSetup(UploadController::class, 'uploadChunk'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'uploadChunk']]),

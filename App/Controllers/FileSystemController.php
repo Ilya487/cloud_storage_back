@@ -90,4 +90,16 @@ class FileSystemController implements ControllerInterface
             $this->response->setStatusCode(404)->sendJson($res->errors);
         }
     }
+
+    public function search()
+    {
+        $query = $this->request->get('query');
+        $userId = $this->authManager->getAuthUser()->getId();
+
+        $res = $this->fsService->search($userId, $query);
+        if ($res->success)
+            $this->response->sendJson($res->data);
+        else
+            $this->response->setStatusCode(400)->sendJson($res->errors);
+    }
 }
