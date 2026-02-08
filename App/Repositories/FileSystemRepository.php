@@ -229,6 +229,17 @@ class FileSystemRepository extends BaseRepository
         $this->rollBackTransaction();
     }
 
+    public function search(int $userId, string $searchQuery)
+    {
+        $qury = $this->queryBuilder
+            ->select(['id', 'name', 'parent_id', 'type', 'path'])
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::like('name', 'pattern'))
+            ->build();
+        $res = $this->fetchAll($qury, ['user_id' => $userId, 'pattern' => "%$searchQuery%"]);
+        return $res;
+    }
+
     private function processOperationStatus()
     {
         if (!$this->isOperationConfirm) {

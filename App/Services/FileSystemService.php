@@ -95,4 +95,13 @@ class FileSystemService
         if ($dirId === false) return OperationResult::createError(['message' => 'Папка с данным расположением не найдена']);
         else return OperationResult::createSuccess(['dirId' => $dirId]);
     }
+
+    public function search(int $userId, string $query): OperationResult
+    {
+        $searchRes = $this->fsRepo->search($userId, $query);
+        return OperationResult::createSuccess([
+            'count' => count($searchRes),
+            'matches' => $searchRes
+        ]);
+    }
 }
