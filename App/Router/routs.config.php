@@ -2,7 +2,7 @@
 
 use App\Controllers\AuthController;
 use App\Controllers\DownloadController;
-use App\Controllers\FolderController;
+use App\Controllers\FileSystemController;
 use App\Controllers\UploadController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
@@ -20,12 +20,12 @@ return [
     Route::post('/auth/logout', new ControllerSetup(AuthController::class, 'logout'), [AuthMiddleware::class]),
     Route::post('/auth/refresh', new ControllerSetup(AuthController::class, 'refresh'), [GuestMiddleware::class]),
 
-    Route::post('/folder', new ControllerSetup(FolderController::class, 'create'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'create']]),
-    Route::get('/folder', new ControllerSetup(FolderController::class, 'getFolderContent'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'getContent']]),
-    Route::get('/folder/id-by-path', new ControllerSetup(FolderController::class, 'getFolderIdByPath'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'getFolderIdByPath']]),
-    Route::patch('/rename', new ControllerSetup(FolderController::class, 'renameObject'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'rename']]),
-    Route::post('/delete', new ControllerSetup(FolderController::class, 'delete'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'delete']]),
-    Route::patch('/move', new ControllerSetup(FolderController::class, 'move'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'moveItems']]),
+    Route::post('/folder', new ControllerSetup(FileSystemController::class, 'create'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'create']]),
+    Route::get('/folder', new ControllerSetup(FileSystemController::class, 'getFolderContent'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'getContent']]),
+    Route::get('/folder/id-by-path', new ControllerSetup(FileSystemController::class, 'getFolderIdByPath'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'getFolderIdByPath']]),
+    Route::patch('/rename', new ControllerSetup(FileSystemController::class, 'renameObject'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'rename']]),
+    Route::post('/delete', new ControllerSetup(FileSystemController::class, 'delete'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'delete']]),
+    Route::patch('/move', new ControllerSetup(FileSystemController::class, 'move'), [AuthMiddleware::class, [FileSytemValidationMiddleware::class, 'moveItems']]),
 
     Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'initUpload']]),
     Route::post('/upload/chunk', new ControllerSetup(UploadController::class, 'uploadChunk'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'uploadChunk']]),

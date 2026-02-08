@@ -8,7 +8,7 @@ use App\Controllers\ControllerInterface;
 use App\Services\AuthManager;
 use App\Services\FileSystemService;
 
-class FolderController implements ControllerInterface
+class FileSystemController implements ControllerInterface
 {
     public function __construct(private Request $request, private Response $response, private AuthManager $authManager, private FileSystemService $fsService) {}
 
