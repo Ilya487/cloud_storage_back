@@ -8,7 +8,7 @@ use App\Controllers\ControllerInterface;
 use App\Services\AuthManager;
 use App\Services\FileSystemService;
 
-class FolderController implements ControllerInterface
+class FileSystemController implements ControllerInterface
 {
     public function __construct(private Request $request, private Response $response, private AuthManager $authManager, private FileSystemService $fsService) {}
 
@@ -89,5 +89,17 @@ class FolderController implements ControllerInterface
         } else {
             $this->response->setStatusCode(404)->sendJson($res->errors);
         }
+    }
+
+    public function search()
+    {
+        $query = $this->request->get('query');
+        $userId = $this->authManager->getAuthUser()->getId();
+
+        $res = $this->fsService->search($userId, $query);
+        if ($res->success)
+            $this->response->sendJson($res->data);
+        else
+            $this->response->setStatusCode(400)->sendJson($res->errors);
     }
 }
