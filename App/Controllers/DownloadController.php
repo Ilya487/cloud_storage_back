@@ -24,7 +24,7 @@ class DownloadController implements ControllerInterface
         $userId = $this->authManager->getAuthUser()->getId();
         $fileId = $this->request->get('fileId');
 
-        $res = $this->downloadService->getPathForFileDownload($userId, $fileId);
+        $res = $this->downloadService->getFileServerPath($userId, $fileId);
         if ($res->success) {
             $this->response->sendDownloadResponse($res->data['path']);
         } else $this->response->setStatusCode(400)->sendJson($res->errors);

@@ -23,14 +23,14 @@ class DownloadService
         private DownloadStorage $downloadStorage
     ) {}
 
-    public function getPathForFileDownload(int $userId, int $fileId)
+    public function getFileServerPath(int $userId, int $fileId)
     {
         $file = $this->fsRepo->getById($userId, $fileId);
         if ($file === false) throw new NotFoundException('Файл не найден');
-        if (!$file->isFile()) return OperationResult::createError(['message' => 'Попытка скачать папку']);
+        if (!$file->isFile()) return OperationResult::createError(['message' => 'Попытка получить путь папки']);
 
         $fullPath = $this->diskStorage->getPath($userId, $file->getPath());
-        if ($fullPath === false) return OperationResult::createError(['message' => 'Не удалось скачать файл']);
+        if ($fullPath === false) return OperationResult::createError(['message' => 'Не удалось получить путь файла']);
 
         $pathForServer = $this->getPathForServer($fullPath);
         return OperationResult::createSuccess(['path' => $pathForServer]);
