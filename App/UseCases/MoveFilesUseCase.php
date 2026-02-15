@@ -20,9 +20,8 @@ class MoveFilesUseCase
         $errorMove = 0;
         $succesMove = 0;
 
-        foreach ($items as $objectId) {
-            $fsObject = $this->fsRepo->getById($userId, $objectId);
-
+        $fsObjects = $this->fsRepo->getMany($userId, $items);
+        foreach ($fsObjects as $fsObject) {
             if ($fsObject === false) {
                 $errorMove++;
                 continue;
