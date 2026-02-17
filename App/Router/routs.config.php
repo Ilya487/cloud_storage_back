@@ -20,7 +20,7 @@ return [
     Route::post('/auth/refresh', new ControllerSetup(AuthController::class, 'refresh'), [GuestMiddleware::class]),
 
     Route::post('/fs/folder', new ControllerSetup(FileSystemController::class, 'create'), [AuthMiddleware::class]),
-    Route::get('/fs/filE', new ControllerSetup(FileSystemController::class, 'getFileContent'), [AuthMiddleware::class]),
+    Route::get('/fs/file/{id}/{filename}', new ControllerSetup(FileSystemController::class, 'getFileContent'), [AuthMiddleware::class]),
     Route::get('/fs/folder/id-by-path', new ControllerSetup(FileSystemController::class, 'getFolderIdByPath'), [AuthMiddleware::class]),
     Route::patch('/fs/rename/{id}', new ControllerSetup(FileSystemController::class, 'renameObject'), [AuthMiddleware::class]),
     Route::delete('/fs/delete', new ControllerSetup(FileSystemController::class, 'delete'), [AuthMiddleware::class]),

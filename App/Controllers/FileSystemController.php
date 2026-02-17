@@ -112,4 +112,15 @@ class FileSystemController implements ControllerInterface
         else
             $this->response->setStatusCode(400)->sendJson($res->errors);
     }
+
+    public function getFileContent($fileId)
+    {
+        $userId = $this->authManager->getAuthUser()->getId();
+        $fileId = $this->requestValidator->getFileContent($fileId);
+
+        $res = $this->downloadService->getFileServerPath($userId, $fileId);
+        if ($res->success) {
+            $this->response->outputFile($res->data['path']);
+        } else $this->response->setStatusCode(400)->sendJson($res->errors);
+    }
 }

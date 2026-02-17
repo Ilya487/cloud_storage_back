@@ -63,7 +63,9 @@ class Response
 
     public function outputFile($path)
     {
+        $filename = rawurlencode(basename($path));
         $this->setHeader('Content-Type', '');
+        $this->setHeader('Content-Disposition', "inline; filename=$filename");
         $this->setHeader('X-Accel-Redirect', $path);
         die;
     }

@@ -119,7 +119,7 @@ class Route
     private function generateRegExp(string $path)
     {
         $res = str_replace('/', '\/', $path);
-        $res = preg_replace('/\{.+?\}/', '(.+)', $res);
+        $res = preg_replace('/\{.+?\}/', '([^\/]+)', $res);
         $res = "/^$res$/";
         return $res;
     }

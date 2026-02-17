@@ -70,7 +70,6 @@ class FileSystemValidator extends RequestValidator
     public function getFolderIdByPath()
     {
         $path =  $this->validate(self::REQUIRE | self::STRING, 'path', self::GET);
-        if (mb_strlen($path) < 2) $this->sendError('Некорректное значение параметра path');
         return $path;
     }
 
@@ -83,8 +82,8 @@ class FileSystemValidator extends RequestValidator
         return $query;
     }
 
-    // public function getFileContent()
-    // {
-    //     $this->validate(self::INT | self::REQUIRE, 'fileId', self::GET);
-    // }
+    public function getFileContent($fileId)
+    {
+        return $this->validate(self::INT | self::REQUIRE, 'fileId', ['fileId' => $fileId]);
+    }
 }
