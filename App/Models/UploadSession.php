@@ -56,4 +56,9 @@ class UploadSession
         if ($this->isUploadComplete() && $this->status == UploadSessionStatus::UPLOADING)  return true;
         else return false;
     }
+
+    public function isBuilding(): bool
+    {
+        return $this->status == UploadSessionStatus::BUILDING;
+    }
 }

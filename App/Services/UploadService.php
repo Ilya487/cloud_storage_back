@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\DTO\OperationResult;
+use App\Exceptions\NotFoundException;
 use App\Models\UploadSessionStatus;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\UploadSessionRepository;
@@ -59,9 +60,7 @@ class UploadService
     public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, string $data): OperationResult
     {
         $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
-        if ($uploadSession === false) {
-            return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
-        }
+        if ($uploadSession === false)  throw new NotFoundException('Сессия с данным айди не найдена');
 
         if ($uploadSession->isUploadComplete()) {
             return OperationResult::createError(['message' => 'Все чанки уже загружены']);
@@ -80,9 +79,7 @@ class UploadService
     public function cancelUploadSession(int $userId, int $uploadSessionId): OperationResult
     {
         $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
-        if ($uploadSession === false) {
-            return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
-        }
+        if ($uploadSession === false) throw new NotFoundException('Сессия с данным айди не найдена');
 
         if ($uploadSession->status !== UploadSessionStatus::UPLOADING) {
             return OperationResult::createError(['message' => 'Невозможно отменить сессию']);
@@ -107,12 +104,13 @@ class UploadService
     public function startBuild(int $userId, int $uploadSessionId): OperationResult
     {
         $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
-        if ($uploadSession === false) return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
+        if ($uploadSession === false) throw new NotFoundException('Сессия с данным айди не найдена');
 
-        if ($uploadSession->canBeBuilded()) {
-            $this->uploadSessionsRepo->setStatus($uploadSession->userId, $uploadSession->id, UploadSessionStatus::BUILDING);
-            WorkerManager::startFileBuildWorker($uploadSession->id, $userId);
-        }
+        if ($uploadSession->isBuilding()) return OperationResult::createError(['message' => 'Сборка сессии уже запущена']);
+        if (!$uploadSession->canBeBuilded()) return OperationResult::createError(['message' => 'Невозможно запустить сборку']);
+
+        $this->uploadSessionsRepo->setStatus($uploadSession->userId, $uploadSession->id, UploadSessionStatus::BUILDING);
+        WorkerManager::startFileBuildWorker($uploadSession->id, $userId);
 
         return OperationResult::createSuccess([
             'id' => $uploadSession->id,
@@ -123,9 +121,7 @@ class UploadService
     public function getSessionStatus(int $userId, int $sessionId): OperationResult
     {
         $session = $this->uploadSessionsRepo->getById($userId, $sessionId);
-        if ($session === false) {
-            return OperationResult::createError(['message' => 'Сессия с данным айди не найдена']);
-        }
+        if ($session === false) throw new NotFoundException('Сессия с данным айди не найдена');
 
         return OperationResult::createSuccess([
             'status' => $session->status->value
