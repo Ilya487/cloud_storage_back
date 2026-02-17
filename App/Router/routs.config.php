@@ -7,7 +7,6 @@ use App\Controllers\UploadController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\DownloadValidationMiddleware;
-use App\Http\Middleware\ValidationMiddlewares\UploadValidationMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\UserValidationMiddleware;
 use App\Router\ControllerSetup;
 use App\Router\Route;
@@ -28,11 +27,11 @@ return [
     Route::get('/fs/search', new ControllerSetup(FileSystemController::class, 'search'), [AuthMiddleware::class]),
     Route::get('/fs/folder/{id}', new ControllerSetup(FileSystemController::class, 'getFolderContent'), [AuthMiddleware::class]),
 
-    Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'initUpload']]),
-    Route::post('/upload/chunk', new ControllerSetup(UploadController::class, 'uploadChunk'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'uploadChunk']]),
-    Route::delete('/upload/cancel', new ControllerSetup(UploadController::class, 'cancelUpload'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'cancelUpload']]),
-    Route::post('/upload/startBuild', new ControllerSetup(UploadController::class, 'startBuild'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'finalize']]),
-    Route::get('/upload/status', new ControllerSetup(UploadController::class, 'checkStatus'), [AuthMiddleware::class, [UploadValidationMiddleware::class, 'checkStatus']]),
+    Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class]),
+    Route::post('/upload/chunk/{sessionId}', new ControllerSetup(UploadController::class, 'uploadChunk'), [AuthMiddleware::class]),
+    Route::delete('/upload/cancel/{sessionId}', new ControllerSetup(UploadController::class, 'cancelUpload'), [AuthMiddleware::class]),
+    Route::post('/upload/{sessionId}/build', new ControllerSetup(UploadController::class, 'startBuild'), [AuthMiddleware::class]),
+    Route::get('/upload/status/{sessionId}', new ControllerSetup(UploadController::class, 'checkStatus'), [AuthMiddleware::class]),
 
     Route::get('/download/file', new ControllerSetup(DownloadController::class, 'downloadFile'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'downloadFile']]),
     Route::post('/download/archive/ini', new ControllerSetup(DownloadController::class, 'iniArchive'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'iniArchive']]),

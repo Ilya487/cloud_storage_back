@@ -40,7 +40,7 @@ class Route
     public function __construct(string $endPoint, string $method, public readonly ControllerSetup $controllerSetup, public readonly array $middlewares = [])
     {
         $this->method = strtolower($method);
-        $this->pattern = $this->generateRegExp(strtolower($endPoint));
+        $this->pattern = $this->generateRegExp($endPoint);
 
         foreach ($middlewares as $middleware) {
             if (is_array($middleware)) {
