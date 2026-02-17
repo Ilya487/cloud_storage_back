@@ -5,21 +5,29 @@ namespace App\Controllers;
 use App\Http\Request;
 use App\Http\Response;
 use App\Controllers\ControllerInterface;
+use App\RequestValidators\UploadValidator;
 use App\Services\AuthManager;
 use App\Services\UploadService;
 
 class UploadController implements ControllerInterface
 {
-    public function __construct(private Request $request, private Response $response, private UploadService $uploadService, private AuthManager $authManager) {}
+    public function __construct(
+        private Request $request,
+        private Response $response,
+        private UploadService $uploadService,
+        private AuthManager $authManager,
+        private UploadValidator $requestValidator
+    ) {}
 
     public function resolve(): void {}
 
     public function initUpload()
     {
         $userId = $this->authManager->getAuthUser()->getId();
-        $fileName = $this->request->json()['fileName'];
-        $fileSize = $this->request->json()['fileSize'];
-        $destinationDirId = $this->request->json()['destinationDirId'] ?: null;
+        $data = $this->requestValidator->initUpload();
+        $fileName = $data['fileName'];
+        $fileSize = $data['fileSize'];
+        $destinationDirId = $data['destinationDirId'] ?: null;
 
         $initResult = $this->uploadService->initializeUploadSession($userId, $fileName, $fileSize, $destinationDirId);
         if ($initResult->success) {
@@ -29,11 +37,12 @@ class UploadController implements ControllerInterface
         }
     }
 
-    public function uploadChunk()
+    public function uploadChunk($sessionId)
     {
         $userId = $this->authManager->getAuthUser()->getId();
-        $uploadSessionId = $this->request->header('X-Session-Id');
-        $chunkNum = $this->request->header('X-Chunk-Num');
+        $data = $this->requestValidator->uploadChunk($sessionId);
+        $uploadSessionId = $data['sessionId'];
+        $chunkNum = $data['chunkNum'];
         $data  = $this->request->body();
 
         $res = $this->uploadService->uploadChunk($userId, $uploadSessionId, $chunkNum, $data);
@@ -44,32 +53,32 @@ class UploadController implements ControllerInterface
         }
     }
 
-    public function cancelUpload()
+    public function cancelUpload($sessionId)
     {
         $userId = $this->authManager->getAuthUser()->getId();
-        $uploadSessionId = $this->request->get('sessionId');
+        $sessionId = $this->requestValidator->cancelUpload($sessionId);
 
-        $res = $this->uploadService->cancelUploadSession($userId, $uploadSessionId);
+        $res = $this->uploadService->cancelUploadSession($userId, $sessionId);
         if ($res->success) $this->response->setStatusCode(204)->send();
         else $this->response->setStatusCode(400)->sendJson($res->errors);
     }
 
-    public function startBuild()
+    public function startBuild($sessionId)
     {
         $userId = $this->authManager->getAuthUser()->getId();
-        $uploadSessionId = $this->request->json()['sessionId'];
+        $sessionId = $this->requestValidator->startBuild($sessionId);
 
-        $res = $this->uploadService->startBuild($userId, $uploadSessionId);
+        $res = $this->uploadService->startBuild($userId, $sessionId);
         if ($res->success) $this->response->setStatusCode(200)->sendJson($res->data);
         else $this->response->setStatusCode(400)->sendJson($res->errors);
     }
 
-    public function checkStatus()
+    public function checkStatus($sessionId)
     {
         $userId = $this->authManager->getAuthUser()->getId();
-        $uploadSessionId = $this->request->get('sessionId');
+        $sessionId = $this->requestValidator->checkStatus($sessionId);
 
-        $res = $this->uploadService->getSessionStatus($userId, $uploadSessionId);
+        $res = $this->uploadService->getSessionStatus($userId, $sessionId);
         if ($res->success) $this->response->setStatusCode(200)->sendJson($res->data);
         else $this->response->setStatusCode(400)->sendJson($res->errors);
     }

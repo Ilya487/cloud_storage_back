@@ -63,7 +63,7 @@ abstract class RequestValidator
         }
         foreach ($this->validators as $rule => $method) {
             if ($rules & $rule) {
-                $this->$method($name, $value);
+                $this->$method($name, $value, $source);
             }
         }
 
@@ -91,10 +91,11 @@ abstract class RequestValidator
         }
     }
 
-    private function checkRequire(string $name, $value)
+    private function checkRequire(string $name, $value, $source)
     {
         $res = is_null($value);
         if ($res) {
+            if ($source == self::HEADER) $this->sendError("Отсутствует обязательный заголовок $name");
             $this->sendError("Отсутствует обязательное поле $name");
         }
     }
