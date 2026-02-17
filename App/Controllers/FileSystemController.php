@@ -5,18 +5,27 @@ namespace App\Controllers;
 use App\Http\Request;
 use App\Http\Response;
 use App\Controllers\ControllerInterface;
+use App\RequestValidators\FileSystemValidator;
 use App\Services\AuthManager;
+use App\Services\DownloadService;
 use App\Services\FileSystemService;
 
 class FileSystemController implements ControllerInterface
 {
-    public function __construct(private Request $request, private Response $response, private AuthManager $authManager, private FileSystemService $fsService) {}
+    public function __construct(
+        private Request $request,
+        private Response $response,
+        private AuthManager $authManager,
+        private FileSystemService $fsService,
+        private DownloadService $downloadService,
+        private FileSystemValidator $requestValidator
+    ) {}
 
     public function resolve(): void {}
 
     public function create()
     {
-        $data = $this->request->json();
+        $data = $this->requestValidator->create();
 
         $userId = $this->authManager->getAuthUser()->getId();
         $dirName = trim($data['dirName']);
@@ -31,19 +40,19 @@ class FileSystemController implements ControllerInterface
         }
     }
 
-    public function getFolderContent()
+    public function getFolderContent($dirId)
     {
+        $verifiedDirId = $this->requestValidator->getContent($dirId);
         $userId = $this->authManager->getAuthUser()->getId();
-        $dirId = $this->request->get('dirId') ?: null;
-        $result = $this->fsService->getFolderContent($userId, $dirId);
+        $result = $this->fsService->getFolderContent($userId, $verifiedDirId);
 
         if ($result->success) $this->response->sendJson($result->data);
         else $this->response->setStatusCode(400)->sendJson($result->errors);
     }
 
-    public function renameObject()
+    public function renameObject($id)
     {
-        $data = $this->request->json();
+        $data = $this->requestValidator->rename($id);
 
         $objectId = $data['objectId'];
         $updatedDirName = trim($data['newName']);
@@ -57,7 +66,7 @@ class FileSystemController implements ControllerInterface
 
     public function delete()
     {
-        $items = $this->request->json()['items'];
+        $items = $this->requestValidator->delete();
         $userId = $this->authManager->getAuthUser()->getId();
 
         $deleteResult = $this->fsService->deleteObjects($userId, $items);
@@ -68,11 +77,12 @@ class FileSystemController implements ControllerInterface
 
     public function move()
     {
-        $objectId = $this->request->json()['items'];
-        $toDirId = $this->request->json()['toDirId'] ?: null;
+        $data = $this->requestValidator->moveItems();
+        $items = $data['items'];
+        $toDirId = $data['toDirId'];
         $userId = $this->authManager->getAuthUser()->getId();
 
-        $moveResult = $this->fsService->moveObjects($userId, $objectId, $toDirId);
+        $moveResult = $this->fsService->moveObjects($userId, $items, $toDirId);
 
         if ($moveResult->success) $this->response->setStatusCode(200)->sendJson($moveResult->data);
         else $this->response->setStatusCode(400)->sendJson($moveResult->errors);
@@ -80,7 +90,7 @@ class FileSystemController implements ControllerInterface
 
     public function getFolderIdByPath()
     {
-        $path = $this->request->get('path');
+        $path = $this->requestValidator->getFolderIdByPath();
         $userId = $this->authManager->getAuthUser()->getId();
 
         $res = $this->fsService->getDirIdByPath($userId, $path);
@@ -93,7 +103,7 @@ class FileSystemController implements ControllerInterface
 
     public function search()
     {
-        $query = $this->request->get('query');
+        $query = $this->requestValidator->search();
         $userId = $this->authManager->getAuthUser()->getId();
 
         $res = $this->fsService->search($userId, $query);

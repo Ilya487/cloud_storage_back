@@ -28,15 +28,17 @@ class FileSystemValidator extends RequestValidator
         return $res;
     }
 
-    public function rename()
+    public function rename($id)
     {
-        $this->validate(self::REQUIRE | self::INT, 'objectId', self::JSON);
-        $updatedDirName = $this->validate(self::REQUIRE | self::STRING, 'newName', self::JSON);
+        $objectId = $this->validate(self::INT, 'objectId', ['objectId' => $id]);
+        $updatedName = $this->validate(self::REQUIRE | self::STRING, 'newName', self::JSON);
 
-        $nameValidationResult = (new FileSystemNameValidator($updatedDirName))->validate();
+        $nameValidationResult = (new FileSystemNameValidator($updatedName))->validate();
         if (!$nameValidationResult->success) {
             $this->sendError($nameValidationResult->errors);
         }
+
+        return ['objectId' => $objectId, 'newName' => $updatedName];
     }
 
     public function delete()
@@ -46,22 +48,30 @@ class FileSystemValidator extends RequestValidator
         if (!is_null($key)) {
             $this->sendError('items должен состоять из целых неотрицательных чисел');
         }
+
+        return $items;
     }
 
     public function moveItems()
     {
+        $toDirId = $this->request->json()['toDirId'];
+        if ($toDirId == 'root') $toDirId = null;
+        else $toDirId = $this->validate(self::INT | self::REQUIRE, 'toDirId', self::JSON);
+
         $items = $this->validate(self::REQUIRE | self::ARRAY, 'items', self::JSON);
         $key = array_find_key($items, fn($val) => !(filter_var($val, FILTER_VALIDATE_INT) && $val > 0));
         if (!is_null($key)) {
             $this->sendError('items должен состоять из целых неотрицательных чисел');
         }
 
-        $this->validate(self::INT, 'toDirId', self::JSON);
+        return ['items' => $items, 'toDirId' => $toDirId];
     }
 
     public function getFolderIdByPath()
     {
-        $this->validate(self::REQUIRE | self::STRING, 'path', self::GET);
+        $path =  $this->validate(self::REQUIRE | self::STRING, 'path', self::GET);
+        if (mb_strlen($path) < 2) $this->sendError('Некорректное значение параметра path');
+        return $path;
     }
 
     public function search()
@@ -69,10 +79,12 @@ class FileSystemValidator extends RequestValidator
         $minQueryLen = 2;
         $query = $this->validate(self::REQUIRE | self::STRING, 'query', self::GET);
         if (mb_strlen($query) < $minQueryLen) $this->sendError("Минимальная длина query $minQueryLen символа");
+
+        return $query;
     }
 
-    public function getFileContent()
-    {
-        $this->validate(self::INT | self::REQUIRE, 'fileId', self::GET);
-    }
+    // public function getFileContent()
+    // {
+    //     $this->validate(self::INT | self::REQUIRE, 'fileId', self::GET);
+    // }
 }
