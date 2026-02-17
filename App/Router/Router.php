@@ -45,7 +45,7 @@ class Router
         $uri = $this->request->endPoint;
 
         foreach ($this->routes as $route) {
-            if ($route->match($method, $uri)) $route->resolve();
+            $route->resolve($method, $uri);
         }
 
         throw new NotFoundException('Not found');

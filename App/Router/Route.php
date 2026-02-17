@@ -9,6 +9,8 @@ use Exception;
 class Route
 {
     private string $method;
+    private string $pattern;
+    private array $routeParams = [];
 
     public static function get(string $endPoint, ControllerSetup $controllerSetup, array $middlewares = [])
     {
@@ -35,9 +37,10 @@ class Route
         return new self('*', '*', $controllerSetup);
     }
 
-    public function __construct(private string $endPoint, string $method, public readonly ControllerSetup $controllerSetup, public readonly array $middlewares = [])
+    public function __construct(string $endPoint, string $method, public readonly ControllerSetup $controllerSetup, public readonly array $middlewares = [])
     {
         $this->method = strtolower($method);
+        $this->pattern = $this->generateRegExp(strtolower($endPoint));
 
         foreach ($middlewares as $middleware) {
             if (is_array($middleware)) {
@@ -59,17 +62,35 @@ class Route
         }
     }
 
-    public function match(string $method, string $uri): bool
+
+    public function resolve(string $method, string $uri)
     {
-        if ($this->method == '*' && $this->endPoint == '*') return true;
-        if (strtolower($method) == $this->method && $uri == $this->endPoint) return true;
+        if (!$this->match($method, $uri)) return;
+        $this->resolveMiddlewares();
+        $this->resolveController();
+    }
+
+    private function match(string $method, string $uri): bool
+    {
+        if (strtolower($method) == $this->method &&  $this->matchUrl($uri)) return true;
         else return false;
     }
 
-    public function resolve()
+    private function matchUrl(string $url): bool
     {
-        $this->resolveMiddlewares();
-        $this->resolveController();
+        $res = preg_match_all($this->pattern, $url, $mathes);
+        if (!$res) return false;
+
+        if (count($mathes) > 1) {
+            unset($mathes[0]);
+            $params =  array_reduce($mathes, function ($carry, $item) {
+                $carry[] = $item[0];
+                return $carry;
+            }, []);
+            $this->routeParams = $params;
+        }
+
+        return true;
     }
 
     private function resolveMiddlewares()
@@ -91,6 +112,15 @@ class Route
     {
         $container = Container::getInstance();
         $controller = $container->resolve($this->controllerSetup->controllerClassName);
-        call_user_func([$controller, $this->controllerSetup->method]);
+        $method = $this->controllerSetup->method;
+        $controller->$method(...$this->routeParams);
+    }
+
+    private function generateRegExp(string $path)
+    {
+        $res = str_replace('/', '\/', $path);
+        $res = preg_replace('/\{.+?\}/', '(.+)', $res);
+        $res = "/^$res$/";
+        return $res;
     }
 }
