@@ -2,7 +2,7 @@
 
 namespace App\Router;
 
-use App\Core\DiContainer\Container;
+use App\Config\Container;
 use App\Exceptions\NotFoundException;
 use App\Http\Middleware\MiddlewareInterface;
 use App\Http\Request;
@@ -15,11 +15,9 @@ class Router
      */
     private array $routes = [];
     private array $globalMiddlewares = [];
-    private Request $request;
 
-    public function __construct(private Container $container)
+    public function __construct(private Request $request)
     {
-        $this->request = $container->resolve(Request::class);
         $this->routes = $this->loadRoutesFromConfig();
     }
 
@@ -41,39 +39,31 @@ class Router
 
     public function resolve()
     {
-        $this->resolveMiddlewares($this->globalMiddlewares);
+        $this->resolveGlobalMiddlewares($this->globalMiddlewares);
 
         $method = $this->request->method;
         $uri = $this->request->endPoint;
 
         foreach ($this->routes as $route) {
-            if ($route->match($method, $uri)) {
-                $this->resolveMiddlewares($route->middlewares);
-                $this->resolveController($route->controllerSetup);
-            }
+            if ($route->match($method, $uri)) $route->resolve();
         }
 
         throw new NotFoundException('Not found');
     }
 
-    private function resolveMiddlewares(array $middlewares)
+    private function resolveGlobalMiddlewares()
     {
-        foreach ($middlewares as $middleware) {
+        foreach ($this->globalMiddlewares as $middleware) {
+            $container = Container::getInstance();
             if (is_array($middleware)) {
-                $resolvedMiddleware = $this->container->resolve($middleware[0]);
+                $resolvedMiddleware = $container->resolve($middleware[0]);
                 $method = $middleware[1];
                 $resolvedMiddleware->$method();
             } else {
-                $resolvedMiddleware = $this->container->resolve($middleware);
+                $resolvedMiddleware = $container->resolve($middleware);
                 $resolvedMiddleware->handle();
             }
         }
-    }
-
-    private function resolveController(ControllerSetup $controllerSetup)
-    {
-        $controller = $this->container->resolve($controllerSetup->controllerClassName);
-        call_user_func([$controller, $controllerSetup->method]);
     }
 
     private function loadRoutesFromConfig(): array

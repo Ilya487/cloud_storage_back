@@ -2,6 +2,7 @@
 
 namespace App\Router;
 
+use App\Config\Container;
 use App\Http\Middleware\MiddlewareInterface;
 use Exception;
 
@@ -63,5 +64,33 @@ class Route
         if ($this->method == '*' && $this->endPoint == '*') return true;
         if (strtolower($method) == $this->method && $uri == $this->endPoint) return true;
         else return false;
+    }
+
+    public function resolve()
+    {
+        $this->resolveMiddlewares();
+        $this->resolveController();
+    }
+
+    private function resolveMiddlewares()
+    {
+        $container = Container::getInstance();
+        foreach ($this->middlewares as $middleware) {
+            if (is_array($middleware)) {
+                $resolvedMiddleware = $container->resolve($middleware[0]);
+                $method = $middleware[1];
+                $resolvedMiddleware->$method();
+            } else {
+                $resolvedMiddleware = $container->resolve($middleware);
+                $resolvedMiddleware->handle();
+            }
+        }
+    }
+
+    private function resolveController()
+    {
+        $container = Container::getInstance();
+        $controller = $container->resolve($this->controllerSetup->controllerClassName);
+        call_user_func([$controller, $this->controllerSetup->method]);
     }
 }
