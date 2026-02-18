@@ -78,16 +78,12 @@ class Route
 
     private function matchUrl(string $url): bool
     {
-        $res = preg_match_all($this->pattern, $url, $mathes);
+        $res = preg_match($this->pattern, $url, $mathes);
         if (!$res) return false;
 
         if (count($mathes) > 1) {
             unset($mathes[0]);
-            $params =  array_reduce($mathes, function ($carry, $item) {
-                $carry[] = $item[0];
-                return $carry;
-            }, []);
-            $this->routeParams = $params;
+            $this->routeParams = $mathes;
         }
 
         return true;
