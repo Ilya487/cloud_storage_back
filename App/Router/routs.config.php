@@ -6,7 +6,6 @@ use App\Controllers\FileSystemController;
 use App\Controllers\UploadController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
-use App\Http\Middleware\ValidationMiddlewares\DownloadValidationMiddleware;
 use App\Http\Middleware\ValidationMiddlewares\UserValidationMiddleware;
 use App\Router\ControllerSetup;
 use App\Router\Route;
@@ -33,8 +32,8 @@ return [
     Route::post('/upload/{sessionId}/build', new ControllerSetup(UploadController::class, 'startBuild'), [AuthMiddleware::class]),
     Route::get('/upload/status/{sessionId}', new ControllerSetup(UploadController::class, 'checkStatus'), [AuthMiddleware::class]),
 
-    Route::get('/download/file', new ControllerSetup(DownloadController::class, 'downloadFile'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'downloadFile']]),
-    Route::post('/download/archive/ini', new ControllerSetup(DownloadController::class, 'iniArchive'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'iniArchive']]),
-    Route::get('/download/archive/status', new ControllerSetup(DownloadController::class, 'checkArchiveStatus'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'checkArchiveStatus']]),
-    Route::get('/download/archive', new ControllerSetup(DownloadController::class, 'downloadArchive'), [AuthMiddleware::class, [DownloadValidationMiddleware::class, 'downloadArchive']]),
+    Route::get('/download/file/{id}', new ControllerSetup(DownloadController::class, 'downloadFile'), [AuthMiddleware::class]),
+    Route::post('/download/archive/ini', new ControllerSetup(DownloadController::class, 'iniArchive'), [AuthMiddleware::class]),
+    Route::get('/download/archive/status/{id}', new ControllerSetup(DownloadController::class, 'checkArchiveStatus'), [AuthMiddleware::class]),
+    Route::get('/download/archive/{id}', new ControllerSetup(DownloadController::class, 'downloadArchive'), [AuthMiddleware::class]),
 ];

@@ -1,16 +1,12 @@
 <?php
 
-namespace App\Http\Middleware\ValidationMiddlewares;
+namespace App\RequestValidators;
 
-use App\Http\Middleware\MiddlewareInterface;
-
-class DownloadValidationMiddleware extends ValidationMiddleware implements MiddlewareInterface
+class DownloadValidator extends RequestValidator
 {
-    public function handle() {}
-
-    public function downloadFile()
+    public function downloadFile($id)
     {
-        $this->validate(self::REQUIRE | self::INT, 'fileId', self::GET);
+        return $this->validate(self::REQUIRE | self::INT, 'fileId', ['fileId' => $id]);
     }
 
     public function iniArchive()
@@ -22,15 +18,17 @@ class DownloadValidationMiddleware extends ValidationMiddleware implements Middl
         if (!is_null($key)) {
             $this->sendError('items должен состоять из целых неотрицательных чисел');
         }
+
+        return $items;
     }
 
-    public function checkArchiveStatus()
+    public function checkArchiveStatus($id)
     {
-        $this->validate(self::REQUIRE | self::INT, 'taskId', self::GET);
+        return $this->validate(self::REQUIRE | self::INT, 'taskId', ['taskId' => $id]);
     }
 
-    public function downloadArchive()
+    public function downloadArchive($id)
     {
-        $this->validate(self::REQUIRE | self::INT, 'taskId', self::GET);
+        return $this->validate(self::REQUIRE | self::INT, 'taskId', ['taskId' => $id]);
     }
 }
