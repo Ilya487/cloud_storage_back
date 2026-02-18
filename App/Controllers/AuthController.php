@@ -2,14 +2,18 @@
 
 namespace App\Controllers;
 
-use App\Http\Request;
-use App\Http\Response;
 use App\Controllers\ControllerInterface;
+use App\Http\Response;
+use App\RequestValidators\AuthValidator;
 use App\Services\AuthManager;
 
 class AuthController implements ControllerInterface
 {
-    public function __construct(private Request $request, private Response $response,  private AuthManager $authManager) {}
+    public function __construct(
+        private Response $response,
+        private AuthManager $authManager,
+        private AuthValidator $requestValidator
+    ) {}
 
     public function resolve(): void {}
 
@@ -25,7 +29,7 @@ class AuthController implements ControllerInterface
 
     public function signup()
     {
-        $data = $this->request->json();
+        $data = $this->requestValidator->signup();
 
         $login = trim($data['login']);
         $password = trim($data['password']);
@@ -39,7 +43,7 @@ class AuthController implements ControllerInterface
 
     public function signin()
     {
-        $data = $this->request->json();
+        $data = $this->requestValidator->signin();
 
         $login = trim($data['login']);
         $password = trim($data['password']);

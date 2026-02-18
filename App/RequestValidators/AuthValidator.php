@@ -1,18 +1,17 @@
 <?php
 
-namespace App\Http\Middleware\ValidationMiddlewares;
+namespace App\RequestValidators;
 
-use App\Http\Middleware\MiddlewareInterface;
+use App\RequestValidators\RequestValidator;
 use App\Validators\SignUpValidator;
 
-class UserValidationMiddleware extends ValidationMiddleware implements MiddlewareInterface
+class AuthValidator extends RequestValidator
 {
-    public function handle() {}
-
     public function signin()
     {
-        $this->validate(self::STRING | self::REQUIRE, 'login', self::JSON);
-        $this->validate(self::STRING | self::REQUIRE, 'password', self::JSON);
+        $login = $this->validate(self::STRING | self::REQUIRE, 'login', self::JSON);
+        $password = $this->validate(self::STRING | self::REQUIRE, 'password', self::JSON);
+        return ['login' => $login, 'password' => $password];
     }
 
     public function signup()
@@ -24,5 +23,6 @@ class UserValidationMiddleware extends ValidationMiddleware implements Middlewar
         if (!$validationRes->success) {
             $this->sendError($validationRes->errors);
         }
+        return ['login' => $login, 'password' => $password];
     }
 }
