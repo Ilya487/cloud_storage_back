@@ -3,11 +3,11 @@
 namespace App\Repositories;
 
 use App\Db\Expression;
-use App\Tools\DbConnect;
 use App\Models\PrepareFilesTask;
-use App\Repositories\BaseRepository;
 use App\Models\PrepareFilesTaskStatus;
-use App\Repositories\DownloadSessionsCountRepository;
+use App\Repositories\BaseRepository;
+use App\Repositories\UserRepository;
+use App\Tools\DbConnect;
 
 class PreapareFilesTaskRepository extends BaseRepository
 {
@@ -15,7 +15,7 @@ class PreapareFilesTaskRepository extends BaseRepository
 
     public function __construct(
         DbConnect $dbConnect,
-        private DownloadSessionsCountRepository $downloadSessionsCountRepo
+        private UserRepository $userRepo
     ) {
         parent::__construct($dbConnect);
     }
@@ -23,16 +23,16 @@ class PreapareFilesTaskRepository extends BaseRepository
     public function createTask($userId, array $filesId, int $limit): int|false
     {
         $this->beginTransaction();
-        $count = $this->downloadSessionsCountRepo->getCountForUpdate($userId);
-        if ($count === $limit) {
-            $this->submitTransaction();
+        $canInsert = $this->userRepo->incrementDownloadSessionCount($userId, $limit);
+
+        if (!$canInsert) {
+            $this->rollBackTransaction();
             return false;
         }
 
         $query = $this->queryBuilder->insert(['user_id', 'files_id'])->build();
         $serializedArr = join(',', $filesId);
         $taskId = $this->insert($query, ['user_id' => $userId, 'files_id' => $serializedArr]);
-        $this->downloadSessionsCountRepo->increment($userId);
         $this->submitTransaction();
         return $taskId;
     }

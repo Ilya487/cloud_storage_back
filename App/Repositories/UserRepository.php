@@ -51,4 +51,26 @@ class UserRepository extends BaseRepository
         }
         return null;
     }
+
+    public function incrementDownloadSessionCount(int $userId, int $limit)
+    {
+        $query = $this->queryBuilder
+            ->update(['download_sessions_count'])
+            ->incrementField('download_sessions_count')
+            ->where(Expression::less('download_sessions_count'))
+            ->and(Expression::equal('id'))
+            ->build();
+        $rowCount = $this->update($query, ['download_sessions_count' => $limit, 'id' => $userId]);
+        return boolval($rowCount);
+    }
+
+    public function decrementDownloadSessionCount(int $userId)
+    {
+        $query = $this->queryBuilder
+            ->update(['download_sessions_count'])
+            ->decrementField('download_sessions_count')
+            ->where(Expression::equal('id'))
+            ->build();
+        $this->update($query, ['id' => $userId]);
+    }
 }

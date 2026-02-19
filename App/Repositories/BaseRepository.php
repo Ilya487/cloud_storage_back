@@ -50,9 +50,9 @@ abstract class BaseRepository
         return $this->pdo->lastInsertId();
     }
 
-    protected function update(string $query, array $columnValues): void
+    protected function update(string $query, array $columnValues): int
     {
-        $this->executeQuery($query, $columnValues);
+        return $this->executeQuery($query, $columnValues)->rowCount();
     }
 
     protected function delete(string $query, array $columnValues): int
