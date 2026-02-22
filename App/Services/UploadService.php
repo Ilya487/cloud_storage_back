@@ -7,6 +7,7 @@ use App\Exceptions\NotFoundException;
 use App\Models\UploadSessionStatus;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\UploadSessionRepository;
+use App\Repositories\UserRepository;
 use App\Storage\UploadsStorage;
 use App\Workers\WorkerManager;
 
@@ -20,6 +21,7 @@ class UploadService
         private FileSystemRepository $fsRepo,
         private UploadSessionRepository $uploadSessionsRepo,
         private UploadsStorage $uploadsStorage,
+        private UserRepository $userRepo
     ) {}
 
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
@@ -43,14 +45,19 @@ class UploadService
         }
 
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
-        $uploadSessionId = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirPath, $fileSize);
-        if (!$this->uploadsStorage->initializeUploadDir($uploadSessionId)) {
-            $this->uploadSessionsRepo->deleteSession($userId, $uploadSessionId);
+        $uploadSession = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirPath, $fileSize);
+
+        if ($uploadSession === false) {
+            return OperationResult::createError(['message' => 'Недостаточно свободного места на диске']);
+        }
+
+        if (!$this->uploadsStorage->initializeUploadDir($uploadSession->id)) {
+            $this->uploadSessionsRepo->deleteSession($uploadSession);
             return OperationResult::createError(['message' => 'Не удалась инициализировать сессию загрузки']);
         }
 
         return OperationResult::createSuccess([
-            'sessionId' => (int)$uploadSessionId,
+            'sessionId' => (int)$uploadSession->id,
             'chunkSize' => self::CHUNK_SIZE,
             'chunksCount' => $totalChunks,
             'path' => $destinationDirPath
@@ -81,12 +88,13 @@ class UploadService
         $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
         if ($uploadSession === false) throw new NotFoundException('Сессия с данным айди не найдена');
 
-        if ($uploadSession->status !== UploadSessionStatus::UPLOADING) {
+        if (!$uploadSession->isUploading()) {
             return OperationResult::createError(['message' => 'Невозможно отменить сессию']);
         }
 
         $this->uploadsStorage->deleteSessionDir($uploadSession->id);
         $this->uploadSessionsRepo->setStatus($userId, $uploadSession->id, UploadSessionStatus::CANCELLED);
+        $this->userRepo->freeUpDiskSpace($userId, $uploadSession->flieSize);
         return OperationResult::createSuccess([]);
     }
 
