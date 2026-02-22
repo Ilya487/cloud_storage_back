@@ -16,15 +16,12 @@ class DeleteFilesUseCase
     public function execute(int $userId, array $items): OperationResult
     {
         $failDelete = 0;
+        $fsObjects = $this->fsRepo->getMany($userId, $items);
+        if ($fsObjects === false) return OperationResult::createError(['message' => 'Не удалось удалить указанные объекты']);
+        $failDelete += count($items) - count($fsObjects);
 
-        foreach ($items as $objectId) {
-            $fsObject = $this->fsRepo->getById($userId, $objectId);
-            if ($fsObject === false) {
-                $failDelete++;
-                continue;
-            }
-
-            $this->fsRepo->deleteById($userId, $objectId);
+        foreach ($fsObjects as $fsObject) {
+            $this->fsRepo->deleteObject($fsObject);
             if ($this->diskStorage->delete($userId, $fsObject->getPath())) {
                 $this->fsRepo->confirmChanges();
             } else {

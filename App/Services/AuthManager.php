@@ -10,6 +10,8 @@ use App\Repositories\UserRepository;
 
 class AuthManager
 {
+    private const DEFAULT_USER_DISK_SPACE = 5 * 1024 * 1024 * 1024; // 5 GB
+
     public function __construct(
         private UserRepository $userRepo,
         private AuthenticationInterface $authenticator,
@@ -24,7 +26,7 @@ class AuthManager
         }
 
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-        $userId =  $this->userRepo->insertNewUser($login, $passwordHash);
+        $userId =  $this->userRepo->insertNewUser($login, $passwordHash, self::DEFAULT_USER_DISK_SPACE);
         $this->fsService->initializeUserStorage($userId);
         return OperationResult::createSuccess(['userId' => $userId]);
     }

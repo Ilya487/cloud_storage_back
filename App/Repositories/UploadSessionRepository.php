@@ -6,32 +6,63 @@ use App\Db\Expression;
 use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
 use App\Repositories\BaseRepository;
+use App\Tools\DbConnect;
 use PDO;
 
 class UploadSessionRepository  extends BaseRepository
 {
     protected string $tableName = 'upload_sessions';
 
-    public function createUploadSession(int $userId, string $fileName, int $totalChunks, ?string $destinationDirPath, int $fileSize)
+    public function __construct(
+        DbConnect $dbConnect,
+        private UserRepository $userRepo
+    ) {
+        parent::__construct($dbConnect);
+    }
+
+    public function createUploadSession(int $userId, string $fileName, int $totalChunks, ?string $destinationDirPath, int $fileSize): UploadSession|false
     {
+        $this->beginTransaction();
+        $canInsert = $this->userRepo->reserveDiskSpace($userId, $fileSize);
+        if (!$canInsert) {
+            $this->rollBackTransaction();
+            return false;
+        }
+
         $query = $this->queryBuilder->insert(['user_id', 'filename', 'destination_dir_path', 'total_chunks', 'file_size'])->build();
-        return $this->insert($query, [
+        $id =  $this->insert($query, [
             'user_id' => $userId,
             'filename' => $fileName,
             'destination_dir_path' => $destinationDirPath,
             'total_chunks' => $totalChunks,
             'file_size' => $fileSize
         ]);
+
+        $this->submitTransaction();
+
+        return UploadSession::createFromArr([
+            'id' => $id,
+            'user_id' => $userId,
+            'filename' => $fileName,
+            'destination_dir_path' => $destinationDirPath,
+            'total_chunks' => $totalChunks,
+            'file_size' => $fileSize,
+            'completed_chunks' => 0,
+            'status' => UploadSessionStatus::UPLOADING->value
+        ]);
     }
 
-    public function deleteSession(int $userId, int $sessionId)
+    public function deleteSession(UploadSession $session)
     {
+        $this->beginTransaction();
+        $this->userRepo->freeUpDiskSpace($session->userId, $session->flieSize);
         $query = $this->queryBuilder
             ->delete()
             ->where(Expression::equal('user_id'))
             ->and(Expression::equal('id'))
             ->build();
-        $this->delete($query, ['user_id' => $userId, 'id' => $sessionId]);
+        $this->delete($query, ['user_id' => $session->userId, 'id' => $session->id]);
+        $this->submitTransaction();
     }
 
     public function getById(int $userId, int $sessionId): UploadSession|false

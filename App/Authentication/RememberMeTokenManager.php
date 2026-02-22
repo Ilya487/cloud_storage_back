@@ -58,7 +58,7 @@ class RememberMeTokenManager
             [
                 'expires' => time() + self::TOKEN_LIFETIME,
                 'httponly' => true,
-                'path' => '/api/auth'
+                'path' => '/api/auth/refresh'
             ]
         );
     }

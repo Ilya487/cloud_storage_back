@@ -9,6 +9,7 @@ use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\UploadSessionRepository;
+use App\Repositories\UserRepository;
 use App\Storage\DiskStorage;
 use App\Storage\FileAssembler;
 use App\Storage\UploadsStorage;
@@ -22,7 +23,8 @@ class FileBuildWorker
         private UploadSessionRepository $uploadSessionsRepo,
         private UploadsStorage $uploadsStorage,
         private FileAssembler $fileBuilder,
-        private DiskStorage $diskStorage
+        private DiskStorage $diskStorage,
+        private UserRepository $userRepo
     ) {}
 
     public function run(int $sessionId, int $userId)
@@ -38,7 +40,9 @@ class FileBuildWorker
 
         if (!$buildResult) {
             $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
+            $this->userRepo->freeUpDiskSpace($session->userId, $session->flieSize);
             unlink($buildedFilePath);
+            return;
         }
 
         if ($session->destinationDirPath == '/')
@@ -62,6 +66,7 @@ class FileBuildWorker
         } else {
             $this->fsRepo->cancelLastChanges();
             $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
+            $this->userRepo->freeUpDiskSpace($session->userId, $session->flieSize);
         }
     }
 

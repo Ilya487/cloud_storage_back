@@ -31,9 +31,10 @@ class Expression
         return new self("$field > :$field ");
     }
 
-    public static function moreEqual(string $field)
+    public static function moreEqual(string $field, ?string $paramName = null)
     {
-        return new self("$field >= :$field ");
+        if (is_null($paramName)) $paramName = $field;
+        return new self("$field >= :$paramName ");
     }
 
     public static function isNull(string $field)

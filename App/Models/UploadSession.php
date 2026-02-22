@@ -61,4 +61,9 @@ class UploadSession
     {
         return $this->status == UploadSessionStatus::BUILDING;
     }
+
+    public function isUploading(): bool
+    {
+        return $this->status == UploadSessionStatus::UPLOADING;
+    }
 }

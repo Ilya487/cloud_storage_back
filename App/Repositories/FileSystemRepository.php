@@ -105,7 +105,7 @@ class FileSystemRepository extends BaseRepository
         else return true;
     }
 
-    public function deleteById(int $userId, int $itemId)
+    private function deleteFileById(int $userId, int $itemId)
     {
         $this->processOperationStatus();
 
@@ -115,6 +115,30 @@ class FileSystemRepository extends BaseRepository
             ->and(Expression::equal('user_id'))
             ->build();
         $this->delete($query, ['id' => $itemId, 'user_id' => $userId]);
+    }
+
+    public function deleteObject(FileSystemObject $fsObject)
+    {
+        if ($fsObject->isFile()) {
+            $this->deleteFileById($fsObject->ownerId, $fsObject->id);
+            return;
+        }
+
+        $this->processOperationStatus();
+
+        $query = "
+        WITH RECURSIVE file_tree AS (
+            SELECT id
+            FROM file_system
+            WHERE id=:dirId AND user_id=:userId
+            UNION
+            SELECT t.id
+            FROM file_system t
+            INNER JOIN file_tree ON t.parent_id = file_tree.id
+        )
+        DELETE FROM file_system
+        WHERE id IN (SELECT id FROM file_tree);";
+        $this->delete($query, ['dirId' => $fsObject->id, 'userId' => $fsObject->ownerId]);
     }
 
     public function moveObject(
