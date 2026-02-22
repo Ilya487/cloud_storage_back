@@ -5,7 +5,8 @@ namespace App\Tools;
 class Session
 {
     private array $sessionCookieParams = [
-        'httponly' => true
+        'httponly' => true,
+        'path' => '/api',
     ];
 
     public function __construct()
