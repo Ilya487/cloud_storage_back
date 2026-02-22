@@ -123,4 +123,14 @@ class FileSystemController implements ControllerInterface
             $this->response->outputFile($res->data['path']);
         } else $this->response->setStatusCode(400)->sendJson($res->errors);
     }
+
+    public function getDiskInfo()
+    {
+        $user = $this->authManager->getAuthUser();
+
+        $this->response->sendJson([
+            'free' => $user->availableDiskSpace,
+            'total' => $user->totalDiskSpace
+        ]);
+    }
 }

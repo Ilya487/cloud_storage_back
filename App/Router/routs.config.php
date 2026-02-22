@@ -24,6 +24,7 @@ return [
     Route::patch('/fs/move', new ControllerSetup(FileSystemController::class, 'move'), [AuthMiddleware::class]),
     Route::get('/fs/search', new ControllerSetup(FileSystemController::class, 'search'), [AuthMiddleware::class]),
     Route::get('/fs/folder/{id}', new ControllerSetup(FileSystemController::class, 'getFolderContent'), [AuthMiddleware::class]),
+    Route::get('/fs/disk/info', new ControllerSetup(FileSystemController::class, 'getDiskInfo'), [AuthMiddleware::class]),
 
     Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class]),
     Route::post('/upload/chunk/{sessionId}', new ControllerSetup(UploadController::class, 'uploadChunk'), [AuthMiddleware::class]),
