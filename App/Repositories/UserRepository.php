@@ -14,10 +14,10 @@ class UserRepository extends BaseRepository
     /**
      * @return string new user id
      */
-    public function insertNewUser(string $login, string $password): string
+    public function insertNewUser(string $login, string $password, int $availableDiskSpace): string
     {
-        $query = $this->queryBuilder->insert(['login', 'password'])->build();
-        $newUserId =  $this->insert($query, ['login' => $login, 'password' => $password]);
+        $query = $this->queryBuilder->insert(['login', 'password', 'available_disk_space'])->build();
+        $newUserId =  $this->insert($query, ['login' => $login, 'password' => $password, 'available_disk_space' => $availableDiskSpace]);
         return $newUserId;
     }
 
@@ -72,5 +72,28 @@ class UserRepository extends BaseRepository
             ->where(Expression::equal('id'))
             ->build();
         $this->update($query, ['id' => $userId]);
+    }
+
+    public function reserveDiskSpace(int $userId, int $byteSize)
+    {
+        $query = $this->queryBuilder
+            ->subtract('available_disk_space', 'byteSize')
+            ->where(Expression::moreEqual('available_disk_space', 'byteSize'))
+            ->and(Expression::equal('id'))
+            ->build();
+
+        $rowCount = $this->update($query, ['byteSize' => $byteSize, 'id' => $userId]);
+        return boolval($rowCount);
+    }
+
+    public function freeUpDiskSpace(int $userId, int $byteSize)
+    {
+        $query = $this->queryBuilder
+            ->add('available_disk_space', 'byteSize')
+            ->where(Expression::equal('id'))
+            ->build();
+
+        $rowCount = $this->update($query, ['byteSize' => $byteSize, 'id' => $userId]);
+        return boolval($rowCount);
     }
 }

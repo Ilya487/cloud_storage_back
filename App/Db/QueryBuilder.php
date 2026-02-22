@@ -96,6 +96,20 @@ class QueryBuilder
         return $this;
     }
 
+    public function subtract($fieldName, $paramName)
+    {
+        $this->resetQuery();
+        $this->query = "UPDATE $this->tableName SET $fieldName=$fieldName-:$paramName ";
+        return $this;
+    }
+
+    public function add($fieldName, $paramName)
+    {
+        $this->resetQuery();
+        $this->query = "UPDATE $this->tableName SET $fieldName=$fieldName+:$paramName ";
+        return $this;
+    }
+
     private function resetQuery()
     {
         $this->query = '';
