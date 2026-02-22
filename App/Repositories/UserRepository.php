@@ -14,10 +14,15 @@ class UserRepository extends BaseRepository
     /**
      * @return string new user id
      */
-    public function insertNewUser(string $login, string $password, int $availableDiskSpace): string
+    public function insertNewUser(string $login, string $password, int $totalDiskSpace): string
     {
-        $query = $this->queryBuilder->insert(['login', 'password', 'available_disk_space'])->build();
-        $newUserId =  $this->insert($query, ['login' => $login, 'password' => $password, 'available_disk_space' => $availableDiskSpace]);
+        $query = $this->queryBuilder->insert(['login', 'password', 'available_disk_space', 'total_disk_space'])->build();
+        $newUserId =  $this->insert($query, [
+            'login' => $login,
+            'password' => $password,
+            'available_disk_space' => $totalDiskSpace,
+            'total_disk_space' => $totalDiskSpace
+        ]);
         return $newUserId;
     }
 
