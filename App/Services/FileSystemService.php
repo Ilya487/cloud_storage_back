@@ -58,16 +58,7 @@ class FileSystemService
         $updatedPath = $fsObject->rename($newName);
 
         $this->fsRepo->rename($fsObject->ownerId, $fsObject->type, $currentPath, $updatedPath, $fsObject->getName());
-
-        if ($this->diskStorage->renameObject($userId, $newName, $currentPath)) {
-            $this->fsRepo->confirmChanges();
-            return OperationResult::createSuccess(['updatedPath' => $updatedPath]);
-        } else {
-            $this->fsRepo->cancelLastChanges();
-            return OperationResult::createError([
-                'message' => 'Не удалось переименовать ' . ($fsObject->type == FsObjectType::DIR ? 'папку' : 'файл')
-            ]);
-        }
+        return OperationResult::createSuccess(['updatedPath' => $updatedPath]);
     }
 
     public function deleteObjects(int $userId, array $items): OperationResult

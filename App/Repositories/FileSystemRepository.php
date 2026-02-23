@@ -73,13 +73,9 @@ class FileSystemRepository extends BaseRepository
     public function rename(int $userId, FsObjectType $type, string $currentPath, string $updatedPath, string $newName)
     {
         if ($type == FsObjectType::DIR) {
-            $this->processOperationStatus();
-
             $this->renameObject($userId, $currentPath, $updatedPath, $newName);
             $this->renameInnerFolders($userId, $currentPath, $updatedPath);
         } else if ($type == FsObjectType::FILE) {
-            $this->processOperationStatus();
-
             $this->renameObject($userId, $currentPath, $updatedPath, $newName);
         } else throw new Exception('Unknown fs object type');
     }
