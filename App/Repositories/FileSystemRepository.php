@@ -19,8 +19,6 @@ class FileSystemRepository extends BaseRepository
      */
     public function createDir(int $userId, string $dirName, string $path, ?int $parentDirId): string
     {
-        $this->processOperationStatus();
-
         $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path'])->build();
         $newDirId = $this->insert($query, [
             'name' => $dirName,

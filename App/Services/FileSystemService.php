@@ -27,13 +27,8 @@ class FileSystemService
 
         $path = "$parentPath/$dirName";
         $dirId = $this->fsRepo->createDir($userId, $dirName, $path, $parentDirId);
-        if ($this->diskStorage->createDir($userId, $dirName, $parentPath)) {
-            $this->fsRepo->confirmChanges();
-            return OperationResult::createSuccess(['dirId' => $dirId]);
-        } else {
-            $this->fsRepo->cancelLastChanges();
-            return  OperationResult::createError(['message' => 'Папка с таким именем уже существует']);
-        }
+
+        return OperationResult::createSuccess(['dirId' => $dirId]);
     }
 
     public function getFolderContent(int $userId, ?int $dirId = null): OperationResult
