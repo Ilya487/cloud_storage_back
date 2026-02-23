@@ -279,8 +279,9 @@ class FileSystemRepository extends BaseRepository
             ->select()
             ->where(Expression::equal('user_id'))
             ->and(Expression::isNull('parent_id'))
+            ->and(Expression::equal('is_delete'))
             ->build();
-        $content = $this->fetchAll($query, ['user_id' => $userId]);
+        $content = $this->fetchAll($query, ['user_id' => $userId, 'is_delete' => false]);
 
         return $content;
     }
@@ -291,8 +292,9 @@ class FileSystemRepository extends BaseRepository
             ->select()
             ->where(Expression::equal('user_id'))
             ->and(Expression::equal('parent_id'))
+            ->and(Expression::equal('is_delete'))
             ->build();
-        $content = $this->fetchAll($query, ['user_id' => $userId, 'parent_id' => $dirId]);
+        $content = $this->fetchAll($query, ['user_id' => $userId, 'parent_id' => $dirId, 'is_delete' => false]);
 
         return $content;
     }
