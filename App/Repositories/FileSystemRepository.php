@@ -12,6 +12,16 @@ use PDO;
 class FileSystemRepository extends BaseRepository
 {
     protected string $tableName = 'file_system';
+    private const RECURSIVE_CTE = '
+        WITH RECURSIVE file_tree AS (
+            SELECT id
+            FROM file_system
+            WHERE id=:dirId AND user_id=:userId
+            UNION
+            SELECT t.id
+            FROM file_system t
+            INNER JOIN file_tree ON t.parent_id = file_tree.id
+        )';
 
     private bool $isOperationConfirm = true;
     /**
@@ -66,17 +76,20 @@ class FileSystemRepository extends BaseRepository
         else return $data['path'];
     }
 
-    /**
-     * @param string $path в конце не должно быть слеша
-     * @param string $updatedPath в конце не должно быть слеша
-     */
-    public function rename(int $userId, FsObjectType $type, string $currentPath, string $updatedPath, string $newName)
+    public function rename(FileSystemObject $fsObject, string $newName)
     {
-        if ($type == FsObjectType::DIR) {
-            $this->renameObject($userId, $currentPath, $updatedPath, $newName);
-            $this->renameInnerFolders($userId, $currentPath, $updatedPath);
-        } else if ($type == FsObjectType::FILE) {
-            $this->renameObject($userId, $currentPath, $updatedPath, $newName);
+        $currentPath = $fsObject->getPath();
+        $updatedPath = $fsObject->rename($newName);
+        $id = $fsObject->id;
+        $userId = $fsObject->ownerId;
+
+        if (!$fsObject->isFile()) {
+            $this->beginTransaction();
+            $this->renameObject($userId, $id, $currentPath, $updatedPath, $newName);
+            $this->renameInnerFolders($userId, $id, $currentPath, $updatedPath);
+            $this->submitTransaction();
+        } else if ($fsObject->isFile()) {
+            $this->renameObject($userId, $id, $currentPath, $updatedPath, $newName);
         } else throw new Exception('Unknown fs object type');
     }
 
@@ -116,16 +129,7 @@ class FileSystemRepository extends BaseRepository
             return;
         }
 
-        $query = "
-        WITH RECURSIVE file_tree AS (
-            SELECT id
-            FROM file_system
-            WHERE id=:dirId AND user_id=:userId
-            UNION
-            SELECT t.id
-            FROM file_system t
-            INNER JOIN file_tree ON t.parent_id = file_tree.id
-        )
+        $query = self::RECURSIVE_CTE . "
         UPDATE file_system
         SET is_delete=TRUE
         WHERE id IN (SELECT id FROM file_tree);";
@@ -290,29 +294,37 @@ class FileSystemRepository extends BaseRepository
         return $content;
     }
 
-    private function renameObject(int $userId, string $path, string $updatedPath, string $newName)
+    private function renameObject(int $userId, int $id, string $path, string $updatedPath, string $newName)
     {
         $query = $this->queryBuilder
             ->update(['path', 'name'])
             ->where(Expression::like('path', 'pathPattern'))
             ->and(Expression::equal('user_id'))
+            ->and(Expression::equal('id'))
             ->build();
-        $this->update($query, ['path' => $updatedPath, 'name' => $newName, 'pathPattern' => $path, 'user_id' => $userId]);
+        $this->update($query, [
+            'path' => $updatedPath,
+            'name' => $newName,
+            'pathPattern' => $path,
+            'user_id' => $userId,
+            'id' => $id
+        ]);
     }
 
-    private function renameInnerFolders(int $userId, string $path, string $updatedPath)
+    private function renameInnerFolders(int $userId, int $id, string $path, string $updatedPath)
     {
         $startPos = mb_strlen($path) + 1;
 
-        $query = "UPDATE file_system
+        $query = self::RECURSIVE_CTE . "
+        UPDATE file_system
         SET path = CONCAT(:updatedPath, SUBSTRING(path, $startPos))
-        WHERE path LIKE :oldPath AND user_id = :user_id;
+        WHERE id IN (SELECT * FROM file_tree) AND id <> :dirId;
         ";
 
         $this->update($query, [
             'updatedPath' => $updatedPath,
-            'oldPath' => $path . '/%',
-            'user_id' => $userId,
+            'userId' => $userId,
+            'dirId' => $id
         ]);
     }
 

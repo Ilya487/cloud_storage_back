@@ -54,11 +54,8 @@ class FileSystemService
         $fsObject = $this->fsRepo->getById($userId, $objectId);
         if ($fsObject === false) return OperationResult::createError(['message' => 'Указан неверный айди']);
 
-        $currentPath = $fsObject->getPath();
-        $updatedPath = $fsObject->rename($newName);
-
-        $this->fsRepo->rename($fsObject->ownerId, $fsObject->type, $currentPath, $updatedPath, $fsObject->getName());
-        return OperationResult::createSuccess(['updatedPath' => $updatedPath]);
+        $this->fsRepo->rename($fsObject, $newName);
+        return OperationResult::createSuccess(['updatedPath' => $fsObject->getPath()]);
     }
 
     public function deleteObjects(int $userId, array $items): OperationResult
