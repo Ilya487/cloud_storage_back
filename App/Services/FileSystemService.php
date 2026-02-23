@@ -63,7 +63,7 @@ class FileSystemService
 
     public function deleteObjects(int $userId, array $items): OperationResult
     {
-        return $this->deleteFiles->execute($userId, $items);
+        return $this->deleteFiles->softDelete($userId, $items);
     }
 
     public function moveObjects(int $userId, array $items, ?int $toDirId = null): OperationResult

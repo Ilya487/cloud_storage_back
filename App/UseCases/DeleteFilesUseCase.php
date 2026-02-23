@@ -4,16 +4,14 @@ namespace App\UseCases;
 
 use App\DTO\OperationResult;
 use App\Repositories\FileSystemRepository;
-use App\Storage\DiskStorage;
 
 class DeleteFilesUseCase
 {
     public function __construct(
         private FileSystemRepository $fsRepo,
-        private DiskStorage $diskStorage
     ) {}
 
-    public function execute(int $userId, array $items): OperationResult
+    public function softDelete(int $userId, array $items): OperationResult
     {
         $failDelete = 0;
         $fsObjects = $this->fsRepo->getMany($userId, $items);
@@ -21,13 +19,7 @@ class DeleteFilesUseCase
         $failDelete += count($items) - count($fsObjects);
 
         foreach ($fsObjects as $fsObject) {
-            $this->fsRepo->deleteObject($fsObject);
-            if ($this->diskStorage->delete($userId, $fsObject->getPath())) {
-                $this->fsRepo->confirmChanges();
-            } else {
-                $this->fsRepo->cancelLastChanges();
-                $failDelete++;
-            }
+            $this->fsRepo->softDeleteObject($fsObject);
         }
 
         if ($failDelete == count($items)) return OperationResult::createError([

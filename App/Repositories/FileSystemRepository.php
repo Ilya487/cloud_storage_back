@@ -99,26 +99,22 @@ class FileSystemRepository extends BaseRepository
         else return true;
     }
 
-    private function deleteFileById(int $userId, int $itemId)
+    private function softDeleteFileById(int $userId, int $itemId)
     {
-        $this->processOperationStatus();
-
         $query = $this->queryBuilder
-            ->delete()
+            ->update(['is_delete'])
             ->where(Expression::equal('id'))
             ->and(Expression::equal('user_id'))
             ->build();
-        $this->delete($query, ['id' => $itemId, 'user_id' => $userId]);
+        $this->delete($query, ['id' => $itemId, 'user_id' => $userId, 'is_delete' => true]);
     }
 
-    public function deleteObject(FileSystemObject $fsObject)
+    public function softDeleteObject(FileSystemObject $fsObject)
     {
         if ($fsObject->isFile()) {
-            $this->deleteFileById($fsObject->ownerId, $fsObject->id);
+            $this->softDeleteFileById($fsObject->ownerId, $fsObject->id);
             return;
         }
-
-        $this->processOperationStatus();
 
         $query = "
         WITH RECURSIVE file_tree AS (
@@ -130,7 +126,8 @@ class FileSystemRepository extends BaseRepository
             FROM file_system t
             INNER JOIN file_tree ON t.parent_id = file_tree.id
         )
-        DELETE FROM file_system
+        UPDATE file_system
+        SET is_delete=TRUE
         WHERE id IN (SELECT id FROM file_tree);";
         $this->delete($query, ['dirId' => $fsObject->id, 'userId' => $fsObject->ownerId]);
     }
