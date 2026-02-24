@@ -14,7 +14,6 @@ class DiskStorage extends BaseStorage
         if (!is_dir($path)) {
             mkdir($path);
         }
-        $this->storagePath = $path;
     }
 
     public function delete(int $userId, string $path): bool
@@ -31,7 +30,7 @@ class DiskStorage extends BaseStorage
 
     public function createFile(int $id, string $ext): string|false
     {
-        $filePath = $this->storagePath . "/$id.$ext";
+        $filePath = $this->getFullPath($id, $ext);
         if (file_exists($filePath)) return false;
         $handle = fopen($filePath, 'w');
         fclose($handle);
@@ -39,10 +38,10 @@ class DiskStorage extends BaseStorage
         return $filePath;
     }
 
-    public function getPath(int $userId, string $partPath = '/'): string|false
+    public function getPath(int $id, string $ext): string|false
     {
-        $fullPath = $this->getFullPath($userId, $partPath);
-        if (is_file($fullPath) || is_dir($fullPath)) return $fullPath;
+        $fullPath = $this->getFullPath($id, $ext);
+        if (is_file($fullPath)) return $fullPath;
         else return false;
     }
 
@@ -52,11 +51,8 @@ class DiskStorage extends BaseStorage
         return filesize($fullPath);
     }
 
-    private function getFullPath(int $userId, string $partPath): string
+    private function getFullPath(int $id, string $ext): string
     {
-        $partPath = "/$userId" . $this->normalizePath($partPath, false);
-        $fullPath =  $this->storagePath . $partPath;
-
-        return $fullPath;
+        return $this->storagePath . "/storage/$id.$ext";
     }
 }

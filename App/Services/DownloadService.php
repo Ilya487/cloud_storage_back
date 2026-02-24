@@ -29,11 +29,11 @@ class DownloadService
         if ($file === false) throw new NotFoundException('Файл не найден');
         if (!$file->isFile()) return OperationResult::createError(['message' => 'Попытка получить путь папки']);
 
-        $fullPath = $this->diskStorage->getPath($userId, $file->getPath());
+        $fullPath = $this->diskStorage->getPath($file->id, $file->getExt());
         if ($fullPath === false) return OperationResult::createError(['message' => 'Не удалось получить путь файла']);
 
         $pathForServer = $this->getPathForServer($fullPath);
-        return OperationResult::createSuccess(['path' => $pathForServer]);
+        return OperationResult::createSuccess(['path' => $pathForServer, 'name' => $file->getName()]);
     }
 
     public function iniArchive(int $userId, array $filesId): OperationResult

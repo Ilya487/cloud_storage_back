@@ -96,6 +96,14 @@ class FileSystemObject
         return $this->type == FsObjectType::FILE;
     }
 
+    public function getExt(): string|false
+    {
+        if ($this->isFile()) {
+            return pathinfo($this->name, PATHINFO_EXTENSION);
+        }
+        return false;
+    }
+
     public function getPathIds(): string
     {
         return $this->pathIds;

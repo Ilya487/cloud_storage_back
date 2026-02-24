@@ -2,7 +2,6 @@
 
 namespace App\Controllers;
 
-use App\Http\Request;
 use App\Http\Response;
 use App\Controllers\ControllerInterface;
 use App\RequestValidators\DownloadValidator;
@@ -12,7 +11,6 @@ use App\Services\DownloadService;
 class DownloadController implements ControllerInterface
 {
     public function __construct(
-        private Request $request,
         private Response $response,
         private AuthManager $authManager,
         private DownloadService $downloadService,
@@ -28,7 +26,7 @@ class DownloadController implements ControllerInterface
 
         $res = $this->downloadService->getFileServerPath($userId, $validatedFileId);
         if ($res->success) {
-            $this->response->sendDownloadResponse($res->data['path']);
+            $this->response->sendDownloadResponse($res->data['path'], $res->data['name']);
         } else $this->response->setStatusCode(400)->sendJson($res->errors);
     }
 

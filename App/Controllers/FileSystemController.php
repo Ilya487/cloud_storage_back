@@ -120,7 +120,7 @@ class FileSystemController implements ControllerInterface
 
         $res = $this->downloadService->getFileServerPath($userId, $fileId);
         if ($res->success) {
-            $this->response->outputFile($res->data['path']);
+            $this->response->outputFile($res->data['path'], $res->data['name']);
         } else $this->response->setStatusCode(400)->sendJson($res->errors);
     }
 
