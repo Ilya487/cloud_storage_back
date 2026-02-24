@@ -37,13 +37,6 @@ class UploadService
             }
         } else $destinationDirPath = '/';
 
-        if (
-            $this->fsRepo->isNameExist($userId, $fileName, $destinationDirId) ||
-            $this->uploadSessionsRepo->isNameExist($userId, $fileName, $destinationDirPath)
-        ) {
-            return OperationResult::createError(['message' => 'Файл с таким именем уже существует!']);
-        }
-
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
         $uploadSession = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirPath, $destinationDirId, $fileSize);
 
