@@ -22,7 +22,7 @@ class FileSystemRepository extends BaseRepository
             INNER JOIN file_tree ON t.parent_id = file_tree.id
         )';
 
-    private bool $isOperationConfirm = true;
+    private bool $inTransaction = false;
     /**
      * @return string new dir id
      */
@@ -45,7 +45,8 @@ class FileSystemRepository extends BaseRepository
             ->build();
         $pathIds = is_null($parentDirId) ? "/$newDirId" : $this->getPathIds($userId, $parentDirId) . "/$newDirId";
         $this->update($query, ['id' => $newDirId, 'path_ids' => $pathIds]);
-        $this->submitTransaction();
+        if (!$this->inTransaction)
+            $this->submitTransaction();
 
         return $newDirId;
     }
@@ -57,6 +58,7 @@ class FileSystemRepository extends BaseRepository
     {
         $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path', 'size'])->build();
         $this->beginTransaction();
+
         $fileId = $this->insert($query, [
             'name' => $fileName,
             'user_id' => $userId,
@@ -73,7 +75,8 @@ class FileSystemRepository extends BaseRepository
             ->build();
         $pathIds = is_null($parentDirId) ? "/$fileId" : $this->getPathIds($userId, $parentDirId) . "/$fileId";
         $this->update($query, ['id' => $fileId, 'path_ids' => $pathIds]);
-        $this->submitTransaction();
+        if (!$this->inTransaction)
+            $this->submitTransaction();
 
         return $fileId;
     }
@@ -102,7 +105,8 @@ class FileSystemRepository extends BaseRepository
             $this->beginTransaction();
             $this->renameObject($userId, $id, $currentPath, $updatedPath, $newName);
             $this->renameInnerFolders($userId, $id, $currentPath, $updatedPath);
-            $this->submitTransaction();
+            if (!$this->inTransaction)
+                $this->submitTransaction();
         } else if ($fsObject->isFile()) {
             $this->renameObject($userId, $id, $currentPath, $updatedPath, $newName);
         } else throw new Exception('Unknown fs object type');
@@ -163,7 +167,8 @@ class FileSystemRepository extends BaseRepository
             $this->beginTransaction();
             $this->moveTopItem($userId, $currentPathIds, $updatedPath, $fsObject->getPathIds(), $toDir->id);
             $this->moveInnerItems($userId, $currentPath, $updatedPath, $currentPathIds, $fsObject->getPathIds());
-            $this->submitTransaction();
+            if (!$this->inTransaction)
+                $this->submitTransaction();
         } else if ($fsObject->isFile()) {
             $this->moveTopItem($userId, $currentPathIds, $updatedPath, $fsObject->getPathIds(), $toDir->id);
         } else throw new Exception('Unknown fs object type');
@@ -222,36 +227,31 @@ class FileSystemRepository extends BaseRepository
         return $fsObjectsCollection;
     }
 
-    public function confirmChanges()
-    {
-        $this->isOperationConfirm = true;
-        $this->submitTransaction();
-    }
-
-    public function cancelLastChanges()
-    {
-        $this->isOperationConfirm = true;
-        $this->rollBackTransaction();
-    }
-
     public function search(int $userId, string $searchQuery)
     {
         $qury = $this->queryBuilder
             ->select(['id', 'name', 'parent_id', 'type', 'path'])
             ->where(Expression::equal('user_id'))
             ->and(Expression::like('name', 'pattern'))
+            ->and(Expression::equal('is_delete'))
             ->build();
-        $res = $this->fetchAll($qury, ['user_id' => $userId, 'pattern' => "%$searchQuery%"]);
+        $res = $this->fetchAll($qury, ['user_id' => $userId, 'is_delete' => false, 'pattern' => "%$searchQuery%"]);
         return $res;
     }
 
-    private function processOperationStatus()
+    public function withTransaction(callable $callback)
     {
-        if (!$this->isOperationConfirm) {
-            throw new Exception('You must confirm last operation');
+        $this->inTransaction = true;
+        $commit = fn() => $this->submitTransaction();
+        $rollBack = fn() => $this->rollBackTransaction();
+        try {
+            $this->beginTransaction();
+            $callback($commit, $rollBack);
+            $this->submitTransaction();
+        } catch (Exception $e) {
+            $this->rollBackTransaction();
+            throw $e;
         }
-        $this->isOperationConfirm = false;
-        $this->beginTransaction();
     }
 
     private function getRootContent(int $userId): array|false
