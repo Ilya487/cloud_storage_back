@@ -6,27 +6,15 @@ use App\Storage\BaseStorage;
 
 class DiskStorage extends BaseStorage
 {
-    public function initializeUserFolder(int $userId): bool
+    public function __construct(string $storagePath)
     {
-        $res = mkdir($this->getFullPath($userId, ''));
-        return $res;
-    }
+        parent::__construct($storagePath);
+        $path = $storagePath .  '/storage';
 
-    public function createDir(int $userId, string $dirName, string $path = '/'): bool
-    {
-        $path = $this->normalizePath($path);
-        $path = $path . $dirName;
-
-        return mkdir($this->getFullPath($userId, $path));
-    }
-
-    public function renameObject(int $userId, string $newName, string $path): bool
-    {
-        $oldFullPath = $this->getFullPath($userId, $path);
-        $updatedFullPath = dirname($oldFullPath) . "/$newName";
-        if (is_file($updatedFullPath)) return false;
-
-        return rename($oldFullPath, $updatedFullPath);
+        if (!is_dir($path)) {
+            mkdir($path);
+        }
+        $this->storagePath = $path;
     }
 
     public function delete(int $userId, string $path): bool
@@ -41,15 +29,14 @@ class DiskStorage extends BaseStorage
         return false;
     }
 
-    public function moveItem(int $userId, string $currentPath, string $pathToMove): bool
+    public function createFile(int $id, string $ext): string|false
     {
-        $currentPath = $this->getFullPath($userId, $currentPath);
-        $pathToMove = $this->getFullPath($userId, $pathToMove);
+        $filePath = $this->storagePath . "/$id.$ext";
+        if (file_exists($filePath)) return false;
+        $handle = fopen($filePath, 'w');
+        fclose($handle);
 
-        $updatedPath = "$pathToMove/" . basename($currentPath);
-        if (is_file($updatedPath)) return false;
-
-        return rename($currentPath, $updatedPath);
+        return $filePath;
     }
 
     public function getPath(int $userId, string $partPath = '/'): string|false

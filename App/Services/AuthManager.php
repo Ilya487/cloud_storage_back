@@ -15,7 +15,6 @@ class AuthManager
     public function __construct(
         private UserRepository $userRepo,
         private AuthenticationInterface $authenticator,
-        private FileSystemService $fsService,
         private RememberMeTokenManager $tokenManager
     ) {}
 
@@ -27,7 +26,6 @@ class AuthManager
 
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
         $userId =  $this->userRepo->insertNewUser($login, $passwordHash, self::DEFAULT_USER_DISK_SPACE);
-        $this->fsService->initializeUserStorage($userId);
         return OperationResult::createSuccess(['userId' => $userId]);
     }
 
