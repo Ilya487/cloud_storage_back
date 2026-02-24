@@ -4,7 +4,6 @@ namespace App\Repositories;
 
 use App\Db\Expression;
 use App\Models\FileSystemObject;
-use App\Models\FsObjectType;
 use App\Repositories\BaseRepository;
 use Exception;
 use PDO;
@@ -30,6 +29,7 @@ class FileSystemRepository extends BaseRepository
     public function createDir(int $userId, string $dirName, string $path, ?int $parentDirId): string
     {
         $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path'])->build();
+        $this->beginTransaction();
         $newDirId = $this->insert($query, [
             'name' => $dirName,
             'user_id' => $userId,
@@ -39,6 +39,14 @@ class FileSystemRepository extends BaseRepository
             'path' => $path
         ]);
 
+        $query = $this->queryBuilder
+            ->update(['path_ids'])
+            ->where(Expression::equal('id'))
+            ->build();
+        $pathIds = is_null($parentDirId) ? "/$newDirId" : $this->getPathIds($userId, $parentDirId) . "/$newDirId";
+        $this->update($query, ['id' => $newDirId, 'path_ids' => $pathIds]);
+        $this->submitTransaction();
+
         return $newDirId;
     }
 
@@ -47,9 +55,8 @@ class FileSystemRepository extends BaseRepository
      */
     public function createFile(int $userId, string $fileName, string $path, ?int $parentDirId, int $fileSize): string
     {
-        $this->processOperationStatus();
-
         $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path', 'size'])->build();
+        $this->beginTransaction();
         $fileId = $this->insert($query, [
             'name' => $fileName,
             'user_id' => $userId,
@@ -59,6 +66,14 @@ class FileSystemRepository extends BaseRepository
             'path' => $path,
             'size' => $fileSize
         ]);
+
+        $query = $this->queryBuilder
+            ->update(['path_ids'])
+            ->where(Expression::equal('id'))
+            ->build();
+        $pathIds = is_null($parentDirId) ? "/$fileId" : $this->getPathIds($userId, $parentDirId) . "/$fileId";
+        $this->update($query, ['id' => $fileId, 'path_ids' => $pathIds]);
+        $this->submitTransaction();
 
         return $fileId;
     }
@@ -136,51 +151,22 @@ class FileSystemRepository extends BaseRepository
         $this->delete($query, ['dirId' => $fsObject->id, 'userId' => $fsObject->ownerId]);
     }
 
-    public function moveObject(
-        int $userId,
-        FsObjectType $type,
-        string $currentPath,
-        string $updatedPath,
-        ?int $toDirId = null
-    ) {
-        if ($type == FsObjectType::DIR) {
-            $this->processOperationStatus();
+    public function moveObject(FileSystemObject $fsObject, FileSystemObject $toDir)
+    {
+        $userId = $fsObject->ownerId;
+        $currentPath = $fsObject->getPath();
+        $currentPathIds = $fsObject->getPathIds();
+        $updatedPath = $fsObject->changeDir($toDir);
+        if ($updatedPath === false) return false;
 
-            $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
-            $this->moveInnerItems($userId, $currentPath, $updatedPath);
-        } else if ($type == FsObjectType::FILE) {
-            $this->processOperationStatus();
-
-            $this->moveTopItem($userId, $currentPath, $updatedPath, $toDirId);
+        if (!$fsObject->isFile()) {
+            $this->beginTransaction();
+            $this->moveTopItem($userId, $currentPathIds, $updatedPath, $fsObject->getPathIds(), $toDir->id);
+            $this->moveInnerItems($userId, $currentPath, $updatedPath, $currentPathIds, $fsObject->getPathIds());
+            $this->submitTransaction();
+        } else if ($fsObject->isFile()) {
+            $this->moveTopItem($userId, $currentPathIds, $updatedPath, $fsObject->getPathIds(), $toDir->id);
         } else throw new Exception('Unknown fs object type');
-    }
-
-    public function isNameExist(int $userId, string $name, ?int $dirId = null)
-    {
-        $query = $this->queryBuilder
-            ->count()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('name'));
-        if (is_null($dirId)) {
-            $query = $query->and(Expression::isNull('parent_id'))->build();
-            $params = ['user_id' => $userId, 'name' => $name];
-        } else {
-            $query = $query->and(Expression::equal('parent_id'))->build();
-            $params = ['user_id' => $userId, 'name' => $name, 'parent_id' => $dirId];
-        }
-
-        return $this->fetchOne($query, $params, PDO::FETCH_NUM)[0] != 0;
-    }
-
-    public function getTypeById(int $userId, int $fileId): string|false
-    {
-        $query = $this->queryBuilder
-            ->select(['type'])
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('id'))->build();
-        $res =  $this->fetchOne($query, ['user_id' => $userId, 'id' => $fileId], PDO::FETCH_NUM);
-        if ($res === false) return false;
-        else return $res[0];
     }
 
     public function getDirIdByPath(int $userId, string $path): int|false
@@ -328,33 +314,50 @@ class FileSystemRepository extends BaseRepository
         ]);
     }
 
-    private function moveTopItem(int $userId, string $currentPath, string $updatedPath, ?int $toDirId)
+    private function moveTopItem(int $userId, string $currentPathIds, string $updatedPath, string $updatedPathIds, ?int $toDirId)
     {
         $query = $this->queryBuilder
-            ->update(['parent_id', 'path'])
+            ->update(['parent_id', 'path', 'path_ids'])
             ->where(Expression::equal('user_id'))
-            ->and(Expression::like('path', 'currentPath'))
+            ->and(Expression::like('path_ids', 'currentPathIds'))
             ->build();
         $this->update($query, [
             'parent_id' => $toDirId,
             'path' => $updatedPath,
             'user_id' => $userId,
-            'currentPath' => $currentPath
+            'currentPathIds' => $currentPathIds,
+            'path_ids' => $updatedPathIds
         ]);
     }
 
-    private function moveInnerItems(int $userId, string $currentPath, string $updatedPath)
+    private function moveInnerItems(int $userId, string $currentPath, string $updatedPath, string $currentPathIds, string $updatedPathIds)
     {
         $currentPathLen = mb_strlen($currentPath) + 1;
-        $query = "UPDATE file_system
-        SET path = CONCAT(:updatedPath, SUBSTR(path, $currentPathLen))
-        WHERE path LIKE :pathPattern AND user_id = :user_id;
+        $currentPathIdsLen = mb_strlen($currentPathIds) + 1;
+        $query = "
+            UPDATE file_system
+            SET path = CONCAT(:updatedPath, SUBSTR(path, $currentPathLen)),
+            path_ids = CONCAT(:updatedPathIds, SUBSTR(path_ids, $currentPathIdsLen))
+            WHERE path_ids LIKE :pathPattern AND user_id = :user_id;
         ";
 
         $this->update($query, [
             'updatedPath' => $updatedPath,
-            'pathPattern' => $currentPath . '/%',
+            'pathPattern' => $currentPathIds . '/%',
+            'updatedPathIds' => $updatedPathIds,
             'user_id' => $userId
         ]);
+    }
+
+    private function getPathIds(int $userId, int $dirId): string
+    {
+        $query = $this->queryBuilder
+            ->select(['path_ids'])
+            ->where(Expression::equal('id'))
+            ->and(Expression::equal('user_id'))
+            ->build();
+
+        $res = $this->fetchColumn($query, ['id' => $dirId, 'user_id' => $userId]);
+        return $res;
     }
 }

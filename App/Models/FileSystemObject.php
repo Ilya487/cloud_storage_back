@@ -11,6 +11,7 @@ class FileSystemObject
         public readonly FsObjectType $type,
         private string $name,
         private string $path,
+        private string $pathIds,
         public readonly int|null $size
     ) {}
 
@@ -23,6 +24,7 @@ class FileSystemObject
             FsObjectType::from($arr['type']),
             $arr['name'],
             $arr['path'],
+            $arr['path_ids'],
             $arr['size'],
         );
     }
@@ -36,6 +38,7 @@ class FileSystemObject
             type: FsObjectType::DIR,
             name: 'ROOT',
             path: '/',
+            pathIds: '',
             size: null
         );
     }
@@ -50,22 +53,26 @@ class FileSystemObject
         return $updatedPath;
     }
 
-    public function changeDir(?int $toDirId, string $newDirPath): string|false
+    public function changeDir(FileSystemObject $toDir): string|false
     {
-        if ($this->id == $toDirId) {
+        if ($this->id == $toDir->id) {
             return false;
         }
-        if ($this->parentId == $toDirId) {
+        if ($this->parentId == $toDir->id) {
+            return false;
+        }
+        if (str_starts_with($toDir->getPathIds(), $this->pathIds)) {
             return false;
         }
 
-        $newDirPath = trim($newDirPath);
+        $newDirPath = trim($toDir->getPath());
         if ($newDirPath[mb_strlen($newDirPath) - 1] == '/') {
             $updatedPath = "$newDirPath" . basename($this->path);
         } else $updatedPath = "$newDirPath/" . basename($this->path);
 
+        $this->pathIds = $toDir->pathIds . '/' . $this->id;
         $this->path = $updatedPath;
-        $this->parentId = $toDirId;
+        $this->parentId = $toDir->id;
         return $updatedPath;
     }
 
@@ -87,6 +94,11 @@ class FileSystemObject
     public function isFile(): bool
     {
         return $this->type == FsObjectType::FILE;
+    }
+
+    public function getPathIds(): string
+    {
+        return $this->pathIds;
     }
 }
 
