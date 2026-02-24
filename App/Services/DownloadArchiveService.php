@@ -8,7 +8,7 @@ use App\Storage\DownloadStorage;
 use App\Tools\ArchiveException;
 use Exception;
 
-class FilesDownloadPreparer
+class DownloadArchiveService
 {
     public function __construct(
         private DownloadStorage $downloadStorage,
@@ -18,7 +18,7 @@ class FilesDownloadPreparer
     /**
      * @param array<FileSystemObject> $files
      */
-    function prepareFiles(int $downloadId, array $files): FilesPrepareResult
+    function buildArchiveForDownload(int $downloadId, array $files): FilesPrepareResult
     {
         $this->checkTypes($files);
 
