@@ -68,4 +68,9 @@ class UploadSession
     {
         return $this->status == UploadSessionStatus::UPLOADING;
     }
+
+    public function getPath(): string
+    {
+        return $this->destinationDirPath == '/' ? '/' . $this->fileName : $this->destinationDirPath . '/' . $this->fileName;
+    }
 }

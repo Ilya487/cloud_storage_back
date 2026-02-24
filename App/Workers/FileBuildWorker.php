@@ -37,7 +37,7 @@ class FileBuildWorker
             $fileId = $this->fsRepo->createFile(
                 $session->userId,
                 $session->fileName,
-                $session->destinationDirPath . '/' . $session->fileName,
+                $session->getPath(),
                 $session->destinationDirId,
                 $session->fileSize
             );
