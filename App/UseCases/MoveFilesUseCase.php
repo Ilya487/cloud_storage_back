@@ -3,17 +3,18 @@
 namespace App\UseCases;
 
 use App\DTO\OperationResult;
+use App\Exceptions\NotFoundException;
+use App\Models\FileSystemObject;
 use App\Repositories\FileSystemRepository;
-use App\Storage\DiskStorage;
 
 class MoveFilesUseCase
 {
-    public function __construct(private FileSystemRepository $fsRepo, private DiskStorage $diskStorage) {}
+    public function __construct(private FileSystemRepository $fsRepo) {}
 
     public function execute(int $userId, array $items, ?int $toDirId = null): OperationResult
     {
-        $toDirPath = is_null($toDirId) ? '/' : $this->fsRepo->getPathById($toDirId, $userId);
-        if ($toDirPath === false) {
+        $toDir = is_null($toDirId) ? FileSystemObject::createRootDir($userId) : $this->fsRepo->getById($userId, $toDirId);
+        if ($toDir === false) {
             return OperationResult::createError(['message' => 'Указана некорректная папка назначения']);
         }
 
@@ -21,28 +22,12 @@ class MoveFilesUseCase
         $succesMove = 0;
 
         $fsObjects = $this->fsRepo->getMany($userId, $items);
+        if ($fsObjects === false) throw new NotFoundException('Указанные объекты не найдены');
+
         foreach ($fsObjects as $fsObject) {
-            if ($fsObject === false) {
-                $errorMove++;
-                continue;
-            }
-
-            $currentPath = $fsObject->getPath();
-            $updatedPath = $fsObject->changeDir($toDirId, $toDirPath);
-            if ($updatedPath === false) {
-                $errorMove++;
-                continue;
-            }
-
-            $this->fsRepo->moveObject($fsObject->ownerId, $fsObject->type, $currentPath, $updatedPath, $toDirId);
-
-            if ($this->diskStorage->moveItem($userId, $currentPath, $toDirPath)) {
-                $this->fsRepo->confirmChanges();
-                $succesMove++;
-            } else {
-                $this->fsRepo->cancelLastChanges();
-                $errorMove++;
-            }
+            $res = $this->fsRepo->moveObject($fsObject, $toDir);
+            if ($res === false) $errorMove++;
+            else $succesMove++;
         }
 
         if ($errorMove === count($items)) return OperationResult::createError(
