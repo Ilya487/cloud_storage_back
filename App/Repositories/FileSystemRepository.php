@@ -12,16 +12,6 @@ use PDO;
 class FileSystemRepository extends BaseRepository
 {
     protected string $tableName = 'file_system';
-    private const RECURSIVE_CTE = '
-        WITH RECURSIVE file_tree AS (
-            SELECT id
-            FROM file_system
-            WHERE id=:dirId AND user_id=:userId
-            UNION
-            SELECT t.id
-            FROM file_system t
-            INNER JOIN file_tree ON t.parent_id = file_tree.id
-        )';
 
     private bool $inTransaction = false;
     /**
@@ -149,8 +139,14 @@ class FileSystemRepository extends BaseRepository
             return;
         }
 
-        $query = self::RECURSIVE_CTE . "
-        UPDATE file_system
+        $query = $this->getRecursiveCTE(
+            $this->queryBuilder->resetQuery()
+                ->where(Expression::equal('id', 'dirId'))
+                ->and(Expression::equal('user_id', 'userId'))
+                ->build()
+        );
+        $query .= "
+        UPDATE {$this->tableName}
         SET is_delete=TRUE
         WHERE id IN (SELECT id FROM file_tree);";
         $this->delete($query, ['dirId' => $fsObject->id, 'userId' => $fsObject->ownerId]);
@@ -244,6 +240,37 @@ class FileSystemRepository extends BaseRepository
         }
     }
 
+    public function getFileTreeByIds(int $userId, array $ids): FileSystemObjectCollection|false
+    {
+        $query = $this->queryBuilder->resetQuery()
+            ->where(Expression::in('id', count($ids)))
+            ->and(Expression::equal('user_id'))
+            ->build();
+
+        $query = $this->getRecursiveCTE($query);
+        $query .= "
+        SELECT * FROM {$this->tableName} WHERE id IN (SELECT id FROM file_tree)";
+
+        $res = $this->fetchAll($query, ['user_id' => $userId, ...$this->prepareParamsForIn($ids)]);
+        if (empty($res)) return false;
+        return FileSystemObjectCollection::createFromDbArr($res);
+    }
+
+    private function getRecursiveCTE(string $whereClause = '', int $depth = 0): string
+    {
+        $depthLimit = $depth == 0 ? '' : "<$depth";
+
+        return "WITH RECURSIVE file_tree AS (
+            SELECT id, 1 AS 'depth'
+            FROM {$this->tableName} $whereClause
+            UNION
+            SELECT t.id, tree.depth+1
+            FROM {$this->tableName} t
+            INNER JOIN file_tree tree ON t.parent_id = tree.id
+            WHERE tree.depth $depthLimit
+        )";
+    }
+
     private function getRootContent(int $userId): array|false
     {
         $query = $this->queryBuilder
@@ -291,10 +318,16 @@ class FileSystemRepository extends BaseRepository
     {
         $startPos = mb_strlen($path) + 1;
 
-        $query = self::RECURSIVE_CTE . "
-        UPDATE file_system
+        $query = $this->getRecursiveCTE(
+            $this->queryBuilder->resetQuery()
+                ->where(Expression::equal('id', 'dirId'))
+                ->and(Expression::equal('user_id', 'userId'))
+                ->build()
+        );
+        $query .= "
+        UPDATE {$this->tableName}
         SET path = CONCAT(:updatedPath, SUBSTRING(path, $startPos))
-        WHERE id IN (SELECT * FROM file_tree) AND id <> :dirId;
+        WHERE id IN (SELECT id FROM file_tree) AND id <> :dirId;
         ";
 
         $this->update($query, [
