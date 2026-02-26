@@ -79,6 +79,16 @@ abstract class BaseRepository
             $this->pdo->rollBack();
     }
 
+    protected function prepareParamsForIn(array $ids)
+    {
+        $preparedIds = [];
+        foreach ($ids as $key => $value) {
+            $preparedIds[":$key"] = $value;
+        }
+
+        return $preparedIds;
+    }
+
     private function executeQuery(string $query, array $columnValues): PDOStatement
     {
         try {

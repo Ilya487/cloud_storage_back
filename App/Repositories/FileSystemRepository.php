@@ -203,15 +203,12 @@ class FileSystemRepository extends BaseRepository
 
     public function getMany(int $userId, array $ids): FileSystemObjectCollection|false
     {
-        $preparedIds = [];
-        foreach ($ids as $key => $value) {
-            $preparedIds[":$key"] = $value;
-        }
+        $preparedIds = $this->prepareParamsForIn($ids);
 
         $query = $this->queryBuilder
             ->select()
             ->where(Expression::equal('user_id'))
-            ->and(Expression::in('id', array_keys($ids)))
+            ->and(Expression::in('id', count($ids)))
             ->build();
 
         $requestRes = $this->fetchAll($query, ['user_id' => $userId, ...$preparedIds]);

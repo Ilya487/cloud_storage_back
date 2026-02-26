@@ -110,9 +110,10 @@ class QueryBuilder
         return $this;
     }
 
-    private function resetQuery()
+    public function resetQuery()
     {
         $this->query = '';
+        return $this;
     }
 
     private function getPreparedParams(array $fields, bool $withNames = false)
