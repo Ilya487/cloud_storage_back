@@ -16,7 +16,7 @@ class DeleteFilesUseCase
         $failDelete = 0;
         $fsObjects = $this->fsRepo->getMany($userId, $items);
         if ($fsObjects === false) return OperationResult::createError(['message' => 'Не удалось удалить указанные объекты']);
-        $failDelete += count($items) - count($fsObjects);
+        $failDelete += count($items) - $fsObjects->len();
 
         foreach ($fsObjects as $fsObject) {
             $this->fsRepo->softDeleteObject($fsObject);

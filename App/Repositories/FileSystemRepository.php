@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Db\Expression;
+use App\Models\Collections\FileSystemObjectCollection;
 use App\Models\FileSystemObject;
 use App\Repositories\BaseRepository;
 use Exception;
@@ -200,10 +201,7 @@ class FileSystemRepository extends BaseRepository
         return FileSystemObject::createFromArr($res);
     }
 
-    /**
-     * @return FileSystemObject[]|false
-     */
-    public function getMany(int $userId, array $ids): array|false
+    public function getMany(int $userId, array $ids): FileSystemObjectCollection|false
     {
         $preparedIds = [];
         foreach ($ids as $key => $value) {
@@ -219,12 +217,7 @@ class FileSystemRepository extends BaseRepository
         $requestRes = $this->fetchAll($query, ['user_id' => $userId, ...$preparedIds]);
         if (empty($requestRes)) return false;
 
-        $fsObjectsCollection = [];
-        foreach ($requestRes as $raw) {
-            $fsObjectsCollection[] = FileSystemObject::createFromArr($raw);
-        }
-
-        return $fsObjectsCollection;
+        return FileSystemObjectCollection::createFromDbArr($requestRes);
     }
 
     public function search(int $userId, string $searchQuery)
