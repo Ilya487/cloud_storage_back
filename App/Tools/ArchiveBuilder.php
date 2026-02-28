@@ -27,19 +27,27 @@ class ArchiveBuilder
         else throw new ArchiveException('Не удалось создать архив');
     }
 
-    public function add(string $path): bool
+    public function add(string $path, ?string $innerPath = null): bool
     {
+        $innerPath = ltrim($innerPath, '/');
         if ($this->isBuild) throw new LogicException('Невозможно добавить файл: архив уже закрыт');
 
         $path = realpath($path);
         if ($path === false) return false;
+        if (is_null($innerPath)) $innerPath = basename($path);
 
         if (is_file($path)) {
-            return $this->zip->addFile($path, basename($path));
+            return $this->zip->addFile($path, $innerPath);
         } elseif (is_dir($path)) {
             return $this->addFolder($path);
         }
         return false;
+    }
+
+    public function createDir(string $path): bool
+    {
+        $path = ltrim($path, '/');
+        return $this->zip->addEmptyDir($path);
     }
 
     public function build(): string|false
