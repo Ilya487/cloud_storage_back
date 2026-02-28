@@ -47,6 +47,17 @@ class FileSystemObjectCollection extends Collection
         return $this;
     }
 
+    public function getFolderContent(string $pathIds): FileSystemObjectCollection
+    {
+        $res = [];
+        foreach ($this->collection as $file) {
+            if (str_starts_with($file->getPathIds(), "$pathIds/"))
+                $res[] = $file;
+        }
+
+        return new FileSystemObjectCollection($res);
+    }
+
     private function insertUniqueId(FileSystemObject $fsObject)
     {
         if (!in_array($fsObject->id, $this->uniqueIds)) $this->uniqueIds[] = $fsObject->id;

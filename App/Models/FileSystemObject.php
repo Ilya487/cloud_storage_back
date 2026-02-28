@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Exception;
+
 class FileSystemObject
 {
     public function __construct(
@@ -45,6 +47,7 @@ class FileSystemObject
 
     public function rename(string $newName)
     {
+        if (str_contains($newName, '/') || str_contains($newName, '\\')) throw new Exception('Имя не может содержать знаков: \\ /');
         $pathToDir = dirname($this->path);
         $updatedPath = $pathToDir == DIRECTORY_SEPARATOR ? '' . "/$newName" : $pathToDir . "/$newName";
         $this->name = $newName;
@@ -78,6 +81,11 @@ class FileSystemObject
 
     public function getName(): string
     {
+        return pathinfo($this->name, PATHINFO_FILENAME);
+    }
+
+    public function getBaseName(): string
+    {
         return $this->name;
     }
 
@@ -99,7 +107,9 @@ class FileSystemObject
     public function getExt(): string|false
     {
         if ($this->isFile()) {
-            return pathinfo($this->name, PATHINFO_EXTENSION);
+            $ext = pathinfo($this->name, PATHINFO_EXTENSION);
+            if (!$ext)  return false;
+            return $ext;
         }
         return false;
     }

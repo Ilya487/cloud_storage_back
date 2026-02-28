@@ -28,7 +28,7 @@ class PrepareFileForDownloadWorker
         $task = $this->taskRepo->getById($userId, $taskId);
         if ($task === false) throw new Exception('Задача не найдена');
 
-        $files = $this->fsRepo->getMany($task->userId, $task->filesId);
+        $files = $this->fsRepo->getFileTreeByIds($task->userId, $task->filesId);
         if ($files === false) $this->handleError($task, 'Запрашиваемые файлы не найдены');
 
         $creationRes = $this->archiveCreator->buildArchiveForDownload($task->id, $files);

@@ -33,7 +33,7 @@ class DownloadService
         if ($fullPath === false) return OperationResult::createError(['message' => 'Не удалось получить путь файла']);
 
         $pathForServer = $this->getPathForServer($fullPath);
-        return OperationResult::createSuccess(['path' => $pathForServer, 'name' => $file->getName()]);
+        return OperationResult::createSuccess(['path' => $pathForServer, 'name' => $file->getBaseName()]);
     }
 
     public function iniArchive(int $userId, array $filesId): OperationResult
