@@ -8,6 +8,12 @@ use App\Tools\ErrorHandler;
 
 error_reporting(E_ERROR);
 
+
+function auth(): ?User
+{
+    return Container::resolve(AuthManager::class)->getAuthUser();
+}
+
 function executeApp()
 {
     $container = Container::getInstance();
