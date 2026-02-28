@@ -14,7 +14,8 @@ class FileSystemObject
         private string $name,
         private string $path,
         private string $pathIds,
-        public readonly int|null $size
+        public readonly int|null $size,
+        public readonly bool $inTrash
     ) {}
 
     public static function createFromArr(array $arr): FileSystemObject
@@ -28,6 +29,7 @@ class FileSystemObject
             $arr['path'],
             $arr['path_ids'],
             $arr['size'],
+            $arr['is_delete'],
         );
     }
 
@@ -41,7 +43,8 @@ class FileSystemObject
             name: 'ROOT',
             path: '/',
             pathIds: '',
-            size: null
+            size: null,
+            inTrash: false
         );
     }
 

@@ -5,16 +5,13 @@ namespace App\Services;
 use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
 use App\Models\FileSystemObject;
-use App\Models\FsObjectType;
 use App\Repositories\FileSystemRepository;
-use App\Storage\DiskStorage;
 use App\UseCases\DeleteFilesUseCase;
 use App\UseCases\MoveFilesUseCase;
 
 class FileSystemService
 {
     public function __construct(
-        private DiskStorage $diskStorage,
         private FileSystemRepository $fsRepo,
         private MoveFilesUseCase $moveFiles,
         private DeleteFilesUseCase $deleteFiles,
@@ -38,15 +35,11 @@ class FileSystemService
         if ($selectedDir->isFile())
             return OperationResult::createError(['message' => 'Выбран файл']);
 
+        if ($selectedDir->inTrash) throw new NotFoundException('Указаная директория не найдена');
         $catalogData = $this->fsRepo->getDirContent($userId, $dirId);
 
         if ($catalogData !== false) return OperationResult::createSuccess(['path' => $selectedDir->getPath(), 'contents' => $catalogData]);
         else return OperationResult::createError(['message' => 'Не удалось получить содержимое папки']);
-    }
-
-    public function initializeUserStorage(int $userId): bool
-    {
-        return $this->diskStorage->initializeUserFolder($userId);
     }
 
     public function renameObject(int $userId, int $objectId, string $newName): OperationResult
