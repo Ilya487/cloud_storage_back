@@ -13,15 +13,12 @@ use App\Services\FileSystemService;
 class FileSystemController implements ControllerInterface
 {
     public function __construct(
-        private Request $request,
         private Response $response,
         private AuthManager $authManager,
         private FileSystemService $fsService,
         private DownloadService $downloadService,
         private FileSystemValidator $requestValidator
     ) {}
-
-    public function resolve(): void {}
 
     public function create()
     {
@@ -69,7 +66,7 @@ class FileSystemController implements ControllerInterface
         $items = $this->requestValidator->delete();
         $userId = $this->authManager->getAuthUser()->getId();
 
-        $deleteResult = $this->fsService->deleteObjects($userId, $items);
+        $deleteResult = $this->fsService->softDeleteObjects($userId, $items);
 
         if ($deleteResult->success) $this->response->setStatusCode(200)->sendJson($deleteResult->data);
         else $this->response->setStatusCode(400)->sendJson($deleteResult->errors);

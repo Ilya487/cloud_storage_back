@@ -17,8 +17,6 @@ class DownloadController implements ControllerInterface
         private DownloadValidator $requestValidator
     ) {}
 
-    public function resolve(): void {}
-
     public function downloadFile($id)
     {
         $userId = $this->authManager->getAuthUser()->getId();
