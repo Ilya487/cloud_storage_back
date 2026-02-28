@@ -51,7 +51,7 @@ class FileSystemService
         return OperationResult::createSuccess(['updatedPath' => $fsObject->getPath()]);
     }
 
-    public function deleteObjects(int $userId, array $items): OperationResult
+    public function softDeleteObjects(int $userId, array $items): OperationResult
     {
         return $this->deleteFiles->softDelete($userId, $items);
     }
@@ -79,5 +79,15 @@ class FileSystemService
             'count' => count($searchRes),
             'matches' => $searchRes
         ]);
+    }
+
+    public function getDeletedFiles(int $userId): array
+    {
+        $data = $this->fsRepo->getDeletedFiles($userId);
+        foreach ($data as &$item) {
+            unset($item['is_delete']);
+        }
+
+        return $data;
     }
 }

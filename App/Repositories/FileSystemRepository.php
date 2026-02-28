@@ -256,6 +256,16 @@ class FileSystemRepository extends BaseRepository
         return FileSystemObjectCollection::createFromDbArr($res);
     }
 
+    public function getDeletedFiles(int $userId)
+    {
+        $query = $this->queryBuilder
+            ->select([])
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::equal('is_delete'))
+            ->build();
+        return $this->fetchAll($query, ['user_id' => $userId, 'is_delete' => true]);
+    }
+
     private function getRecursiveCTE(string $whereClause = '', int $depth = 0): string
     {
         $depthLimit = $depth == 0 ? '' : "<$depth";
