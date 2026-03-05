@@ -13,7 +13,7 @@ abstract class BaseRepository
     private PDO $pdo;
     protected QueryBuilder $queryBuilder;
     protected string $tableName;
-
+    private bool $isTransactionStartManually = false;
 
     public function __construct(DbConnect $dbConnect)
     {
@@ -21,6 +21,25 @@ abstract class BaseRepository
 
         $this->pdo = $dbConnect->getConnection();
         $this->queryBuilder = new QueryBuilder($this->tableName);
+    }
+
+    public function withTransaction(callable $callback)
+    {
+        if ($this->pdo->inTransaction() || $this->isTransactionStartManually)
+            throw new Exception('Предыдущая транзакция не завершена!');
+
+        $commit = fn() => $this->pdo->commit();
+        $rollBack = fn() => $this->pdo->rollBack();
+        try {
+            $this->beginTransaction();
+            $this->isTransactionStartManually = true;
+            $callback($commit, $rollBack);
+            $this->isTransactionStartManually = false;
+            $this->submitTransaction();
+        } catch (Exception $e) {
+            $this->rollBackTransaction();
+            throw $e;
+        }
     }
 
     protected function fetchAll(string $query, array $columnValues, $returnType = PDO::FETCH_ASSOC): array
@@ -63,12 +82,14 @@ abstract class BaseRepository
 
     protected function beginTransaction()
     {
+        if ($this->isTransactionStartManually) return;
         if ($this->pdo->inTransaction()) return;
         $this->pdo->beginTransaction();
     }
 
     protected function submitTransaction()
     {
+        if ($this->isTransactionStartManually) return;
         if ($this->pdo->inTransaction())
             $this->pdo->commit();
     }

@@ -13,7 +13,6 @@ class FileSystemRepository extends BaseRepository
 {
     protected string $tableName = 'file_system';
 
-    private bool $inTransaction = false;
     /**
      * @return string new dir id
      */
@@ -36,8 +35,7 @@ class FileSystemRepository extends BaseRepository
             ->build();
         $pathIds = is_null($parentDirId) ? "/$newDirId" : $this->getPathIds($userId, $parentDirId) . "/$newDirId";
         $this->update($query, ['id' => $newDirId, 'path_ids' => $pathIds]);
-        if (!$this->inTransaction)
-            $this->submitTransaction();
+        $this->submitTransaction();
 
         return $newDirId;
     }
@@ -66,8 +64,7 @@ class FileSystemRepository extends BaseRepository
             ->build();
         $pathIds = is_null($parentDirId) ? "/$fileId" : $this->getPathIds($userId, $parentDirId) . "/$fileId";
         $this->update($query, ['id' => $fileId, 'path_ids' => $pathIds]);
-        if (!$this->inTransaction)
-            $this->submitTransaction();
+        $this->submitTransaction();
 
         return $fileId;
     }
@@ -96,8 +93,7 @@ class FileSystemRepository extends BaseRepository
             $this->beginTransaction();
             $this->renameObject($userId, $id, $currentPath, $updatedPath, $newName);
             $this->renameInnerFolders($userId, $id, $currentPath, $updatedPath);
-            if (!$this->inTransaction)
-                $this->submitTransaction();
+            $this->submitTransaction();
         } else if ($fsObject->isFile()) {
             $this->renameObject($userId, $id, $currentPath, $updatedPath, $newName);
         } else throw new Exception('Unknown fs object type');
@@ -164,8 +160,7 @@ class FileSystemRepository extends BaseRepository
             $this->beginTransaction();
             $this->moveTopItem($userId, $currentPathIds, $updatedPath, $fsObject->getPathIds(), $toDir->id);
             $this->moveInnerItems($userId, $currentPath, $updatedPath, $currentPathIds, $fsObject->getPathIds());
-            if (!$this->inTransaction)
-                $this->submitTransaction();
+            $this->submitTransaction();
         } else if ($fsObject->isFile()) {
             $this->moveTopItem($userId, $currentPathIds, $updatedPath, $fsObject->getPathIds(), $toDir->id);
         } else throw new Exception('Unknown fs object type');
@@ -223,21 +218,6 @@ class FileSystemRepository extends BaseRepository
             ->build();
         $res = $this->fetchAll($qury, ['user_id' => $userId, 'is_delete' => false, 'pattern' => "%$searchQuery%"]);
         return $res;
-    }
-
-    public function withTransaction(callable $callback)
-    {
-        $this->inTransaction = true;
-        $commit = fn() => $this->submitTransaction();
-        $rollBack = fn() => $this->rollBackTransaction();
-        try {
-            $this->beginTransaction();
-            $callback($commit, $rollBack);
-            $this->submitTransaction();
-        } catch (Exception $e) {
-            $this->rollBackTransaction();
-            throw $e;
-        }
     }
 
     public function getFileTreeByIds(int $userId, array $ids): FileSystemObjectCollection|false
