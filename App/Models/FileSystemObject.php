@@ -121,6 +121,12 @@ class FileSystemObject
     {
         return $this->pathIds;
     }
+
+    public function hasParent(): bool
+    {
+        if (is_null($this->parentId)) return false;
+        else return true;
+    }
 }
 
 enum FsObjectType: string

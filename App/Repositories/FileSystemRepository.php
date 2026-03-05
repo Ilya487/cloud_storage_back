@@ -246,6 +246,31 @@ class FileSystemRepository extends BaseRepository
         return $this->fetchAll($query, ['user_id' => $userId, 'is_delete' => true]);
     }
 
+    public function restoreObject(FileSystemObject $fsObject)
+    {
+        if ($fsObject->isFile()) {
+            $query = $this->queryBuilder
+                ->update(['is_delete'])
+                ->where(Expression::equal('id'))
+                ->and(Expression::equal('user_id'))
+                ->build();
+
+            $this->update($query, ['is_delete' => 0, 'user_id' => $fsObject->ownerId, 'id' => $fsObject->id]);
+        } else {
+            $query = $this->queryBuilder
+                ->update(['is_delete'])
+                ->where(Expression::like('path_ids', 'p'))
+                ->and(Expression::equal('user_id'))
+                ->build();
+
+            $this->update($query, [
+                'is_delete' => 0,
+                'user_id' => $fsObject->ownerId,
+                'p' => $fsObject->getPathIds() . '%'
+            ]);
+        }
+    }
+
     private function getRecursiveCTE(string $whereClause = '', int $depth = 0): string
     {
         $depthLimit = $depth == 0 ? '' : "<$depth";
