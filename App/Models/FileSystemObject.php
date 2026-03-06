@@ -29,7 +29,7 @@ class FileSystemObject
             $arr['path'],
             $arr['path_ids'],
             $arr['size'],
-            $arr['is_delete'],
+            $arr['deleted_at'] ? true : false,
         );
     }
 

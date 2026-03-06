@@ -43,6 +43,11 @@ class Expression
         return new self("$field IS NULL ");
     }
 
+    public static function notNull(string $field)
+    {
+        return new self("$field IS NOT NULL ");
+    }
+
     public static function like(string $field, string $pattern)
     {
         return new self("$field LIKE :$pattern ");

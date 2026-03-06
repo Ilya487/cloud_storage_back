@@ -198,9 +198,9 @@ class FileSystemRepository extends BaseRepository
             ->select(['id', 'name', 'parent_id', 'type', 'path'])
             ->where(Expression::equal('user_id'))
             ->and(Expression::like('name', 'pattern'))
-            ->and(Expression::equal('is_delete'))
+            ->and(Expression::isNull('deleted_at'))
             ->build();
-        $res = $this->fetchAll($qury, ['user_id' => $userId, 'is_delete' => false, 'pattern' => "%$searchQuery%"]);
+        $res = $this->fetchAll($qury, ['user_id' => $userId, 'pattern' => "%$searchQuery%"]);
         return $res;
     }
 
@@ -225,9 +225,9 @@ class FileSystemRepository extends BaseRepository
         $query = $this->queryBuilder
             ->select([])
             ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('is_delete'))
+            ->and(Expression::notNull('deleted_at'))
             ->build();
-        return $this->fetchAll($query, ['user_id' => $userId, 'is_delete' => true]);
+        return $this->fetchAll($query, ['user_id' => $userId]);
     }
 
     public function restoreObject(FileSystemObject $fsObject)
@@ -276,9 +276,9 @@ class FileSystemRepository extends BaseRepository
             ->select()
             ->where(Expression::equal('user_id'))
             ->and(Expression::isNull('parent_id'))
-            ->and(Expression::equal('is_delete'))
+            ->and(Expression::isNull('deleted_at'))
             ->build();
-        $content = $this->fetchAll($query, ['user_id' => $userId, 'is_delete' => false]);
+        $content = $this->fetchAll($query, ['user_id' => $userId]);
 
         return $content;
     }
@@ -289,9 +289,9 @@ class FileSystemRepository extends BaseRepository
             ->select()
             ->where(Expression::equal('user_id'))
             ->and(Expression::equal('parent_id'))
-            ->and(Expression::equal('is_delete'))
+            ->and(Expression::isNull('deleted_at'))
             ->build();
-        $content = $this->fetchAll($query, ['user_id' => $userId, 'parent_id' => $dirId, 'is_delete' => false]);
+        $content = $this->fetchAll($query, ['user_id' => $userId, 'parent_id' => $dirId]);
 
         return $content;
     }
