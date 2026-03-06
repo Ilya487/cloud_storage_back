@@ -7,7 +7,6 @@ use App\Models\Collections\FileSystemObjectCollection;
 use App\Models\FileSystemObject;
 use App\Repositories\BaseRepository;
 use Exception;
-use PDO;
 
 class FileSystemRepository extends BaseRepository
 {
@@ -105,27 +104,14 @@ class FileSystemRepository extends BaseRepository
         else return $this->getConcreteDirContent($userId, $dirId);
     }
 
-    public function checkDirExist(int $userId, int $dirId): bool
-    {
-        $query = $this->queryBuilder
-            ->count()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('type'))
-            ->and(Expression::equal('id'))
-            ->build();
-        $res = $this->fetchOne($query, ['user_id' => $userId, 'id' => $dirId, 'type' => 'folder'], PDO::FETCH_NUM);
-        if ($res[0] == 0) return false;
-        else return true;
-    }
-
     private function softDeleteFileById(int $userId, int $itemId)
     {
         $query = $this->queryBuilder
-            ->update(['is_delete'])
+            ->update(['deleted_at'])
             ->where(Expression::equal('id'))
             ->and(Expression::equal('user_id'))
             ->build();
-        $this->delete($query, ['id' => $itemId, 'user_id' => $userId, 'is_delete' => true]);
+        $this->delete($query, ['id' => $itemId, 'user_id' => $userId, 'deleted_at' => date('Y-m-d H:i:s')]);
     }
 
     public function softDeleteObject(FileSystemObject $fsObject)
@@ -134,18 +120,16 @@ class FileSystemRepository extends BaseRepository
             $this->softDeleteFileById($fsObject->ownerId, $fsObject->id);
             return;
         }
-
-        $query = $this->getRecursiveCTE(
-            $this->queryBuilder->resetQuery()
-                ->where(Expression::equal('id', 'dirId'))
-                ->and(Expression::equal('user_id', 'userId'))
-                ->build()
-        );
-        $query .= "
-        UPDATE {$this->tableName}
-        SET is_delete=TRUE
-        WHERE id IN (SELECT id FROM file_tree);";
-        $this->delete($query, ['dirId' => $fsObject->id, 'userId' => $fsObject->ownerId]);
+        $query = $this->queryBuilder
+            ->update(['deleted_at'])
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::like('path_ids', 'p'))
+            ->build();
+        $this->delete($query, [
+            'deleted_at' => date('Y-m-d H:i:s'),
+            'user_id' => $fsObject->ownerId,
+            'p' => $fsObject->getPathIds() . '%'
+        ]);
     }
 
     public function moveObject(FileSystemObject $fsObject, FileSystemObject $toDir)
@@ -250,21 +234,21 @@ class FileSystemRepository extends BaseRepository
     {
         if ($fsObject->isFile()) {
             $query = $this->queryBuilder
-                ->update(['is_delete'])
+                ->update(['deleted_at'])
                 ->where(Expression::equal('id'))
                 ->and(Expression::equal('user_id'))
                 ->build();
 
-            $this->update($query, ['is_delete' => 0, 'user_id' => $fsObject->ownerId, 'id' => $fsObject->id]);
+            $this->update($query, ['deleted_at' => null, 'user_id' => $fsObject->ownerId, 'id' => $fsObject->id]);
         } else {
             $query = $this->queryBuilder
-                ->update(['is_delete'])
+                ->update(['deleted_at'])
                 ->where(Expression::like('path_ids', 'p'))
                 ->and(Expression::equal('user_id'))
                 ->build();
 
             $this->update($query, [
-                'is_delete' => 0,
+                'deleted_at' => null,
                 'user_id' => $fsObject->ownerId,
                 'p' => $fsObject->getPathIds() . '%'
             ]);
