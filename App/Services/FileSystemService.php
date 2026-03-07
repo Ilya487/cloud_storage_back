@@ -87,4 +87,38 @@ class FileSystemService
 
         return $data;
     }
+
+    public function restoreFiles(int $userId, array $ids): OperationResult
+    {
+        $fsCollection = $this->fsRepo->getMany($userId, $ids);
+        if ($fsCollection === false) return OperationResult::createError(['message' => 'Не удалось восстановить запрашиваемые файлы']);
+
+        $fsCollection = $fsCollection->filter(fn($fsObject) => $fsObject->inTrash);
+        if ($fsCollection->len() == 0) return OperationResult::createError(['message' => 'Запрашиваемые файлы не находятся в корзине']);
+        $failedRestore = count($ids) - $fsCollection->len();
+
+        $this->fsRepo->withTransaction(function () use ($fsCollection) {
+            foreach ($fsCollection as $fsObject) {
+
+                if (!$fsObject->hasParent()) {
+                    $this->fsRepo->restoreObject($fsObject);
+                    continue;
+                }
+
+                $parentDir = $this->fsRepo->getById($fsObject->ownerId, $fsObject->getParentId());
+                if (!$parentDir->inTrash) {
+                    $this->fsRepo->restoreObject($fsObject);
+                    continue;
+                }
+
+                $this->fsRepo->moveObject($fsObject, FileSystemObject::createRootDir($fsObject->ownerId));
+                $this->fsRepo->restoreObject($fsObject);
+            }
+        });
+
+        return OperationResult::createSuccess([
+            'successRestore' => count($ids) - $failedRestore,
+            'faildRestore' => $failedRestore
+        ]);
+    }
 }

@@ -37,7 +37,7 @@ class Router
         $this->globalMiddlewares[] = $middleware;
     }
 
-    public function resolve()
+    public function handleRequest()
     {
         $this->resolveGlobalMiddlewares($this->globalMiddlewares);
 
@@ -54,13 +54,12 @@ class Router
     private function resolveGlobalMiddlewares()
     {
         foreach ($this->globalMiddlewares as $middleware) {
-            $container = Container::getInstance();
             if (is_array($middleware)) {
-                $resolvedMiddleware = $container->resolve($middleware[0]);
+                $resolvedMiddleware = Container::resolve($middleware[0]);
                 $method = $middleware[1];
                 $resolvedMiddleware->$method();
             } else {
-                $resolvedMiddleware = $container->resolve($middleware);
+                $resolvedMiddleware = Container::resolve($middleware);
                 $resolvedMiddleware->handle();
             }
         }

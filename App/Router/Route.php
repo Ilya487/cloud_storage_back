@@ -91,14 +91,13 @@ class Route
 
     private function resolveMiddlewares()
     {
-        $container = Container::getInstance();
         foreach ($this->middlewares as $middleware) {
             if (is_array($middleware)) {
-                $resolvedMiddleware = $container->resolve($middleware[0]);
+                $resolvedMiddleware = Container::resolve($middleware[0]);
                 $method = $middleware[1];
                 $resolvedMiddleware->$method();
             } else {
-                $resolvedMiddleware = $container->resolve($middleware);
+                $resolvedMiddleware = Container::resolve($middleware);
                 $resolvedMiddleware->handle();
             }
         }
@@ -106,8 +105,7 @@ class Route
 
     private function resolveController()
     {
-        $container = Container::getInstance();
-        $controller = $container->resolve($this->controllerSetup->controllerClassName);
+        $controller = Container::resolve($this->controllerSetup->controllerClassName);
         $method = $this->controllerSetup->method;
         $controller->$method(...$this->routeParams);
     }
