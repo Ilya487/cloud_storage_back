@@ -43,8 +43,8 @@ class AuthController implements ControllerInterface
     {
         $data = $this->requestValidator->signin();
 
-        $login = trim($data['login']);
-        $password = trim($data['password']);
+        $login = $data['login'];
+        $password = $data['password'];
 
         $authResult = $this->authManager->signinUser($login, $password);
 

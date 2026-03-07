@@ -23,6 +23,6 @@ class AuthValidator extends RequestValidator
         if (!$validationRes->success) {
             $this->sendError($validationRes->errors);
         }
-        return ['login' => $login, 'password' => $password];
+        return ['login' => trim($login), 'password' => trim($password)];
     }
 }
