@@ -18,9 +18,17 @@ class DeleteFilesUseCase
         if ($fsObjects === false) return OperationResult::createError(['message' => 'Не удалось удалить указанные объекты']);
         $failDelete += count($items) - $fsObjects->len();
 
-        foreach ($fsObjects as $fsObject) {
-            $this->fsRepo->softDeleteObject($fsObject);
-        }
+        $failDelete += $this->fsRepo->withTransaction(function () use ($fsObjects) {
+            $failDelete = 0;
+            foreach ($fsObjects as $fsObject) {
+                if ($fsObject->inTrash) {
+                    $failDelete++;
+                    continue;
+                }
+                $this->fsRepo->softDeleteObject($fsObject);
+            }
+            return $failDelete;
+        });
 
         if ($failDelete == count($items)) return OperationResult::createError([
             'message' => "Не удалось удалить $failDelete шт."

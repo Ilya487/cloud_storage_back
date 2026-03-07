@@ -33,9 +33,11 @@ abstract class BaseRepository
         try {
             $this->beginTransaction();
             $this->isTransactionStartManually = true;
-            $callback($commit, $rollBack);
+            $res = $callback($commit, $rollBack);
             $this->isTransactionStartManually = false;
             $this->submitTransaction();
+
+            return $res;
         } catch (Exception $e) {
             $this->rollBackTransaction();
             throw $e;
