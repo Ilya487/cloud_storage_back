@@ -31,6 +31,7 @@ class PrepareFileForDownloadWorker
         $files = $this->fsRepo->getFileTreeByIds($task->userId, $task->filesId);
         if ($files === false) $this->handleError($task, 'Запрашиваемые файлы не найдены');
 
+        $files = $files->filter(fn($fsObject) => !$fsObject->inTrash);
         $creationRes = $this->archiveCreator->buildArchiveForDownload($task->id, $files);
         if (!$creationRes->success) $this->handleError($task, 'Не удалось создать архив');
 
