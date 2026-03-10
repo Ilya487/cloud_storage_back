@@ -32,7 +32,13 @@ class PrepareFileForDownloadWorker
         if ($files === false) $this->handleError($task, 'Запрашиваемые файлы не найдены');
 
         $files = $files->filter(fn($fsObject) => !$fsObject->inTrash);
-        $creationRes = $this->archiveCreator->buildArchiveForDownload($task->id, $files);
+        if ($files->len() == 0) $this->handleError($task, 'Файлы находятся в корзине');
+
+        if (count($task->filesId) == 1) {
+            $prefix = $files->getById($task->filesId[0])->getName();
+        }
+
+        $creationRes = $this->archiveCreator->buildArchiveForDownload($task->id, $files, $prefix ?? '');
         if (!$creationRes->success) $this->handleError($task, 'Не удалось создать архив');
 
         $this->taskRepo->setStatus($task->userId, $task->id, PrepareFilesTaskStatus::READY);

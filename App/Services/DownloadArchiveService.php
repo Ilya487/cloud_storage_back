@@ -16,12 +16,9 @@ class DownloadArchiveService
         private DiskStorage $diskStorage,
     ) {}
 
-    function buildArchiveForDownload(int $downloadId, FileSystemObjectCollection $files): FilesPrepareResult
+    function buildArchiveForDownload(int $downloadId, FileSystemObjectCollection $files, string $prefix = ''): FilesPrepareResult
     {
-        $archive = $this->downloadStorage->createArchive(
-            $downloadId,
-            $files->len() == 1 ? $files[0]->getName() : ''
-        );
+        $archive = $this->downloadStorage->createArchive($downloadId, $prefix);
 
         if ($archive === false) {
             return new FilesPrepareResult(false, '', [], []);

@@ -77,6 +77,15 @@ class FileSystemObjectCollection extends Collection
         return array_map(fn($fsObject) => $fsObject->id, $this->collection);
     }
 
+    public function getById(int $id): FileSystemObject|false
+    {
+        foreach ($this->collection as $fsObject) {
+            if ($fsObject->id == $id) return $fsObject;
+        }
+
+        return false;
+    }
+
     private function insertUniqueId(FileSystemObject $fsObject)
     {
         if (!in_array($fsObject->id, $this->uniqueIds)) $this->uniqueIds[] = $fsObject->id;
