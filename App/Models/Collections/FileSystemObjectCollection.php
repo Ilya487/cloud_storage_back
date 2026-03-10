@@ -67,6 +67,16 @@ class FileSystemObjectCollection extends Collection
         return new self($filteredArr);
     }
 
+    public function filesOnly(): self
+    {
+        return new self(array_filter($this->collection, fn($item) => $item->isFile()));
+    }
+
+    public function toIdsArray(): array
+    {
+        return array_map(fn($fsObject) => $fsObject->id, $this->collection);
+    }
+
     private function insertUniqueId(FileSystemObject $fsObject)
     {
         if (!in_array($fsObject->id, $this->uniqueIds)) $this->uniqueIds[] = $fsObject->id;

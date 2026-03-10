@@ -255,6 +255,17 @@ class FileSystemRepository extends BaseRepository
         }
     }
 
+    public function deletePermanently(int $userId, array $ids)
+    {
+        $query = $this->queryBuilder
+            ->delete()
+            ->where(Expression::equal('user_id'))
+            ->and(Expression::in('id', count($ids)))
+            ->build();
+
+        $this->delete($query, ['user_id' => $userId, ...$this->prepareParamsForIn($ids)]);
+    }
+
     private function getRecursiveCTE(string $whereClause = '', int $depth = 0): string
     {
         $depthLimit = $depth == 0 ? '' : "<$depth";

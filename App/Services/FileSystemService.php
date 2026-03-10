@@ -121,4 +121,9 @@ class FileSystemService
             'faildRestore' => $failedRestore
         ]);
     }
+
+    public function deletePermanently(int $userId, array $ids)
+    {
+        return $this->deleteFiles->deletePermanently($userId, $ids);
+    }
 }
