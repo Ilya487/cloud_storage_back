@@ -38,6 +38,21 @@ class QueryBuilder
         return $this;
     }
 
+    public function insertMany(array $fields, array $values)
+    {
+        $this->resetQuery();
+        $valuesStr = array_reduce($values, function ($carry, $item) {
+            if (is_array($item))
+                $str = rtrim(str_repeat('?,', count($item)), ',');
+            else $str = '?';
+            $carry .= "($str), ";
+            return $carry;
+        }, '');
+        $valuesStr = rtrim($valuesStr, ', ');
+        $this->query .= "INSERT INTO $this->tableName (" . implode(', ', $fields) . ") VALUES $valuesStr";
+        return $this;
+    }
+
     public function count()
     {
         $this->resetQuery();
@@ -110,9 +125,16 @@ class QueryBuilder
         return $this;
     }
 
-    private function resetQuery()
+    public function resetQuery()
     {
         $this->query = '';
+        return $this;
+    }
+
+    public function limit(int $limit, int $offset = 0)
+    {
+        $this->query .= "LIMIT $limit OFFSET $offset ";
+        return $this;
     }
 
     private function getPreparedParams(array $fields, bool $withNames = false)

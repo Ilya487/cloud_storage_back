@@ -2,7 +2,4 @@
 
 namespace App\Controllers;
 
-interface ControllerInterface
-{
-    public function resolve(): void;
-}
+interface ControllerInterface {}

@@ -15,8 +15,6 @@ class AuthController implements ControllerInterface
         private AuthValidator $requestValidator
     ) {}
 
-    public function resolve(): void {}
-
     public function getUser()
     {
         $user = $this->authManager->getAuthUser();
@@ -45,8 +43,8 @@ class AuthController implements ControllerInterface
     {
         $data = $this->requestValidator->signin();
 
-        $login = trim($data['login']);
-        $password = trim($data['password']);
+        $login = $data['login'];
+        $password = $data['password'];
 
         $authResult = $this->authManager->signinUser($login, $password);
 

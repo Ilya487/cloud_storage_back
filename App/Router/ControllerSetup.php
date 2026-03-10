@@ -7,7 +7,7 @@ use Exception;
 
 class ControllerSetup
 {
-    public function __construct(public readonly string $controllerClassName, public readonly string $method = 'resolve')
+    public function __construct(public readonly string $controllerClassName, public readonly string $method)
     {
         if (!is_subclass_of($controllerClassName, ControllerInterface::class)) {
             throw new Exception($controllerClassName . ' не является Controller');

@@ -6,9 +6,10 @@ class Expression
 {
     private function __construct(private string $query) {}
 
-    public static function equal(string $field)
+    public static function equal(string $field, ?string $paramName = null)
     {
-        return new self("$field = :$field ");
+        if (is_null($paramName)) $paramName = $field;
+        return new self("$field = :$paramName ");
     }
 
     public static function notEqual(string $field)
@@ -42,18 +43,22 @@ class Expression
         return new self("$field IS NULL ");
     }
 
+    public static function notNull(string $field)
+    {
+        return new self("$field IS NOT NULL ");
+    }
+
     public static function like(string $field, string $pattern)
     {
         return new self("$field LIKE :$pattern ");
     }
 
-    public static function in(string $field, array $values)
+    public static function in(string $field, int $paramsCount)
     {
-        $tmp =  array_map(function ($value) {
-            return ':' . $value;
-        }, $values);
-
-        $tmp =  implode(', ', $tmp);
+        for ($i = 0; $i < $paramsCount; $i++) {
+            $tmp .= ":$i";
+            if ($i != $paramsCount - 1) $tmp .= ',';
+        }
 
         return new self("$field IN ($tmp) ");
     }

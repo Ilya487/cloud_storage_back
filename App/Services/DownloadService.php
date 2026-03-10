@@ -29,19 +29,19 @@ class DownloadService
         if ($file === false) throw new NotFoundException('Файл не найден');
         if (!$file->isFile()) return OperationResult::createError(['message' => 'Попытка получить путь папки']);
 
-        $fullPath = $this->diskStorage->getPath($userId, $file->getPath());
+        $fullPath = $this->diskStorage->getPath($file->id, $file->getExt());
         if ($fullPath === false) return OperationResult::createError(['message' => 'Не удалось получить путь файла']);
 
         $pathForServer = $this->getPathForServer($fullPath);
-        return OperationResult::createSuccess(['path' => $pathForServer]);
+        return OperationResult::createSuccess(['path' => $pathForServer, 'name' => $file->getBaseName()]);
     }
 
     public function iniArchive(int $userId, array $filesId): OperationResult
     {
         $files = $this->fsRepo->getMany($userId, $filesId);
         if ($files === false) throw new NotFoundException('Запрашиваемые файлы не найдены');
-        if (count($files) == 1 && $files[0]->isFile()) return OperationResult::createError(['message' => 'Попытка скачать один файл']);
-        if (count($files) > self::MAX_FILES_COUNT) return OperationResult::createError(['message' => 'Превышено допустимое число файлов']);
+        if ($files->len() == 1 && $files[0]->isFile()) return OperationResult::createError(['message' => 'Попытка скачать один файл']);
+        if ($files->len() > self::MAX_FILES_COUNT) return OperationResult::createError(['message' => 'Превышено допустимое число файлов']);
 
         $taskId = $this->prepareRepo->createTask($userId, $filesId, self::MAX_SESSIONS_COUNT);
         if ($taskId === false) return OperationResult::createError(['message' => 'Превышен лимит одновременных скачиваний']);

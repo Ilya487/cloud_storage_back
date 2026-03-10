@@ -37,15 +37,8 @@ class UploadService
             }
         } else $destinationDirPath = '/';
 
-        if (
-            $this->fsRepo->isNameExist($userId, $fileName, $destinationDirId) ||
-            $this->uploadSessionsRepo->isNameExist($userId, $fileName, $destinationDirPath)
-        ) {
-            return OperationResult::createError(['message' => 'Файл с таким именем уже существует!']);
-        }
-
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
-        $uploadSession = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirPath, $fileSize);
+        $uploadSession = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirPath, $destinationDirId, $fileSize);
 
         if ($uploadSession === false) {
             return OperationResult::createError(['message' => 'Недостаточно свободного места на диске']);
@@ -94,7 +87,7 @@ class UploadService
 
         $this->uploadsStorage->deleteSessionDir($uploadSession->id);
         $this->uploadSessionsRepo->setStatus($userId, $uploadSession->id, UploadSessionStatus::CANCELLED);
-        $this->userRepo->freeUpDiskSpace($userId, $uploadSession->flieSize);
+        $this->userRepo->freeUpDiskSpace($userId, $uploadSession->fileSize);
         return OperationResult::createSuccess([]);
     }
 

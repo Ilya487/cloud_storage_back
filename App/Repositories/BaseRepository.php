@@ -13,7 +13,7 @@ abstract class BaseRepository
     private PDO $pdo;
     protected QueryBuilder $queryBuilder;
     protected string $tableName;
-
+    private bool $isTransactionStartManually = false;
 
     public function __construct(DbConnect $dbConnect)
     {
@@ -21,6 +21,27 @@ abstract class BaseRepository
 
         $this->pdo = $dbConnect->getConnection();
         $this->queryBuilder = new QueryBuilder($this->tableName);
+    }
+
+    public function withTransaction(callable $callback)
+    {
+        if ($this->pdo->inTransaction() || $this->isTransactionStartManually)
+            throw new Exception('Предыдущая транзакция не завершена!');
+
+        $commit = fn() => $this->pdo->commit();
+        $rollBack = fn() => $this->pdo->rollBack();
+        try {
+            $this->beginTransaction();
+            $this->isTransactionStartManually = true;
+            $res = $callback($commit, $rollBack);
+            $this->isTransactionStartManually = false;
+            $this->submitTransaction();
+
+            return $res;
+        } catch (Exception $e) {
+            $this->rollBackTransaction();
+            throw $e;
+        }
     }
 
     protected function fetchAll(string $query, array $columnValues, $returnType = PDO::FETCH_ASSOC): array
@@ -50,6 +71,15 @@ abstract class BaseRepository
         return $this->pdo->lastInsertId();
     }
 
+    protected function insertMany(string $query, array $values)
+    {
+        $flattened = array_reduce($values, function ($carry, $item) {
+            return array_merge($carry, is_array($item) ? $item : [$item]);
+        }, []);
+
+        $this->executeQuery($query, $flattened);
+    }
+
     protected function update(string $query, array $columnValues): int
     {
         return $this->executeQuery($query, $columnValues)->rowCount();
@@ -63,12 +93,14 @@ abstract class BaseRepository
 
     protected function beginTransaction()
     {
+        if ($this->isTransactionStartManually) return;
         if ($this->pdo->inTransaction()) return;
         $this->pdo->beginTransaction();
     }
 
     protected function submitTransaction()
     {
+        if ($this->isTransactionStartManually) return;
         if ($this->pdo->inTransaction())
             $this->pdo->commit();
     }
@@ -77,6 +109,16 @@ abstract class BaseRepository
     {
         if ($this->pdo->inTransaction())
             $this->pdo->rollBack();
+    }
+
+    protected function prepareParamsForIn(array $ids)
+    {
+        $preparedIds = [];
+        foreach ($ids as $key => $value) {
+            $preparedIds[":$key"] = $value;
+        }
+
+        return $preparedIds;
     }
 
     private function executeQuery(string $query, array $columnValues): PDOStatement

@@ -19,8 +19,6 @@ class UploadController implements ControllerInterface
         private UploadValidator $requestValidator
     ) {}
 
-    public function resolve(): void {}
-
     public function initUpload()
     {
         $userId = $this->authManager->getAuthUser()->getId();

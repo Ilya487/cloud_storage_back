@@ -3,73 +3,68 @@
 namespace App\Storage;
 
 use App\Storage\BaseStorage;
+use InvalidArgumentException;
 
 class DiskStorage extends BaseStorage
 {
-    public function initializeUserFolder(int $userId): bool
+    public function __construct(string $storagePath)
     {
-        $res = mkdir($this->getFullPath($userId, ''));
-        return $res;
-    }
+        parent::__construct($storagePath);
+        $path = $storagePath .  '/storage';
 
-    public function createDir(int $userId, string $dirName, string $path = '/'): bool
-    {
-        $path = $this->normalizePath($path);
-        $path = $path . $dirName;
-
-        return mkdir($this->getFullPath($userId, $path));
-    }
-
-    public function renameObject(int $userId, string $newName, string $path): bool
-    {
-        $oldFullPath = $this->getFullPath($userId, $path);
-        $updatedFullPath = dirname($oldFullPath) . "/$newName";
-        if (is_file($updatedFullPath)) return false;
-
-        return rename($oldFullPath, $updatedFullPath);
-    }
-
-    public function delete(int $userId, string $path): bool
-    {
-        $fullPath = $this->getFullPath($userId, $path);
-
-        if (is_dir($fullPath)) {
-            return $this->deleteDirectoryRecursively($fullPath);
-        } else if (is_file($fullPath)) {
-            return unlink($fullPath);
+        if (!is_dir($path)) {
+            mkdir($path);
         }
-        return false;
     }
 
-    public function moveItem(int $userId, string $currentPath, string $pathToMove): bool
+    public function delete(int $id): bool
     {
-        $currentPath = $this->getFullPath($userId, $currentPath);
-        $pathToMove = $this->getFullPath($userId, $pathToMove);
+        $filePath = $this->findPathById($id);
+        if (is_null($filePath)) return false;
 
-        $updatedPath = "$pathToMove/" . basename($currentPath);
-        if (is_file($updatedPath)) return false;
-
-        return rename($currentPath, $updatedPath);
+        return unlink($filePath);
     }
 
-    public function getPath(int $userId, string $partPath = '/'): string|false
+    public function createFile(int $id, string $ext): string|false
     {
-        $fullPath = $this->getFullPath($userId, $partPath);
-        if (is_file($fullPath) || is_dir($fullPath)) return $fullPath;
+        $filePath = $this->getFullPath($id, $ext);
+        if (file_exists($filePath)) return false;
+        $handle = fopen($filePath, 'w');
+        fclose($handle);
+
+        return $filePath;
+    }
+
+    public function getPath(int $id, string $ext): string|false
+    {
+        $fullPath = $this->getFullPath($id, $ext);
+        if (is_file($fullPath)) return $fullPath;
         else return false;
     }
 
-    public function getFileSize(int $userId, string $path): int|false
+    public function isFileExist(int $id): bool
     {
-        $fullPath = $this->getFullPath($userId, $path);
-        return filesize($fullPath);
+        $path = $this->findPathById($id);
+        return is_file($path);
     }
 
-    private function getFullPath(int $userId, string $partPath): string
+    private function findPathById(int $id): string|false
     {
-        $partPath = "/$userId" . $this->normalizePath($partPath, false);
-        $fullPath =  $this->storagePath . $partPath;
+        $relativePath = array_find(scandir($this->storagePath . '/storage'), function ($path) use ($id) {
+            if (is_dir($path)) return false;
+            $fileName = pathinfo($path)['filename'];
+            if ($fileName == $id) return true;
+            else return false;
+        });
 
-        return $fullPath;
+        if (is_null($relativePath)) return false;
+        else return $this->getFullPath(partPath: $relativePath);
+    }
+
+    private function getFullPath(?int $id = null, ?string $ext = null, ?string $partPath = null): string
+    {
+        if (!is_null($partPath)) return $this->storagePath . "/storage/$partPath";
+        elseif (isset($id, $ext)) return $this->storagePath . "/storage/$id.$ext";
+        else throw new InvalidArgumentException();
     }
 }

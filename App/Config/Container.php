@@ -32,4 +32,14 @@ class Container
 
         return self::$container;
     }
+
+    /**
+     * @template Type
+     * @param class-string<Type> $className
+     * @return Type
+     */
+    public static function resolve(string $className)
+    {
+        return self::getInstance()->resolve($className);
+    }
 }

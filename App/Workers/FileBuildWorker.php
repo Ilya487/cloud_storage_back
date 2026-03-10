@@ -33,48 +33,41 @@ class FileBuildWorker
         if ($session === false)
             throw new Exception('Сессия не найдена');
 
-        $buildedFilePath = $this->getOutputFileName($session, $session->destinationDirPath);
-        $buildResult = $this->fileBuilder->buildFile($session, $buildedFilePath);
+        $this->fsRepo->withTransaction(function ($commit, $rollback) use ($session) {
+            $fileId = $this->fsRepo->createFile(
+                $session->userId,
+                $session->fileName,
+                $session->getPath(),
+                $session->destinationDirId,
+                $session->fileSize
+            );
 
-        $this->uploadsStorage->deleteSessionDir($session->id);
+            $ext = strtolower(pathinfo($session->fileName, PATHINFO_EXTENSION));
+            $buildedFilePath = $this->diskStorage->createFile($fileId, $ext);
+            if ($buildedFilePath == false) {
+                $rollback();
+                $this->handleError($session, 'Не удалось создать файл на диске', null);
+            }
 
-        if (!$buildResult) {
-            $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
-            $this->userRepo->freeUpDiskSpace($session->userId, $session->flieSize);
-            unlink($buildedFilePath);
-            return;
-        }
+            $buildResult = $this->fileBuilder->buildFile($session, $buildedFilePath);
+            if (!$buildResult) {
+                $rollback();
+                $this->handleError($session, 'Не удалось собрать файл из чанков', $buildedFilePath);
+            }
 
-        if ($session->destinationDirPath == '/')
-            $destinationDirId = null;
-        else
-            $destinationDirId = $this->fsRepo->getDirIdByPath($userId, $session->destinationDirPath);
-
-        $this->fsRepo->createFile(
-            $session->userId,
-            $session->fileName,
-            $session->destinationDirPath . '/' . $session->fileName,
-            $destinationDirId,
-            $session->flieSize
-        );
-
-        $renameRes = $this->diskStorage->renameObject($session->userId, $session->fileName, $session->destinationDirPath . '/' . basename($buildedFilePath));
-
-        if ($renameRes !== false) {
-            $this->fsRepo->confirmChanges();
+            $commit();
             $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::COMPLETE);
-        } else {
-            $this->fsRepo->cancelLastChanges();
-            $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
-            $this->userRepo->freeUpDiskSpace($session->userId, $session->flieSize);
-        }
+            $this->uploadsStorage->deleteSessionDir($session->id);
+        });
     }
 
-    private function getOutputFileName(UploadSession $session, string $toDirPath): string
+    private function handleError(UploadSession $session, string $msg, ?string $buildedFilePath)
     {
-        $buildedFilePath = $this->diskStorage->getPath($session->userId, $toDirPath) . '/.build' . $session->id . $session->fileName;
-
-        return $buildedFilePath;
+        $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::ERROR);
+        $this->userRepo->freeUpDiskSpace($session->userId, $session->fileSize);
+        $this->uploadsStorage->deleteSessionDir($session->id);
+        if (!is_null($buildedFilePath)) unlink($buildedFilePath);
+        throw new Exception($msg);
     }
 }
 

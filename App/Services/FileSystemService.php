@@ -5,16 +5,13 @@ namespace App\Services;
 use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
 use App\Models\FileSystemObject;
-use App\Models\FsObjectType;
 use App\Repositories\FileSystemRepository;
-use App\Storage\DiskStorage;
 use App\UseCases\DeleteFilesUseCase;
 use App\UseCases\MoveFilesUseCase;
 
 class FileSystemService
 {
     public function __construct(
-        private DiskStorage $diskStorage,
         private FileSystemRepository $fsRepo,
         private MoveFilesUseCase $moveFiles,
         private DeleteFilesUseCase $deleteFiles,
@@ -27,13 +24,8 @@ class FileSystemService
 
         $path = "$parentPath/$dirName";
         $dirId = $this->fsRepo->createDir($userId, $dirName, $path, $parentDirId);
-        if ($this->diskStorage->createDir($userId, $dirName, $parentPath)) {
-            $this->fsRepo->confirmChanges();
-            return OperationResult::createSuccess(['dirId' => $dirId]);
-        } else {
-            $this->fsRepo->cancelLastChanges();
-            return  OperationResult::createError(['message' => 'Папка с таким именем уже существует']);
-        }
+
+        return OperationResult::createSuccess(['dirId' => $dirId]);
     }
 
     public function getFolderContent(int $userId, ?int $dirId = null): OperationResult
@@ -43,15 +35,11 @@ class FileSystemService
         if ($selectedDir->isFile())
             return OperationResult::createError(['message' => 'Выбран файл']);
 
+        if ($selectedDir->inTrash) throw new NotFoundException('Указаная директория не найдена');
         $catalogData = $this->fsRepo->getDirContent($userId, $dirId);
 
         if ($catalogData !== false) return OperationResult::createSuccess(['path' => $selectedDir->getPath(), 'contents' => $catalogData]);
         else return OperationResult::createError(['message' => 'Не удалось получить содержимое папки']);
-    }
-
-    public function initializeUserStorage(int $userId): bool
-    {
-        return $this->diskStorage->initializeUserFolder($userId);
     }
 
     public function renameObject(int $userId, int $objectId, string $newName): OperationResult
@@ -59,25 +47,13 @@ class FileSystemService
         $fsObject = $this->fsRepo->getById($userId, $objectId);
         if ($fsObject === false) return OperationResult::createError(['message' => 'Указан неверный айди']);
 
-        $currentPath = $fsObject->getPath();
-        $updatedPath = $fsObject->rename($newName);
-
-        $this->fsRepo->rename($fsObject->ownerId, $fsObject->type, $currentPath, $updatedPath, $fsObject->getName());
-
-        if ($this->diskStorage->renameObject($userId, $newName, $currentPath)) {
-            $this->fsRepo->confirmChanges();
-            return OperationResult::createSuccess(['updatedPath' => $updatedPath]);
-        } else {
-            $this->fsRepo->cancelLastChanges();
-            return OperationResult::createError([
-                'message' => 'Не удалось переименовать ' . ($fsObject->type == FsObjectType::DIR ? 'папку' : 'файл')
-            ]);
-        }
+        $this->fsRepo->rename($fsObject, $newName);
+        return OperationResult::createSuccess(['updatedPath' => $fsObject->getPath()]);
     }
 
-    public function deleteObjects(int $userId, array $items): OperationResult
+    public function softDeleteObjects(int $userId, array $items): OperationResult
     {
-        return $this->deleteFiles->execute($userId, $items);
+        return $this->deleteFiles->softDelete($userId, $items);
     }
 
     public function moveObjects(int $userId, array $items, ?int $toDirId = null): OperationResult
@@ -103,5 +79,51 @@ class FileSystemService
             'count' => count($searchRes),
             'matches' => $searchRes
         ]);
+    }
+
+    public function getDeletedFiles(int $userId): array
+    {
+        $data = $this->fsRepo->getDeletedFiles($userId);
+
+        return $data;
+    }
+
+    public function restoreFiles(int $userId, array $ids): OperationResult
+    {
+        $fsCollection = $this->fsRepo->getMany($userId, $ids);
+        if ($fsCollection === false) return OperationResult::createError(['message' => 'Не удалось восстановить запрашиваемые файлы']);
+
+        $fsCollection = $fsCollection->filter(fn($fsObject) => $fsObject->inTrash);
+        if ($fsCollection->len() == 0) return OperationResult::createError(['message' => 'Запрашиваемые файлы не находятся в корзине']);
+        $failedRestore = count($ids) - $fsCollection->len();
+
+        $this->fsRepo->withTransaction(function () use ($fsCollection) {
+            foreach ($fsCollection as $fsObject) {
+
+                if (!$fsObject->hasParent()) {
+                    $this->fsRepo->restoreObject($fsObject);
+                    continue;
+                }
+
+                $parentDir = $this->fsRepo->getById($fsObject->ownerId, $fsObject->getParentId());
+                if (!$parentDir->inTrash) {
+                    $this->fsRepo->restoreObject($fsObject);
+                    continue;
+                }
+
+                $this->fsRepo->moveObject($fsObject, FileSystemObject::createRootDir($fsObject->ownerId));
+                $this->fsRepo->restoreObject($fsObject);
+            }
+        });
+
+        return OperationResult::createSuccess([
+            'successRestore' => count($ids) - $failedRestore,
+            'faildRestore' => $failedRestore
+        ]);
+    }
+
+    public function deletePermanently(int $userId, array $ids)
+    {
+        return $this->deleteFiles->deletePermanently($userId, $ids);
     }
 }

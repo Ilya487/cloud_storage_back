@@ -20,8 +20,14 @@ class UploadSessionRepository  extends BaseRepository
         parent::__construct($dbConnect);
     }
 
-    public function createUploadSession(int $userId, string $fileName, int $totalChunks, ?string $destinationDirPath, int $fileSize): UploadSession|false
-    {
+    public function createUploadSession(
+        int $userId,
+        string $fileName,
+        int $totalChunks,
+        ?string $destinationDirPath,
+        ?int $destinationDirId,
+        int $fileSize
+    ): UploadSession|false {
         $this->beginTransaction();
         $canInsert = $this->userRepo->reserveDiskSpace($userId, $fileSize);
         if (!$canInsert) {
@@ -29,11 +35,12 @@ class UploadSessionRepository  extends BaseRepository
             return false;
         }
 
-        $query = $this->queryBuilder->insert(['user_id', 'filename', 'destination_dir_path', 'total_chunks', 'file_size'])->build();
+        $query = $this->queryBuilder->insert(['user_id', 'filename', 'destination_dir_path', 'destination_dir_id', 'total_chunks', 'file_size'])->build();
         $id =  $this->insert($query, [
             'user_id' => $userId,
             'filename' => $fileName,
             'destination_dir_path' => $destinationDirPath,
+            'destination_dir_id' => $destinationDirId,
             'total_chunks' => $totalChunks,
             'file_size' => $fileSize
         ]);
@@ -55,7 +62,7 @@ class UploadSessionRepository  extends BaseRepository
     public function deleteSession(UploadSession $session)
     {
         $this->beginTransaction();
-        $this->userRepo->freeUpDiskSpace($session->userId, $session->flieSize);
+        $this->userRepo->freeUpDiskSpace($session->userId, $session->fileSize);
         $query = $this->queryBuilder
             ->delete()
             ->where(Expression::equal('user_id'))
@@ -87,24 +94,6 @@ class UploadSessionRepository  extends BaseRepository
         $this->submitTransaction();
 
         return $count;
-    }
-
-    public function isNameExist(int $userId, string $fileName, ?string $destinationDirPath)
-    {
-        $query = $this->queryBuilder
-            ->count()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('filename'));
-
-        if (is_null($destinationDirPath)) {
-            $query = $query->and(Expression::isNull('destination_dir_path'))->build();
-            $params = ['user_id' => $userId, 'filename' => $fileName];
-        } else {
-            $query = $query->and(Expression::like('destination_dir_path', 'pathPattern'))->build();
-            $params = ['user_id' => $userId, 'filename' => $fileName, 'pathPattern' => $destinationDirPath];
-        }
-        $query .= ' AND (status=\'' . UploadSessionStatus::UPLOADING->value . '\' OR status=\'' . UploadSessionStatus::BUILDING->value . '\')';
-        return $this->fetchOne($query, $params, PDO::FETCH_NUM)[0] != 0;
     }
 
     public function getUserSessionsCount(int $userId): int

@@ -3,6 +3,7 @@
 use App\Controllers\AuthController;
 use App\Controllers\DownloadController;
 use App\Controllers\FileSystemController;
+use App\Controllers\TrashController;
 use App\Controllers\UploadController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\GuestMiddleware;
@@ -25,6 +26,10 @@ return [
     Route::get('/fs/search', new ControllerSetup(FileSystemController::class, 'search'), [AuthMiddleware::class]),
     Route::get('/fs/folder/{id}', new ControllerSetup(FileSystemController::class, 'getFolderContent'), [AuthMiddleware::class]),
     Route::get('/fs/disk/info', new ControllerSetup(FileSystemController::class, 'getDiskInfo'), [AuthMiddleware::class]),
+
+    Route::get('/fs/trash', new ControllerSetup(TrashController::class, 'index'), [AuthMiddleware::class]),
+    Route::post('/fs/trash/restore', new ControllerSetup(TrashController::class, 'restore'), [AuthMiddleware::class]),
+    Route::post('/fs/trash/delete', new ControllerSetup(TrashController::class, 'delete'), [AuthMiddleware::class]),
 
     Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class]),
     Route::post('/upload/chunk/{sessionId}', new ControllerSetup(UploadController::class, 'uploadChunk'), [AuthMiddleware::class]),

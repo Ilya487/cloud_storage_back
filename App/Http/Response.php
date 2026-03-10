@@ -52,18 +52,18 @@ class Response
         die;
     }
 
-    public function sendDownloadResponse(string $path)
+    public function sendDownloadResponse(string $path, string $name = '')
     {
-        $filename = rawurlencode(basename($path));
+        $filename = rawurlencode($name ?: basename($path));
         $this->setHeader('Content-Type', '');
         $this->setHeader('Content-Disposition', "attachment; filename=$filename");
         $this->setHeader('X-Accel-Redirect', $path);
         die;
     }
 
-    public function outputFile($path)
+    public function outputFile($path, $name = '')
     {
-        $filename = rawurlencode(basename($path));
+        $filename = $name ?: basename($path);
         $this->setHeader('Content-Type', '');
         $this->setHeader('Content-Disposition', "inline; filename=$filename");
         $this->setHeader('X-Accel-Redirect', $path);

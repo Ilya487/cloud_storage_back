@@ -10,7 +10,7 @@ use App\Models\PrepareFilesTaskStatus;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\PreapareFilesTaskRepository;
 use App\Repositories\UserRepository;
-use App\Services\FilesDownloadPreparer;
+use App\Services\DownloadArchiveService;
 use App\Tools\ErrorHandler;
 use Exception;
 
@@ -19,7 +19,7 @@ class PrepareFileForDownloadWorker
     public function __construct(
         private PreapareFilesTaskRepository $taskRepo,
         private FileSystemRepository $fsRepo,
-        private FilesDownloadPreparer $filePreparer,
+        private DownloadArchiveService $archiveCreator,
         private UserRepository $userRepo
     ) {}
 
@@ -28,11 +28,18 @@ class PrepareFileForDownloadWorker
         $task = $this->taskRepo->getById($userId, $taskId);
         if ($task === false) throw new Exception('Задача не найдена');
 
-        $files = $this->fsRepo->getMany($task->userId, $task->filesId);
+        $files = $this->fsRepo->getFileTreeByIds($task->userId, $task->filesId);
         if ($files === false) $this->handleError($task, 'Запрашиваемые файлы не найдены');
 
-        $prepareRes = $this->filePreparer->prepareFiles($task->id, $files);
-        if (!$prepareRes->success) $this->handleError($task, 'Не удалось создать архив');
+        $files = $files->filter(fn($fsObject) => !$fsObject->inTrash);
+        if ($files->len() == 0) $this->handleError($task, 'Файлы находятся в корзине');
+
+        if (count($task->filesId) == 1) {
+            $prefix = $files->getById($task->filesId[0])->getName();
+        }
+
+        $creationRes = $this->archiveCreator->buildArchiveForDownload($task->id, $files, $prefix ?? '');
+        if (!$creationRes->success) $this->handleError($task, 'Не удалось создать архив');
 
         $this->taskRepo->setStatus($task->userId, $task->id, PrepareFilesTaskStatus::READY);
         $this->userRepo->decrementDownloadSessionCount($task->userId);
