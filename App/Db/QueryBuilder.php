@@ -131,6 +131,12 @@ class QueryBuilder
         return $this;
     }
 
+    public function limit(int $limit, int $offset = 0)
+    {
+        $this->query .= "LIMIT $limit OFFSET $offset ";
+        return $this;
+    }
+
     private function getPreparedParams(array $fields, bool $withNames = false)
     {
         $tmp =  array_map(function ($field) use ($withNames) {
