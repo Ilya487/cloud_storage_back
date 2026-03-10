@@ -35,4 +35,17 @@ class TrashController implements ControllerInterface
             $this->response->setStatusCode(400)->sendJson($res->errors);
         }
     }
+
+    public function delete()
+    {
+        $userId = auth()->getId();
+        $ids = $this->requestValidator->delete();
+
+        $res = $this->fsService->deletePermanently($userId, $ids);
+        if ($res->success) {
+            $this->response->sendJson($res->data);
+        } else {
+            $this->response->setStatusCode(400)->sendJson($res->errors);
+        }
+    }
 }

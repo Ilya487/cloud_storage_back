@@ -29,6 +29,7 @@ return [
 
     Route::get('/fs/trash', new ControllerSetup(TrashController::class, 'index'), [AuthMiddleware::class]),
     Route::post('/fs/trash/restore', new ControllerSetup(TrashController::class, 'restore'), [AuthMiddleware::class]),
+    Route::post('/fs/trash/delete', new ControllerSetup(TrashController::class, 'delete'), [AuthMiddleware::class]),
 
     Route::post('/upload/init', new ControllerSetup(UploadController::class, 'initUpload'), [AuthMiddleware::class]),
     Route::post('/upload/chunk/{sessionId}', new ControllerSetup(UploadController::class, 'uploadChunk'), [AuthMiddleware::class]),
