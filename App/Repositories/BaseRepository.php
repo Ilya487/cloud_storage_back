@@ -71,6 +71,15 @@ abstract class BaseRepository
         return $this->pdo->lastInsertId();
     }
 
+    protected function insertMany(string $query, array $values)
+    {
+        $flattened = array_reduce($values, function ($carry, $item) {
+            return array_merge($carry, is_array($item) ? $item : [$item]);
+        }, []);
+
+        $this->executeQuery($query, $flattened);
+    }
+
     protected function update(string $query, array $columnValues): int
     {
         return $this->executeQuery($query, $columnValues)->rowCount();
