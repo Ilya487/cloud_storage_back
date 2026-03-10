@@ -3,6 +3,7 @@
 namespace App\Storage;
 
 use App\Storage\BaseStorage;
+use InvalidArgumentException;
 
 class DiskStorage extends BaseStorage
 {
@@ -16,16 +17,12 @@ class DiskStorage extends BaseStorage
         }
     }
 
-    public function delete(int $userId, string $path): bool
+    public function delete(int $id): bool
     {
-        $fullPath = $this->getFullPath($userId, $path);
+        $filePath = $this->findPathById($id);
+        if (is_null($filePath)) return false;
 
-        if (is_dir($fullPath)) {
-            return $this->deleteDirectoryRecursively($fullPath);
-        } else if (is_file($fullPath)) {
-            return unlink($fullPath);
-        }
-        return false;
+        return unlink($filePath);
     }
 
     public function createFile(int $id, string $ext): string|false
@@ -45,14 +42,29 @@ class DiskStorage extends BaseStorage
         else return false;
     }
 
-    public function getFileSize(int $userId, string $path): int|false
+    public function isFileExist(int $id): bool
     {
-        $fullPath = $this->getFullPath($userId, $path);
-        return filesize($fullPath);
+        $path = $this->findPathById($id);
+        return is_file($path);
     }
 
-    private function getFullPath(int $id, string $ext): string
+    private function findPathById(int $id): string|false
     {
-        return $this->storagePath . "/storage/$id.$ext";
+        $relativePath = array_find(scandir($this->storagePath . '/storage'), function ($path) use ($id) {
+            if (is_dir($path)) return false;
+            $fileName = pathinfo($path)['filename'];
+            if ($fileName == $id) return true;
+            else return false;
+        });
+
+        if (is_null($relativePath)) return false;
+        else return $this->getFullPath(partPath: $relativePath);
+    }
+
+    private function getFullPath(?int $id = null, ?string $ext = null, ?string $partPath = null): string
+    {
+        if (!is_null($partPath)) return $this->storagePath . "/storage/$partPath";
+        elseif (isset($id, $ext)) return $this->storagePath . "/storage/$id.$ext";
+        else throw new InvalidArgumentException();
     }
 }
