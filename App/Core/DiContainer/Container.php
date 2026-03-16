@@ -11,8 +11,9 @@ use App\Core\DiContainer\ContainerException;
 class Container
 {
     private array $resolving = [];
+    private array $readyObjects = [];
 
-    public function __construct(private array $params, private array $singletons, private array $realizations) {}
+    public function __construct(private array $params, private array $transients, private array $realizations) {}
 
     /**
      * @template Type
@@ -27,8 +28,8 @@ class Container
         $this->resolving[]  = $className;
 
         try {
-            if ($this->isSinglton($className) && !is_null($this->singletons[$className])) {
-                return $this->singletons[$className];
+            if (!$this->isTransient($className) && !is_null($this->readyObjects[$className])) {
+                return $this->readyObjects[$className];
             }
 
             $reflection = new ReflectionClass($className);
@@ -37,10 +38,10 @@ class Container
             else $resultObject = $this->resolveAbstraction($className);
 
 
-            if ($this->isSinglton($className)) {
-                $this->singletons[$className] = $resultObject;
-                return $this->singletons[$className];
-            } else return $resultObject;
+            if ($this->isTransient($className))
+                return $resultObject;
+            $this->readyObjects[$className] = $resultObject;
+            return $this->readyObjects[$className];
         } finally {
             array_pop($this->resolving);
         }
@@ -106,8 +107,8 @@ class Container
         return isset($this->realizations[$abstractionName]);
     }
 
-    private function isSinglton($key): bool
+    private function isTransient($key): bool
     {
-        return array_key_exists($key, $this->singletons);
+        return in_array($key, $this->transients);
     }
 }

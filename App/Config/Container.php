@@ -10,8 +10,6 @@ use App\Core\DiContainer\ContainerParam;
 use App\Storage\DiskStorage;
 use App\Storage\DownloadStorage;
 use App\Storage\UploadsStorage;
-use App\Tools\DbConnect;
-use App\Tools\Session;
 
 class Container
 {
@@ -22,11 +20,10 @@ class Container
         if (is_null(self::$container)) {
             $containerBuilder = new ContainerBuilder;
             $containerBuilder->bind(AuthenticationInterface::class, SessionAuthentication::class);
-            $containerBuilder->share(DbConnect::class);
-            $containerBuilder->share(Session::class);
-            $containerBuilder->setParam(new ContainerParam(DiskStorage::class, 'storagePath', '/var/lib/cloud-storage'));
-            $containerBuilder->setParam(new ContainerParam(UploadsStorage::class, 'storagePath', '/var/lib/cloud-storage'));
-            $containerBuilder->setParam(new ContainerParam(DownloadStorage::class, 'storagePath', '/var/lib/cloud-storage'));
+            $containerBuilder->set('storagePath', '/var/lib/cloud-storage');
+            $containerBuilder->setParam(new ContainerParam(DiskStorage::class, 'storagePath', $containerBuilder->get('storagePath')));
+            $containerBuilder->setParam(new ContainerParam(UploadsStorage::class, 'storagePath', $containerBuilder->get('storagePath')));
+            $containerBuilder->setParam(new ContainerParam(DownloadStorage::class, 'storagePath', $containerBuilder->get('storagePath')));
             self::$container = $containerBuilder->build();
         }
 
@@ -34,9 +31,9 @@ class Container
     }
 
     /**
-     * @template Type
-     * @param class-string<Type> $className
-     * @return Type
+     * @template T
+     * @param class-string<T> $className
+     * @return T
      */
     public static function resolve(string $className)
     {
