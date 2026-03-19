@@ -2,6 +2,7 @@
 
 namespace App\Workers;
 
+use App\Tools\ErrorHandler;
 use App\Tools\RedisConntect;
 
 abstract class Worker
@@ -14,7 +15,7 @@ abstract class Worker
             $redis = $this->redisFactory->getConnection();
             $payload = $redis->brPop($this->getJobKey(), 10)[1];
             if ($payload) {
-                $this->handle($payload);
+                ErrorHandler::handle(fn() => $this->handle($payload));
             }
         }
     }
