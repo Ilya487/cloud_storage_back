@@ -5,11 +5,12 @@ namespace App\Services;
 use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
 use App\Models\UploadSessionStatus;
+use App\Queue\Jobs\BuildFileJob;
+use App\Queue\Queue;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\UploadSessionRepository;
 use App\Repositories\UserRepository;
 use App\Storage\UploadsStorage;
-use App\Workers\WorkerManager;
 
 class UploadService
 {
@@ -21,7 +22,8 @@ class UploadService
         private FileSystemRepository $fsRepo,
         private UploadSessionRepository $uploadSessionsRepo,
         private UploadsStorage $uploadsStorage,
-        private UserRepository $userRepo
+        private UserRepository $userRepo,
+        private Queue $queue
     ) {}
 
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
@@ -111,7 +113,7 @@ class UploadService
         if (!$uploadSession->canBeBuilded()) return OperationResult::createError(['message' => 'Невозможно запустить сборку']);
 
         $this->uploadSessionsRepo->setStatus($uploadSession->userId, $uploadSession->id, UploadSessionStatus::BUILDING);
-        WorkerManager::startFileBuildWorker($uploadSession->id, $userId);
+        $this->queue->push(BuildFileJob::create($userId, $uploadSession->id));
 
         return OperationResult::createSuccess([
             'id' => $uploadSession->id,
