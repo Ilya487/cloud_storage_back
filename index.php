@@ -1,6 +1,6 @@
 <?php
 
-require_once 'autoloader.php';
+require_once 'vendor/autoload.php';
 
 use App\Config\Container;
 use App\Router\Router;

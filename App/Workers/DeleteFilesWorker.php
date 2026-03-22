@@ -7,8 +7,6 @@ use App\Queue\Jobs\DeleteFilesJob;
 use App\Tools\RedisConntect;
 use App\Workers\Worker;
 
-require_once 'autoloader.php';
-
 class DeleteFilesWorker extends Worker
 {
     public function __construct(
