@@ -11,13 +11,14 @@ abstract class Worker
 
     public function listen()
     {
-        while (true) {
-            $redis = $this->redisFactory->getConnection();
-            $jobKey = $this->getJobKey();
+        $redis = $this->redisFactory->getConnection();
+        $jobKey = $this->getJobKey();
 
-            $payload = $redis->brPop($jobKey, 10)[1];
-            if ($payload) {
+        while (true) {
+            $result = $redis->brPop($jobKey, 30);
+            if ($result) {
                 try {
+                    $payload = $result[1];
                     $this->handle($payload);
                 } catch (\Throwable $e) {
                     Logger::writeLogFromError($e);
