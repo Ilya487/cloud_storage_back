@@ -2,38 +2,31 @@
 
 namespace App\Workers;
 
-use App\Config\Container;
-use App\Repositories\FilesToDeleteQueueRepository;
-use App\Storage\DiskStorage;
-use App\Tools\ErrorHandler;
+use App\Queue\Handlers\DeleteFilesJobHandler;
+use App\Queue\Jobs\DeleteFilesJob;
+use App\Tools\RedisConntect;
+use App\Workers\Worker;
 
-require_once 'autoloader.php';
-
-class DeleteFilesWorker
+class DeleteFilesWorker extends Worker
 {
     public function __construct(
-        private FilesToDeleteQueueRepository $deleteQueue,
-        private DiskStorage $disk
-    ) {}
+        RedisConntect $redisFactory,
+        private DeleteFilesJobHandler $handler
+    ) {
+        parent::__construct($redisFactory);
+    }
 
-    public function run()
+    protected function getJobKey(): string
     {
-        $ids = $this->deleteQueue->getIds(100);
-        if ($ids === false) return;
+        return DeleteFilesJob::JOB_KEY;
+    }
 
-        $idsToDelete = [];
-        foreach ($ids as $id) {
-            if (!$this->disk->isFileExist($id))
-                $idsToDelete[] = $id;
-            elseif ($this->disk->delete($id))
-                $idsToDelete[] = $id;
-        }
+    protected function handle(string $payload)
+    {
+        $arr = json_decode($payload, true);
+        $filesIds = $arr['files'];
+        if (empty($filesIds)) return;
 
-        $this->deleteQueue->deleteIds($idsToDelete);
+        $this->handler->handle($filesIds);
     }
 }
-
-ErrorHandler::handle(function () {
-    $worker = Container::getInstance()->resolve(DeleteFilesWorker::class);
-    $worker->run();
-});

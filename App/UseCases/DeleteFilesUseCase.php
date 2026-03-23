@@ -3,14 +3,15 @@
 namespace App\UseCases;
 
 use App\DTO\OperationResult;
-use App\Repositories\FilesToDeleteQueueRepository;
+use App\Queue\Jobs\DeleteFilesJob;
+use App\Queue\Queue;
 use App\Repositories\FileSystemRepository;
 
 class DeleteFilesUseCase
 {
     public function __construct(
         private FileSystemRepository $fsRepo,
-        private FilesToDeleteQueueRepository $deleteQueue
+        private Queue $queue
     ) {}
 
     public function softDelete(int $userId, array $items): OperationResult
@@ -60,10 +61,8 @@ class DeleteFilesUseCase
             ]);
         }
 
-        $this->fsRepo->withTransaction(function () use ($collection, $files, $userId) {
-            $this->deleteQueue->setFilesInQueue($files->toIdsArray());
-            $this->fsRepo->deletePermanently($userId, $collection->toIdsArray());
-        });
+        $this->fsRepo->deletePermanently($userId, $collection->toIdsArray());
+        $this->queue->push(DeleteFilesJob::create($collection->toIdsArray()));
 
         return OperationResult::createSuccess([
             'successDelte' => count($ids) - $failDelete,

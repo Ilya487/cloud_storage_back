@@ -1,20 +1,16 @@
 <?php
 
-namespace App\Workers;
+namespace App\Queue\Handlers;
 
-require_once 'autoloader.php';
-
-use App\Config\Container;
 use App\Models\PrepareFilesTask;
 use App\Models\PrepareFilesTaskStatus;
 use App\Repositories\FileSystemRepository;
 use App\Repositories\PreapareFilesTaskRepository;
 use App\Repositories\UserRepository;
 use App\Services\DownloadArchiveService;
-use App\Tools\ErrorHandler;
 use Exception;
 
-class PrepareFileForDownloadWorker
+class CreateArchiveJobHandler
 {
     public function __construct(
         private PreapareFilesTaskRepository $taskRepo,
@@ -23,7 +19,7 @@ class PrepareFileForDownloadWorker
         private UserRepository $userRepo
     ) {}
 
-    public function prepare(int $userId, int $taskId)
+    public function handle(int $userId, int $taskId)
     {
         $task = $this->taskRepo->getById($userId, $taskId);
         if ($task === false) throw new Exception('Задача не найдена');
@@ -52,10 +48,3 @@ class PrepareFileForDownloadWorker
         throw new Exception($msg);
     }
 }
-
-ErrorHandler::handle(function () {
-    $worker = Container::getInstance()->resolve(PrepareFileForDownloadWorker::class);
-    ['t' => $taskId, 'u' => $userId] = getopt('t:u:');
-
-    $worker->prepare($userId, $taskId);
-});

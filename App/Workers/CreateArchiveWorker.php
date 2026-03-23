@@ -2,31 +2,30 @@
 
 namespace App\Workers;
 
-use App\Queue\Handlers\BuildFileJobHandler;
-use App\Queue\Jobs\BuildFileJob;
+use App\Queue\Handlers\CreateArchiveJobHandler;
+use App\Queue\Jobs\CreateArchiveJob;
 use App\Tools\RedisConntect;
-use App\Workers\Worker;
 
-class FileBuildWorker extends Worker
+class CreateArchiveWorker extends Worker
 {
     public function __construct(
         RedisConntect $redisFactory,
-        private BuildFileJobHandler $handler
+        private CreateArchiveJobHandler $handler
     ) {
         parent::__construct($redisFactory);
     }
 
     protected function getJobKey(): string
     {
-        return BuildFileJob::JOB_KEY;
+        return CreateArchiveJob::JOB_KEY;
     }
 
     protected function handle(string $payload)
     {
         $arr = json_decode($payload, true);
         $userId = $arr['userId'];
-        $sessionId = $arr['sessionId'];
+        $taskId = $arr['taskId'];
 
-        $this->handler->handle($userId, $sessionId);
+        $this->handler->handle($userId, $taskId);
     }
 }
