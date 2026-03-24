@@ -6,19 +6,11 @@ use App\Db\Expression;
 use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
 use App\Repositories\BaseRepository;
-use App\Tools\DbConnect;
 use PDO;
 
 class UploadSessionRepository  extends BaseRepository
 {
     protected string $tableName = 'upload_sessions';
-
-    public function __construct(
-        DbConnect $dbConnect,
-        private UserRepository $userRepo
-    ) {
-        parent::__construct($dbConnect);
-    }
 
     public function createUploadSession(
         int $userId,
@@ -28,14 +20,7 @@ class UploadSessionRepository  extends BaseRepository
         ?int $destinationDirId,
         int $fileSize,
         int $expireAt
-    ): UploadSession|false {
-        $this->beginTransaction();
-        $canInsert = $this->userRepo->reserveDiskSpace($userId, $fileSize);
-        if (!$canInsert) {
-            $this->rollBackTransaction();
-            return false;
-        }
-
+    ): UploadSession {
         $query = $this->queryBuilder->insert([
             'user_id',
             'filename',
@@ -56,8 +41,6 @@ class UploadSessionRepository  extends BaseRepository
             'expire_at' => $this->formatTimestamp($expireAt)
         ]);
 
-        $this->submitTransaction();
-
         return UploadSession::createFromArr([
             'id' => $id,
             'user_id' => $userId,
@@ -72,15 +55,12 @@ class UploadSessionRepository  extends BaseRepository
 
     public function deleteSession(UploadSession $session)
     {
-        $this->beginTransaction();
-        $this->userRepo->freeUpDiskSpace($session->userId, $session->fileSize);
         $query = $this->queryBuilder
             ->delete()
             ->where(Expression::equal('user_id'))
             ->and(Expression::equal('id'))
             ->build();
         $this->delete($query, ['user_id' => $session->userId, 'id' => $session->id]);
-        $this->submitTransaction();
     }
 
     public function getById(int $userId, int $sessionId): UploadSession|false

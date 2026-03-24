@@ -32,7 +32,7 @@ class UploadService
             return OperationResult::createError(['message' => 'Вы превысили максимальное количество активных сессий']);
         }
 
-        if (!is_null($destinationDirId)) {
+        if ($destinationDirId !== null) {
             $destinationDirPath = $this->fsRepo->getPathById($destinationDirId, $userId);
             if ($destinationDirPath === false) {
                 return OperationResult::createError(['message' => 'Папка назначения не существует или была удалена']);
@@ -40,31 +40,43 @@ class UploadService
         } else $destinationDirPath = '/';
 
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
-        $uploadSession = $this->uploadSessionsRepo->createUploadSession(
+
+        return $this->userRepo->withTransaction(function ($rollBack) use (
             $userId,
+            $fileSize,
             $fileName,
             $totalChunks,
             $destinationDirPath,
-            $destinationDirId,
-            $fileSize,
-            time() + self::SESSION_EXPIRE_INTERVAL
-        );
+            $destinationDirId
+        ) {
+            $canInsert = $this->userRepo->reserveDiskSpace($userId, $fileSize);
+            if (!$canInsert) {
+                $rollBack();
+                return OperationResult::createError(['message' => 'Недостаточно свободного места на диске']);
+            }
 
-        if ($uploadSession === false) {
-            return OperationResult::createError(['message' => 'Недостаточно свободного места на диске']);
-        }
+            $uploadSession = $this->uploadSessionsRepo->createUploadSession(
+                $userId,
+                $fileName,
+                $totalChunks,
+                $destinationDirPath,
+                $destinationDirId,
+                $fileSize,
+                time() + self::SESSION_EXPIRE_INTERVAL
+            );
 
-        if (!$this->uploadsStorage->initializeUploadDir($uploadSession->id)) {
-            $this->uploadSessionsRepo->deleteSession($uploadSession);
-            return OperationResult::createError(['message' => 'Не удалась инициализировать сессию загрузки']);
-        }
+            if (!$this->uploadsStorage->initializeUploadDir($uploadSession->id)) {
+                $rollBack();
+                return OperationResult::createError(['message' => 'Не удалась инициализировать сессию загрузки']);
+            }
 
-        return OperationResult::createSuccess([
-            'sessionId' => (int)$uploadSession->id,
-            'chunkSize' => self::CHUNK_SIZE,
-            'chunksCount' => $totalChunks,
-            'path' => $destinationDirPath
-        ]);
+            return OperationResult::createSuccess([
+                'sessionId' => (int)$uploadSession->id,
+                'chunkSize' => self::CHUNK_SIZE,
+                'chunksCount' => $totalChunks,
+                'path' => $destinationDirPath
+            ]);
+        });
     }
 
     public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, string $data): OperationResult
