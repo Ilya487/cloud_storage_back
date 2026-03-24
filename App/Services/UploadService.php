@@ -14,9 +14,9 @@ use App\Storage\UploadsStorage;
 
 class UploadService
 {
-    private const CHUNK_SIZE = 8 * 1024 * 1024;
+    private const CHUNK_SIZE = 5 * 1024 * 1024;
     private const MAX_ACTIVE_SESSION_FOR_USER = 5;
-    private const SESSION_MAX_LIFETIME = 300; //5min
+    private const SESSION_EXPIRE_INTERVAL = 3600;
 
     public function __construct(
         private FileSystemRepository $fsRepo,
@@ -40,7 +40,15 @@ class UploadService
         } else $destinationDirPath = '/';
 
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
-        $uploadSession = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirPath, $destinationDirId, $fileSize);
+        $uploadSession = $this->uploadSessionsRepo->createUploadSession(
+            $userId,
+            $fileName,
+            $totalChunks,
+            $destinationDirPath,
+            $destinationDirId,
+            $fileSize,
+            time() + self::SESSION_EXPIRE_INTERVAL
+        );
 
         if ($uploadSession === false) {
             return OperationResult::createError(['message' => 'Недостаточно свободного места на диске']);
@@ -93,16 +101,16 @@ class UploadService
         return OperationResult::createSuccess([]);
     }
 
-    private function deleteExpiredSessions($userId)
-    {
-        $sessions = $this->uploadSessionsRepo->getUserSessions($userId);
-        foreach ($sessions as $session) {
-            $timeDiff = time() - $session->lastUpdated->getTimestamp();
-            if ($timeDiff >= self::SESSION_MAX_LIFETIME) {
-                $this->cancelUploadSession($session->userId, $session->id);
-            }
-        }
-    }
+    // private function deleteExpiredSessions($userId)
+    // {
+    //     $sessions = $this->uploadSessionsRepo->getUserSessions($userId);
+    //     foreach ($sessions as $session) {
+    //         $timeDiff = time() - $session->lastUpdated->getTimestamp();
+    //         if ($timeDiff >= self::SESSION_MAX_LIFETIME) {
+    //             $this->cancelUploadSession($session->userId, $session->id);
+    //         }
+    //     }
+    // }
 
     public function startBuild(int $userId, int $uploadSessionId): OperationResult
     {

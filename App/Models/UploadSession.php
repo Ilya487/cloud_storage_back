@@ -16,9 +16,9 @@ class UploadSession
         public readonly ?int $destinationDirId,
         public readonly int $fileSize,
         public readonly UploadSessionStatus $status,
-        public readonly DateTime $lastUpdated,
         private int $completedChunksCount,
-        public readonly int $totalChunksCount
+        public readonly int $totalChunksCount,
+        public readonly DateTime $expireAt
     ) {}
 
     public static function createFromArr(array $data): UploadSession
@@ -31,9 +31,9 @@ class UploadSession
             $data['destination_dir_id'],
             $data['file_size'],
             UploadSessionStatus::from($data['status']),
-            new DateTime($data['last_updated_at']),
             $data['completed_chunks'],
-            $data['total_chunks']
+            $data['total_chunks'],
+            new DateTime($data['expire_at'])
         );
     }
 
@@ -72,5 +72,10 @@ class UploadSession
     public function getPath(): string
     {
         return $this->destinationDirPath == '/' ? '/' . $this->fileName : $this->destinationDirPath . '/' . $this->fileName;
+    }
+
+    public function isExpired()
+    {
+        return time() > $this->expireAt->getTimestamp();
     }
 }

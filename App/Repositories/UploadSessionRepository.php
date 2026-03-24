@@ -26,7 +26,8 @@ class UploadSessionRepository  extends BaseRepository
         int $totalChunks,
         ?string $destinationDirPath,
         ?int $destinationDirId,
-        int $fileSize
+        int $fileSize,
+        int $expireAt
     ): UploadSession|false {
         $this->beginTransaction();
         $canInsert = $this->userRepo->reserveDiskSpace($userId, $fileSize);
@@ -35,14 +36,24 @@ class UploadSessionRepository  extends BaseRepository
             return false;
         }
 
-        $query = $this->queryBuilder->insert(['user_id', 'filename', 'destination_dir_path', 'destination_dir_id', 'total_chunks', 'file_size'])->build();
+        $query = $this->queryBuilder->insert([
+            'user_id',
+            'filename',
+            'destination_dir_path',
+            'destination_dir_id',
+            'total_chunks',
+            'file_size',
+            'expire_at'
+        ])->build();
+
         $id =  $this->insert($query, [
             'user_id' => $userId,
             'filename' => $fileName,
             'destination_dir_path' => $destinationDirPath,
             'destination_dir_id' => $destinationDirId,
             'total_chunks' => $totalChunks,
-            'file_size' => $fileSize
+            'file_size' => $fileSize,
+            'expire_at' => $this->formatTimestamp($expireAt)
         ]);
 
         $this->submitTransaction();
