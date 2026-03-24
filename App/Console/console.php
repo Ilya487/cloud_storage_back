@@ -2,6 +2,7 @@
 
 use App\Console\Commands\BuildFileWorkerCommand;
 use App\Console\Commands\CreateArchiveWorkerCommand;
+use App\Console\Commands\DeleteArchivesSchedulerCommand;
 use App\Console\Commands\DeleteFilesWorkerCommand;
 use Symfony\Component\Console\Application;
 
@@ -13,6 +14,7 @@ $app = new Application();
 $app->addCommands([
     new CreateArchiveWorkerCommand(),
     new BuildFileWorkerCommand(),
-    new DeleteFilesWorkerCommand()
+    new DeleteFilesWorkerCommand(),
+    new DeleteArchivesSchedulerCommand()
 ]);
 $app->run();
