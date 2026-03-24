@@ -28,12 +28,11 @@ abstract class BaseRepository
         if ($this->pdo->inTransaction() || $this->isTransactionStartManually)
             throw new Exception('Предыдущая транзакция не завершена!');
 
-        $commit = fn() => $this->pdo->commit();
         $rollBack = fn() => $this->pdo->rollBack();
         try {
             $this->beginTransaction();
             $this->isTransactionStartManually = true;
-            $res = $callback($commit, $rollBack);
+            $res = $callback($rollBack);
             $this->isTransactionStartManually = false;
             $this->submitTransaction();
 

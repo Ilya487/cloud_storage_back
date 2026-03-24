@@ -29,7 +29,7 @@ class BuildFileJobHandler
         if ($session === false)
             throw new Exception('Сессия не найдена');
 
-        $this->fsRepo->withTransaction(function ($commit, $rollback) use ($session) {
+        $this->fsRepo->withTransaction(function ($rollback) use ($session) {
             $fileId = $this->fsRepo->createFile(
                 $session->userId,
                 $session->fileName,
@@ -50,11 +50,10 @@ class BuildFileJobHandler
                 $rollback();
                 $this->handleError($session, 'Не удалось собрать файл из чанков', $buildedFilePath);
             }
-
-            $commit();
-            $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::COMPLETE);
-            $this->uploadsStorage->deleteSessionDir($session->id);
         });
+
+        $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::COMPLETE);
+        $this->uploadsStorage->deleteSessionDir($session->id);
     }
 
     private function handleError(UploadSession $session, string $msg, ?string $buildedFilePath)
