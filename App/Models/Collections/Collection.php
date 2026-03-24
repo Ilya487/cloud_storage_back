@@ -55,9 +55,9 @@ abstract class Collection implements IteratorAggregate, ArrayAccess
     /**
      * @param callable(T $object): bool $cb
      */
-    public function filter(callable $cb): self
+    public function filter(callable $cb): static
     {
         $filteredArr = array_filter($this->collection, fn($value) => $cb($value));
-        return new self($filteredArr);
+        return new static($filteredArr);
     }
 }

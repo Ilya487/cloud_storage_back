@@ -36,7 +36,7 @@ class CreateArchiveTaskRepository extends BaseRepository
         $taskId = $this->insert($query, [
             'user_id' => $userId,
             'files_id' => $serializedArr,
-            'expired_at' => $expiredAt
+            'expired_at' => $this->formatTimestamp($expiredAt)
         ]);
         $this->submitTransaction();
         return $taskId;

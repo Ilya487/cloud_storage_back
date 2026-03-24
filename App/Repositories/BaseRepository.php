@@ -121,6 +121,11 @@ abstract class BaseRepository
         return $preparedIds;
     }
 
+    protected function formatTimestamp(int $timestamp)
+    {
+        return date('Y-m-d H:i:s', $timestamp);
+    }
+
     private function executeQuery(string $query, array $columnValues): PDOStatement
     {
         try {
