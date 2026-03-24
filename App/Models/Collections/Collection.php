@@ -51,4 +51,13 @@ abstract class Collection implements IteratorAggregate, ArrayAccess
     public function offsetSet(mixed $offset, mixed $value): void {}
 
     public function offsetUnset(mixed $offset): void {}
+
+    /**
+     * @param callable(T $object): bool $cb
+     */
+    public function filter(callable $cb): self
+    {
+        $filteredArr = array_filter($this->collection, fn($value) => $cb($value));
+        return new self($filteredArr);
+    }
 }
