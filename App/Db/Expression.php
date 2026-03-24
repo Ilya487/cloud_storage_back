@@ -17,9 +17,10 @@ class Expression
         return new self("$field != :$field ");
     }
 
-    public static function less(string $field)
+    public static function less(string $field, ?string $paramName = null)
     {
-        return new self("$field < :$field ");
+        if (is_null($paramName)) $paramName = $field;
+        return new self("$field < :$paramName ");
     }
 
     public static function lessEqual(string $field)
@@ -27,9 +28,10 @@ class Expression
         return new self("$field <= :$field ");
     }
 
-    public static function more(string $field)
+    public static function more(string $field, ?string $paramName = null)
     {
-        return new self("$field > :$field ");
+        if (is_null($paramName)) $paramName = $field;
+        return new self("$field > :$paramName ");
     }
 
     public static function moreEqual(string $field, ?string $paramName = null)

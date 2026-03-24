@@ -3,13 +3,14 @@
 namespace App\Repositories;
 
 use App\Db\Expression;
+use App\Models\Collections\PrepareFilesTaskCollection;
 use App\Models\PrepareFilesTask;
 use App\Models\PrepareFilesTaskStatus;
 use App\Repositories\BaseRepository;
 use App\Repositories\UserRepository;
 use App\Tools\DbConnect;
 
-class PreapareFilesTaskRepository extends BaseRepository
+class PrepareFilesTaskRepository extends BaseRepository
 {
     protected string $tableName = 'prepare_files_task';
 
@@ -20,7 +21,7 @@ class PreapareFilesTaskRepository extends BaseRepository
         parent::__construct($dbConnect);
     }
 
-    public function createTask($userId, array $filesId, int $limit): int|false
+    public function createTask($userId, array $filesId, int $limit, int $expiredAt): int|false
     {
         $this->beginTransaction();
         $canInsert = $this->userRepo->incrementDownloadSessionCount($userId, $limit);
@@ -30,9 +31,13 @@ class PreapareFilesTaskRepository extends BaseRepository
             return false;
         }
 
-        $query = $this->queryBuilder->insert(['user_id', 'files_id'])->build();
+        $query = $this->queryBuilder->insert(['user_id', 'files_id', 'expired_at'])->build();
         $serializedArr = join(',', $filesId);
-        $taskId = $this->insert($query, ['user_id' => $userId, 'files_id' => $serializedArr]);
+        $taskId = $this->insert($query, [
+            'user_id' => $userId,
+            'files_id' => $serializedArr,
+            'expired_at' => $expiredAt
+        ]);
         $this->submitTransaction();
         return $taskId;
     }
@@ -57,5 +62,28 @@ class PreapareFilesTaskRepository extends BaseRepository
             ->where(Expression::equal('user_id'))
             ->and(Expression::equal('id'))->build();
         $this->update($query, ['user_id' => $userId, 'id' => $taskId, 'status' => $status->value]);
+    }
+
+    public function getExpiredTasks(int $limit): PrepareFilesTaskCollection|false
+    {
+        $query = $this->queryBuilder
+            ->select()
+            ->where(Expression::less('expired_at', 'current_timestamp'))
+            ->limit($limit)
+            ->build();
+
+        $res = $this->fetchAll($query, ['current_timestamp' => date('Y-m-d H:i:s')]);
+
+        if (empty($res)) return false;
+        return PrepareFilesTaskCollection::createFromDbArr($res);
+    }
+
+    public function deleteById(int $id)
+    {
+        $query = $this->queryBuilder->delete()
+            ->where(Expression::equal('id'))
+            ->build();
+
+        $this->delete($query, ['id' => $id]);
     }
 }
