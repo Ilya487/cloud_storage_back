@@ -2,38 +2,38 @@
 
 namespace App\Models;
 
-use App\Models\PrepareFilesTaskStatus;
+use App\Models\CreateArchiveTaskStatus;
 use DateTime;
 
-class PrepareFilesTask
+class CreateArchiveTask
 {
     public function __construct(
         public readonly int $id,
         public readonly int $userId,
         public readonly array $filesId,
-        public readonly PrepareFilesTaskStatus $status,
+        public readonly CreateArchiveTaskStatus $status,
         public readonly DateTime $expiredAt
     ) {}
 
     public static function createFromArr(array $arr)
     {
-        return new PrepareFilesTask(
+        return new CreateArchiveTask(
             $arr['id'],
             $arr['user_id'],
             array_map('intval', explode(',', $arr['files_id'])),
-            PrepareFilesTaskStatus::from($arr['status']),
+            CreateArchiveTaskStatus::from($arr['status']),
             new DateTime($arr['expired_at'])
         );
     }
 
     public function isReady(): bool
     {
-        return $this->status == PrepareFilesTaskStatus::READY;
+        return $this->status == CreateArchiveTaskStatus::READY;
     }
 
     public function hasError(): bool
     {
-        return $this->status == PrepareFilesTaskStatus::ERROR;
+        return $this->status == CreateArchiveTaskStatus::ERROR;
     }
 
     public function isExpired(): bool

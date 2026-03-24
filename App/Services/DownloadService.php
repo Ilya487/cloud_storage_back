@@ -6,8 +6,8 @@ use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
 use App\Queue\Jobs\CreateArchiveJob;
 use App\Queue\Queue;
+use App\Repositories\CreateArchiveTaskRepository;
 use App\Repositories\FileSystemRepository;
-use App\Repositories\PrepareFilesTaskRepository;
 use App\Storage\DiskStorage;
 use App\Storage\DownloadStorage;
 
@@ -21,7 +21,7 @@ class DownloadService
     public function __construct(
         private DiskStorage $diskStorage,
         private FileSystemRepository $fsRepo,
-        private PrepareFilesTaskRepository $prepareRepo,
+        private CreateArchiveTaskRepository $prepareRepo,
         private DownloadStorage $downloadStorage,
         private Queue $queue
     ) {}

@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-enum PrepareFilesTaskStatus: string
+enum CreateArchiveTaskStatus: string
 {
     case PREPARING = 'preparing';
     case READY = 'ready';

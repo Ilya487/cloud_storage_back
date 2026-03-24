@@ -3,14 +3,14 @@
 namespace App\Repositories;
 
 use App\Db\Expression;
-use App\Models\Collections\PrepareFilesTaskCollection;
-use App\Models\PrepareFilesTask;
-use App\Models\PrepareFilesTaskStatus;
+use App\Models\Collections\CreateArchiveTaskCollection;
+use App\Models\CreateArchiveTask;
+use App\Models\CreateArchiveTaskStatus;
 use App\Repositories\BaseRepository;
 use App\Repositories\UserRepository;
 use App\Tools\DbConnect;
 
-class PrepareFilesTaskRepository extends BaseRepository
+class CreateArchiveTaskRepository extends BaseRepository
 {
     protected string $tableName = 'prepare_files_task';
 
@@ -42,7 +42,7 @@ class PrepareFilesTaskRepository extends BaseRepository
         return $taskId;
     }
 
-    public function getById(int $userId, int $taskId): PrepareFilesTask|false
+    public function getById(int $userId, int $taskId): CreateArchiveTask|false
     {
         $query = $this->queryBuilder
             ->select()
@@ -52,10 +52,10 @@ class PrepareFilesTaskRepository extends BaseRepository
 
         $res = $this->fetchOne($query, ['user_id' => $userId, 'id' => $taskId]);
         if ($res === false) return false;
-        return PrepareFilesTask::createFromArr($res);
+        return CreateArchiveTask::createFromArr($res);
     }
 
-    public function setStatus(int $userId, int $taskId, PrepareFilesTaskStatus $status)
+    public function setStatus(int $userId, int $taskId, CreateArchiveTaskStatus $status)
     {
         $query = $this->queryBuilder
             ->update(['status'])
@@ -64,7 +64,7 @@ class PrepareFilesTaskRepository extends BaseRepository
         $this->update($query, ['user_id' => $userId, 'id' => $taskId, 'status' => $status->value]);
     }
 
-    public function getExpiredTasks(int $limit): PrepareFilesTaskCollection|false
+    public function getExpiredTasks(int $limit): CreateArchiveTaskCollection|false
     {
         $query = $this->queryBuilder
             ->select()
@@ -75,7 +75,7 @@ class PrepareFilesTaskRepository extends BaseRepository
         $res = $this->fetchAll($query, ['current_timestamp' => date('Y-m-d H:i:s')]);
 
         if (empty($res)) return false;
-        return PrepareFilesTaskCollection::createFromDbArr($res);
+        return CreateArchiveTaskCollection::createFromDbArr($res);
     }
 
     public function deleteById(int $id)
