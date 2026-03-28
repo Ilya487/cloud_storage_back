@@ -12,9 +12,10 @@ class Expression
         return new self("$field = :$paramName ");
     }
 
-    public static function notEqual(string $field)
+    public static function notEqual(string $field, ?string $paramName = null)
     {
-        return new self("$field != :$field ");
+        if (is_null($paramName)) $paramName = $field;
+        return new self("$field != :$paramName ");
     }
 
     public static function less(string $field, ?string $paramName = null)
