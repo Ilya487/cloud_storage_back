@@ -2,6 +2,8 @@
 
 namespace App\Repositories;
 
+use App\Db\Expression;
+use App\Db\Query;
 use App\Db\QueryBuilder;
 use App\Tools\DbConnect;
 use Exception;
@@ -23,6 +25,9 @@ abstract class BaseRepository
         $this->queryBuilder = new QueryBuilder($this->tableName);
     }
 
+    /**
+     * @param callable(callable $rollBack):mixed $callback
+     */
     public function withTransaction(callable $callback)
     {
         if ($this->pdo->inTransaction() || $this->isTransactionStartManually)
@@ -43,51 +48,115 @@ abstract class BaseRepository
         }
     }
 
-    protected function fetchAll(string $query, array $columnValues, $returnType = PDO::FETCH_ASSOC): array
+    protected function getOne(array $fieldsForSelect = [], ?Query $whereClauseQuery = null): array|false
     {
-        $stmt =  $this->executeQuery($query, $columnValues);
-        return $stmt->fetchAll($returnType);
+        $query = $this->queryBuilder->select($fieldsForSelect);
+        if ($whereClauseQuery !== null) $query = $query->whereRaw($whereClauseQuery->query, $whereClauseQuery->params);
+        $query = $query->limit(1, 0)->build();
+
+        return $this->fetchOne($query);
     }
 
-    protected function fetchOne(string $query, array $columnValues, $returnType = PDO::FETCH_ASSOC): mixed
+    protected function getAll(array $fieldsForSelect = [], ?Query $whereClauseQuery = null, int $limit = 0, int $offset = 0): array|false
     {
-        $stmt = $this->executeQuery($query, $columnValues);
-        return $stmt->fetch($returnType);
-    }
+        $query = $this->queryBuilder->select($fieldsForSelect);
+        if ($whereClauseQuery !== null) $query = $query->whereRaw($whereClauseQuery->query, $whereClauseQuery->params);
+        if ($limit > 0)
+            $query = $query->limit($limit, $offset);
 
-    protected function fetchColumn(string $query, array $columnValues, int $columnNum = 0)
-    {
-        $stmt  = $this->executeQuery($query, $columnValues);
-        return $stmt->fetchColumn($columnNum);
+        return $this->fetchAll($query->build());
     }
 
     /**
      * @return string inserted entity id
      */
-    protected function insert(string $query, array $columnValues): string
+    protected function insert(array $columnValues): string
     {
-        $this->executeQuery($query, $columnValues);
+        $query = $this->queryBuilder
+            ->insert(array_keys($columnValues), [$columnValues])
+            ->build();
+
+        $this->executeQuery($query);
         return $this->pdo->lastInsertId();
     }
 
-    protected function insertMany(string $query, array $values)
+    /**
+     * @param array<int,array<string,mixed>> $columnValues
+     */
+    protected function insertMany(array $fields, array $columnValues): int
     {
-        $flattened = array_reduce($values, function ($carry, $item) {
-            return array_merge($carry, is_array($item) ? $item : [$item]);
-        }, []);
+        $query = $this->queryBuilder
+            ->insert($fields, $columnValues)
+            ->build();
 
-        $this->executeQuery($query, $flattened);
+        return $this->executeQuery($query)->rowCount();
     }
 
-    protected function update(string $query, array $columnValues): int
+    protected function update(array $columnValues, Query $whereClauseQuery): int
     {
-        return $this->executeQuery($query, $columnValues)->rowCount();
+        $query = $this->queryBuilder
+            ->update($columnValues)
+            ->whereRaw($whereClauseQuery->query, $whereClauseQuery->params)
+            ->build();
+
+        return $this->executeQuery($query)->rowCount();
     }
 
-    protected function delete(string $query, array $columnValues): int
+    protected function delete(Query $whereClauseQuery): int
     {
-        $stmt = $this->executeQuery($query, $columnValues);
+        $query = $this->queryBuilder
+            ->delete()
+            ->whereRaw($whereClauseQuery->query, $whereClauseQuery->params)
+            ->build();
+
+        $stmt = $this->executeQuery($query);
         return $stmt->rowCount();
+    }
+
+    protected function getById(int $id, ?Query $whereClauseQuery = null): array|false
+    {
+        $query = $this->queryBuilder
+            ->select()
+            ->where(Expression::equal('id', $id));
+        if ($whereClauseQuery !== null) $query->andRaw($whereClauseQuery->query, $whereClauseQuery->params);
+
+        return $this->fetchOne($query->build());
+    }
+
+    protected function deleteById(int $id, ?Query $whereClauseQuery = null): int
+    {
+        $query = $this->queryBuilder
+            ->delete()
+            ->where(Expression::equal('id', $id));
+        if ($whereClauseQuery !== null) $query->andRaw($whereClauseQuery->query, $whereClauseQuery->params);
+        $query = $query->build();
+
+        return $this->executeQuery($query)->rowCount();
+    }
+
+    protected function updateById(int $id, array $columnValues, ?Query $whereClauseQuery = null): int
+    {
+        $query = $this->queryBuilder
+            ->update($columnValues)
+            ->where(Expression::equal('id', $id));
+        if ($whereClauseQuery !== null) $query->whereRaw($whereClauseQuery->query, $whereClauseQuery->params);
+        $query = $query->build();
+
+        return $this->executeQuery($query)->rowCount();
+    }
+
+    protected function count(?Query $whereClauseQuery = null): int
+    {
+        $query = $this->queryBuilder
+            ->select(['COUNT(*) as cnt']);
+
+        if ($whereClauseQuery !== null) {
+            $query->whereRaw($whereClauseQuery->query, $whereClauseQuery->params);
+        }
+
+        $result = $this->fetchOne($query->build());
+
+        return (int) ($result['cnt'] ?? 0);
     }
 
     protected function beginTransaction()
@@ -125,11 +194,25 @@ abstract class BaseRepository
         return date('Y-m-d H:i:s', $timestamp);
     }
 
-    private function executeQuery(string $query, array $columnValues): PDOStatement
+    private function fetchOne(Query $query): array|false
+    {
+        $res = $this->executeQuery($query)->fetch();
+        if (empty($res)) return false;
+        else return $res;
+    }
+
+    private function fetchAll(Query $query): array|false
+    {
+        $res = $this->executeQuery($query)->fetchAll();
+        if (empty($res)) return false;
+        else return $res;
+    }
+
+    private function executeQuery(Query $query): PDOStatement
     {
         try {
-            $stmt = $this->pdo->prepare($query);
-            $stmt->execute($columnValues);
+            $stmt = $this->pdo->prepare($query->query);
+            $stmt->execute($query->params);
             return $stmt;
         } catch (Exception $error) {
             if ($this->pdo->inTransaction()) {
