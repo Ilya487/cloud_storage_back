@@ -11,11 +11,13 @@ class QueryBuilder
     private array $selectFields = [];
     private string $updateFields = '';
     private array $insertFields = [];
-    private int $insertCount = 1;
+    private string $valuesStr = '';
 
     private array $whereClause = [];
     private ?int $limit = null;
     private int $offset = 0;
+
+    private array $params = [];
 
     public function __construct(private string $tableName) {}
 
@@ -34,26 +36,33 @@ class QueryBuilder
         return $this;
     }
 
+    /**
+     * @param array<string,mixed> $fields
+     */
     public function update(array $fields)
     {
         if (empty($fields)) throw new Exception('Необходимо передать хотя бы одно поле для обновления');
 
         $this->setType(QueryType::UPDATE);
 
+        $fields = $this->parseParams($fields);
         $this->updateFields = $this->getPreparedParams($fields) . ', ';
 
         return $this;
     }
 
-    public function insert(array $fields, int $insertCount = 1)
+    /**
+     * @param array<string,mixed>[] $values
+     */
+    public function insert(array $fields, array $values)
     {
         $this->setType(QueryType::INSERT);
 
         if (empty($fields)) throw new Exception('Необходимо передать хотя бы одно поле для вставки');
-        if ($insertCount < 1) throw new Exception('Неккоректное значение для параметра $insertCount');
+        if (empty($values)) throw new Exception('Необходимо передать хотя бы один массив значений для вставки');
 
         $this->insertFields = $fields;
-        $this->insertCount = $insertCount;
+        $this->valuesStr = $this->parseInsertParams($fields, $values);
 
         return $this;
     }
@@ -68,45 +77,51 @@ class QueryBuilder
 
     public function where(Expression $expression)
     {
-        $this->whereClause[] = ['type' => 'AND', 'condition' => $expression];
+        $this->whereClause[] = ['type' => 'AND', 'condition' => $expression->query];
+        $this->params = array_merge($this->params, $expression->params);
 
         return $this;
     }
 
-    public function whereRaw(string $expression)
+    public function whereRaw(string $expression, array $params = [])
     {
         $expression = $this->addSpaceToRawExp($expression);
         $this->whereClause[] = ['type' => 'AND', 'condition' => $expression];
+        $this->params = array_merge($this->params, $params);
 
         return $this;
     }
 
     public function and(Expression $expression)
     {
-        $this->whereClause[] = ['type' => 'AND', 'condition' => $expression];;
+        $this->whereClause[] = ['type' => 'AND', 'condition' => $expression->query];
+        $this->params = array_merge($this->params, $expression->params);
 
         return $this;
     }
 
-    public function andRaw(string $expression)
+    public function andRaw(string $expression, array $params = [])
     {
         $expression = $this->addSpaceToRawExp($expression);
-        $this->whereClause[] = ['type' => 'AND', 'condition' => $expression];;
+        $this->whereClause[] = ['type' => 'AND', 'condition' => $expression];
+        $this->params = array_merge($this->params, $params);
 
         return $this;
     }
 
     public function or(Expression $expression)
     {
-        $this->whereClause[] = ['type' => 'OR', 'condition' => $expression];;
+        $this->whereClause[] = ['type' => 'OR', 'condition' => $expression->query];
+        $this->params = array_merge($this->params, $expression->params);
 
         return $this;
     }
 
-    public function orRaw(string $expression)
+    public function orRaw(string $expression, array $params = [])
     {
         $expression = $this->addSpaceToRawExp($expression);
-        $this->whereClause[] = ['type' => 'OR', 'condition' => $expression];;
+        $this->whereClause[] = ['type' => 'OR', 'condition' => $expression];
+        $this->params = array_merge($this->params, $params);
 
         return $this;
     }
@@ -124,7 +139,8 @@ class QueryBuilder
 
     public function subtract(string $fieldName, int $value)
     {
-        if ($this->type !== QueryType::UPDATE) throw new Exception('Невозможно использовать оператор add в запросе с типом отличным от UPDATE');
+        if ($this->type !== null && $this->type !== QueryType::UPDATE)
+            throw new Exception('Невозможно использовать оператор subtract в запросе с типом отличным от UPDATE');
         if ($this->type == null)
             $this->setType(QueryType::UPDATE);
         $this->updateFields .= "$fieldName=$fieldName-$value, ";
@@ -140,27 +156,30 @@ class QueryBuilder
         return $this;
     }
 
-    public function build(): string
+    public function build(): Query
     {
-        $res = '';
-        if ($this->type == QueryType::SELECT) $res .= $this->buildSelect();
-        if ($this->type == QueryType::DELETE) $res .= $this->buildDelete();
-        if ($this->type == QueryType::UPDATE) $res .= $this->buildUpdate();
+        $query = '';
+        if ($this->type == QueryType::SELECT) $query .= $this->buildSelect();
+        else if ($this->type == QueryType::DELETE) $query .= $this->buildDelete();
+        else if ($this->type == QueryType::UPDATE) $query .= $this->buildUpdate();
         if ($this->type == QueryType::INSERT) {
-            $res .= $this->buildInsert();
+            $query .= $this->buildInsert();
+            $params = $this->params;
             $this->resetQuery();
 
-            return $res;
+            return new Query($query, $params);
         }
 
-        $res .= $this->buildWhere();
+        $query .= $this->buildWhere();
 
         if ($this->type == QueryType::SELECT) {
-            $res .= $this->buildLimit();
+            $query .= $this->buildLimit();
         }
 
+        $params = $this->params;
         $this->resetQuery();
-        return $res;
+
+        return new Query($query, $params);
     }
 
     public function newQuery(?string $tableName = null): self
@@ -177,9 +196,10 @@ class QueryBuilder
         $this->selectFields = [];
         $this->updateFields = '';
         $this->insertFields = [];
-        $this->insertCount = 1;
+        $this->valuesStr = '';
         $this->limit = null;
         $this->offset = 0;
+        $this->params = [];
 
         return $this;
     }
@@ -206,26 +226,9 @@ class QueryBuilder
 
     private function buildInsert(): string
     {
-        $insertFields = [];
-        foreach ($this->insertFields as $key => $value) {
-            if (is_string($key)) $insertFields[] = $key;
-            else $insertFields[] = $value;
-        }
-        $insertFields = implode(', ', $insertFields);
+        $insertFields = implode(', ', $this->insertFields);
 
-        if ($this->insertCount == 1) {
-            $paramNames = $this->getPreparedParams($this->insertFields);
-            $paramNames = '(' . rtrim($paramNames, ', ') . ')';
-        } else {
-            $paramNames = '';
-            for ($i = 0; $i < $this->insertCount; $i++) {
-                $paramNames .= '(' . $this->getPreparedParams($this->insertFields, $i) . '), ';
-            }
-            $paramNames = rtrim($paramNames, ', ');
-        }
-
-
-        return "{$this->type->value} INTO {$this->tableName} ($insertFields) VALUES $paramNames ";
+        return "{$this->type->value} INTO {$this->tableName} ($insertFields) VALUES {$this->valuesStr} ";
     }
 
     private function buildLimit(): string
@@ -257,6 +260,52 @@ class QueryBuilder
         $this->type = $type;
     }
 
+    private function parseParams(array $params): array
+    {
+        $paramsForPrepare = [];
+
+        foreach ($params as $name => $val) {
+            if (!is_string($name)) continue;
+            if ($val instanceof Expression && $val->isRaw) {
+                $paramsForPrepare[$name]  = $val->query;
+                $this->params = [...$this->params, ...$val->params];
+            } else {
+                $paramsForPrepare[] = $name;
+                $this->params[$name] = $val;
+            }
+        }
+
+        return $paramsForPrepare;
+    }
+
+    private function parseInsertParams(array $fieldsNames, array $params): string
+    {
+        $valuesStr =  '';
+
+        foreach ($params as $rowNum => $paramRow) {
+            $valuesStr .= '(';
+
+            foreach ($fieldsNames as $fieldName) {
+                $paramVal = $paramRow[$fieldName];
+                if ($paramVal instanceof Expression && $paramVal->isRaw) {
+                    $this->params = [...$this->params, ...$paramVal->params];
+                    $valuesStr .= $paramVal->query . ', ';
+                    continue;
+                }
+
+                $this->params[$rowNum . $fieldName] = $paramRow[$fieldName];
+                $valuesStr .= ':' . $rowNum . $fieldName . ', ';
+            }
+
+            $valuesStr = rtrim($valuesStr, ', ');
+            $valuesStr .= '), ';
+        }
+
+        $valuesStr = rtrim($valuesStr, ', ');
+
+        return $valuesStr;
+    }
+
     private function getPreparedParams(array $fields, string $prefix = '')
     {
         $res = '';
@@ -284,4 +333,12 @@ enum QueryType: string
     case INSERT = 'INSERT';
     case UPDATE = 'UPDATE';
     case DELETE = 'DELETE';
+}
+
+class Query
+{
+    public function __construct(
+        public readonly string $query,
+        public readonly array $params
+    ) {}
 }

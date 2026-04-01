@@ -88,7 +88,7 @@ class Container
 
         if ($type->isBuiltin()) {
             if (!$this->hasParam($className, $paramName)) {
-                throw new ContainerException('Невозможно разрешить класс ' . $className . ' Не передан примитивный параметр ' . $paramName);
+                throw new ContainerException('Невозможно разрешить класс ' . $className . ' Не передан примитивный параметр ' . "'$paramName'");
             }
 
             return $this->params[$className][$paramName];
