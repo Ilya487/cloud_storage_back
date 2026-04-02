@@ -7,6 +7,7 @@ use App\Models\Collections\CreateArchiveTaskCollection;
 use App\Models\CreateArchiveTask;
 use App\Models\CreateArchiveTaskStatus;
 use App\Db\BaseRepository;
+use App\Db\TransactionManager;
 use App\Repositories\UserRepository;
 use App\Tools\DbConnect;
 
@@ -16,9 +17,10 @@ class CreateArchiveTaskRepository extends BaseRepository
 
     public function __construct(
         DbConnect $dbConnect,
+        TransactionManager $txManager,
         private UserRepository $userRepo
     ) {
-        parent::__construct($dbConnect);
+        parent::__construct($dbConnect, $txManager);
     }
 
     public function createTask($userId, array $filesId, int $limit, int $expiredAt): int|false
@@ -31,9 +33,8 @@ class CreateArchiveTaskRepository extends BaseRepository
             return false;
         }
 
-        $query = $this->queryBuilder->insert(['user_id', 'files_id', 'expired_at'])->build();
         $serializedArr = join(',', $filesId);
-        $taskId = $this->insert($query, [
+        $taskId = $this->insert([
             'user_id' => $userId,
             'files_id' => $serializedArr,
             'expired_at' => $this->formatTimestamp($expiredAt)
@@ -42,48 +43,40 @@ class CreateArchiveTaskRepository extends BaseRepository
         return $taskId;
     }
 
-    public function getById(int $userId, int $taskId): CreateArchiveTask|false
+    public function getTaskById(int $userId, int $taskId): CreateArchiveTask|false
     {
-        $query = $this->queryBuilder
-            ->select()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('id'))->build();
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
+            ->build();
 
-
-        $res = $this->fetchOne($query, ['user_id' => $userId, 'id' => $taskId]);
+        $res = $this->getById($taskId, $query);
         if ($res === false) return false;
         return CreateArchiveTask::createFromArr($res);
     }
 
     public function setStatus(int $userId, int $taskId, CreateArchiveTaskStatus $status)
     {
-        $query = $this->queryBuilder
-            ->update(['status'])
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('id'))->build();
-        $this->update($query, ['user_id' => $userId, 'id' => $taskId, 'status' => $status->value]);
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
+            ->build();
+
+        $this->updateById($taskId, ['status' => $status->value], $query);
     }
 
     public function getExpiredTasks(int $limit): CreateArchiveTaskCollection|false
     {
-        $query = $this->queryBuilder
-            ->select()
-            ->where(Expression::less('expired_at', 'current_timestamp'))
-            ->limit($limit)
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::less('expired_at', date('Y-m-d H:i:s')))
             ->build();
 
-        $res = $this->fetchAll($query, ['current_timestamp' => date('Y-m-d H:i:s')]);
+        $res = $this->getAll(whereClauseQuery: $query, limit: $limit);
 
         if (empty($res)) return false;
         return CreateArchiveTaskCollection::createFromDbArr($res);
     }
 
-    public function deleteById(int $id)
+    public function deleteTaskById(int $id)
     {
-        $query = $this->queryBuilder->delete()
-            ->where(Expression::equal('id'))
-            ->build();
-
-        $this->delete($query, ['id' => $id]);
+        $this->deleteById($id);
     }
 }
