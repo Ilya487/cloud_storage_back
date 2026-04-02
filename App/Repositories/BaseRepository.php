@@ -136,6 +136,12 @@ abstract class BaseRepository
         return (int) ($result['cnt'] ?? 0);
     }
 
+    public function query(Query $query): QueryRes
+    {
+        $stmnt = $this->executeQuery($query);
+        return new QueryRes($stmnt->fetchAll(), $this->pdo->lastInsertId() ?: null, $stmnt->rowCount());
+    }
+
     protected function beginTransaction()
     {
         $this->tx->beginTransaction();
@@ -193,4 +199,13 @@ abstract class BaseRepository
             throw $error;
         }
     }
+}
+
+class QueryRes
+{
+    public function __construct(
+        public readonly ?array $data = null,
+        public readonly ?int $insertId = null,
+        public readonly ?int $affectedRows = null
+    ) {}
 }
