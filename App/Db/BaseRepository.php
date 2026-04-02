@@ -25,13 +25,17 @@ abstract class BaseRepository
         $this->queryBuilder = new QueryBuilder($this->tableName);
     }
 
-    protected function getOne(array $fieldsForSelect = [], ?Query $whereClauseQuery = null): array|false
+    protected function getOne(array $fieldsForSelect = [], ?Query $whereClauseQuery = null): string|array|false
     {
         $query = $this->queryBuilder->select($fieldsForSelect);
         if ($whereClauseQuery !== null) $query = $query->whereRaw($whereClauseQuery->query, $whereClauseQuery->params);
         $query = $query->limit(1, 0)->build();
 
-        return $this->fetchOne($query);
+        $res = $this->fetchOne($query);
+        if ($res === false) return $res;
+
+        if (count($fieldsForSelect) == 1) return $res[$fieldsForSelect[0]];
+        return $res;
     }
 
     protected function getAll(array $fieldsForSelect = [], ?Query $whereClauseQuery = null, int $limit = 0, int $offset = 0): array|false
