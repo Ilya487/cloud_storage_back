@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Db\Expression;
-use App\Repositories\BaseRepository;
+use App\Db\BaseRepository;
 use App\Models\User;
 use PDO;
 

@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Db\BaseRepository;
 use App\Db\Expression;
 use PDO;
 

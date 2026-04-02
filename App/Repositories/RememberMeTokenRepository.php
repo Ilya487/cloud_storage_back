@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use App\Db\Expression;
 use App\Models\RememberMeToken;
-use App\Repositories\BaseRepository;
+use App\Db\BaseRepository;
 
 class RememberMeTokenRepository extends BaseRepository
 {

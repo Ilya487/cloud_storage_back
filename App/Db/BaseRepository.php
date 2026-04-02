@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories;
+namespace App\Db;
 
 use App\Db\Expression;
 use App\Db\Query;

@@ -6,7 +6,7 @@ use App\Db\Expression;
 use App\Models\Collections\CreateArchiveTaskCollection;
 use App\Models\CreateArchiveTask;
 use App\Models\CreateArchiveTaskStatus;
-use App\Repositories\BaseRepository;
+use App\Db\BaseRepository;
 use App\Repositories\UserRepository;
 use App\Tools\DbConnect;
 

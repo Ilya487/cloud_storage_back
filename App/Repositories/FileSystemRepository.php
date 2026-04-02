@@ -5,7 +5,7 @@ namespace App\Repositories;
 use App\Db\Expression;
 use App\Models\Collections\FileSystemObjectCollection;
 use App\Models\FileSystemObject;
-use App\Repositories\BaseRepository;
+use App\Db\BaseRepository;
 use Exception;
 
 class FileSystemRepository extends BaseRepository

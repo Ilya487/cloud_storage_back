@@ -5,7 +5,7 @@ namespace App\Repositories;
 use App\Db\Expression;
 use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
-use App\Repositories\BaseRepository;
+use App\Db\BaseRepository;
 use PDO;
 
 class UploadSessionRepository  extends BaseRepository
