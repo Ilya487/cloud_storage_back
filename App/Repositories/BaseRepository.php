@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Db\Expression;
 use App\Db\Query;
 use App\Db\QueryBuilder;
+use App\Db\TransactionManager;
 use App\Tools\DbConnect;
 use Exception;
 use PDO;
@@ -15,37 +16,13 @@ abstract class BaseRepository
     private PDO $pdo;
     protected QueryBuilder $queryBuilder;
     protected string $tableName;
-    private bool $isTransactionStartManually = false;
 
-    public function __construct(DbConnect $dbConnect)
+    public function __construct(DbConnect $dbConnect, private TransactionManager $tx)
     {
         if (is_null($this->tableName)) throw new Exception('Не задано имя таблицы');
 
         $this->pdo = $dbConnect->getConnection();
         $this->queryBuilder = new QueryBuilder($this->tableName);
-    }
-
-    /**
-     * @param callable(callable $rollBack):mixed $callback
-     */
-    public function withTransaction(callable $callback)
-    {
-        if ($this->pdo->inTransaction() || $this->isTransactionStartManually)
-            throw new Exception('Предыдущая транзакция не завершена!');
-
-        $rollBack = fn() => $this->pdo->rollBack();
-        try {
-            $this->beginTransaction();
-            $this->isTransactionStartManually = true;
-            $res = $callback($rollBack);
-            $this->isTransactionStartManually = false;
-            $this->submitTransaction();
-
-            return $res;
-        } catch (Exception $e) {
-            $this->rollBackTransaction();
-            throw $e;
-        }
     }
 
     protected function getOne(array $fieldsForSelect = [], ?Query $whereClauseQuery = null): array|false
@@ -161,22 +138,17 @@ abstract class BaseRepository
 
     protected function beginTransaction()
     {
-        if ($this->isTransactionStartManually) return;
-        if ($this->pdo->inTransaction()) return;
-        $this->pdo->beginTransaction();
+        $this->tx->beginTransaction();
     }
 
     protected function submitTransaction()
     {
-        if ($this->isTransactionStartManually) return;
-        if ($this->pdo->inTransaction())
-            $this->pdo->commit();
+        $this->tx->submitTransaction();
     }
 
     protected function rollBackTransaction()
     {
-        if ($this->pdo->inTransaction())
-            $this->pdo->rollBack();
+        $this->tx->rollBackTransaction();
     }
 
     protected function prepareParamsForIn(array $ids)
