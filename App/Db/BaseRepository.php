@@ -161,16 +161,6 @@ abstract class BaseRepository
         $this->tx->rollBackTransaction();
     }
 
-    protected function prepareParamsForIn(array $ids)
-    {
-        $preparedIds = [];
-        foreach ($ids as $key => $value) {
-            $preparedIds[":$key"] = $value;
-        }
-
-        return $preparedIds;
-    }
-
     protected function formatTimestamp(int $timestamp)
     {
         return date('Y-m-d H:i:s', $timestamp);

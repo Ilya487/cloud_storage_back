@@ -2,6 +2,7 @@
 
 namespace App\Queue\Handlers;
 
+use App\Db\TransactionManager;
 use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
 use App\Repositories\FileSystemRepository;
@@ -20,7 +21,8 @@ class BuildFileJobHandler
         private UploadsStorage $uploadsStorage,
         private FileAssembler $fileBuilder,
         private DiskStorage $diskStorage,
-        private UserRepository $userRepo
+        private UserRepository $userRepo,
+        private TransactionManager $txManager
     ) {}
 
     public function handle(int $userId, int $sessionId)
@@ -29,7 +31,7 @@ class BuildFileJobHandler
         if ($session === false)
             throw new Exception('Сессия не найдена');
 
-        $this->fsRepo->withTransaction(function ($rollback) use ($session) {
+        $this->txManager->withTransaction(function ($rollback) use ($session) {
             $fileId = $this->fsRepo->createFile(
                 $session->userId,
                 $session->fileName,

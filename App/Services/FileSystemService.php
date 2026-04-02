@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Db\TransactionManager;
 use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
 use App\Models\FileSystemObject;
@@ -15,6 +16,7 @@ class FileSystemService
         private FileSystemRepository $fsRepo,
         private MoveFilesUseCase $moveFiles,
         private DeleteFilesUseCase $deleteFiles,
+        private TransactionManager $txManager
     ) {}
 
     public function createFolder(int $userId, string $dirName, ?int $parentDirId = null): OperationResult
@@ -97,7 +99,7 @@ class FileSystemService
         if ($fsCollection->len() == 0) return OperationResult::createError(['message' => 'Запрашиваемые файлы не находятся в корзине']);
         $failedRestore = count($ids) - $fsCollection->len();
 
-        $this->fsRepo->withTransaction(function () use ($fsCollection) {
+        $this->txManager->withTransaction(function () use ($fsCollection) {
             foreach ($fsCollection as $fsObject) {
 
                 if (!$fsObject->hasParent()) {

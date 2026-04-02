@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Db\TransactionManager;
 use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
 use App\Models\UploadSessionStatus;
@@ -23,7 +24,8 @@ class UploadService
         private UploadSessionRepository $uploadSessionsRepo,
         private UploadsStorage $uploadsStorage,
         private UserRepository $userRepo,
-        private Queue $queue
+        private Queue $queue,
+        private TransactionManager $txManager
     ) {}
 
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
@@ -41,7 +43,7 @@ class UploadService
 
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
 
-        return $this->userRepo->withTransaction(function ($rollBack) use (
+        return $this->txManager->withTransaction(function ($rollBack) use (
             $userId,
             $fileSize,
             $fileName,
