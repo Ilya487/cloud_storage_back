@@ -2,6 +2,7 @@
 
 namespace App\Db;
 
+use App\Db\Query;
 use Exception;
 
 class QueryBuilder
@@ -241,7 +242,7 @@ class QueryBuilder
     {
         if (empty($this->whereClause)) return '';
 
-        $res = 'WHERE ';
+        $res = $this->type === null ? '' : 'WHERE ';
         foreach ($this->whereClause as $i => $value) {
             if ($i == 0) {
                 $res .= $value['condition'];
@@ -333,12 +334,4 @@ enum QueryType: string
     case INSERT = 'INSERT';
     case UPDATE = 'UPDATE';
     case DELETE = 'DELETE';
-}
-
-class Query
-{
-    public function __construct(
-        public readonly string $query,
-        public readonly array $params
-    ) {}
 }

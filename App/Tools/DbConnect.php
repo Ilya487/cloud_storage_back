@@ -27,6 +27,7 @@ class DbConnect
     private function createConnection(): PDO
     {
         $connection = new PDO(self::DSN, self::USER_NAME, self::USER_PASSWORD);
+        $connection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         return $connection;
     }
 }
