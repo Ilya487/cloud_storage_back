@@ -6,6 +6,7 @@ use App\Db\Expression;
 use App\Models\Collections\FileSystemObjectCollection;
 use App\Models\FileSystemObject;
 use App\Db\BaseRepository;
+use App\Db\Query;
 use Exception;
 
 class FileSystemRepository extends BaseRepository
@@ -15,11 +16,10 @@ class FileSystemRepository extends BaseRepository
     /**
      * @return string new dir id
      */
-    public function createDir(int $userId, string $dirName, string $path, ?int $parentDirId): string
+    public function createDir(int $userId, string $dirName, string $path, ?int $parentDirId = null): string
     {
-        $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path'])->build();
         $this->beginTransaction();
-        $newDirId = $this->insert($query, [
+        $newDirId = $this->insert([
             'name' => $dirName,
             'user_id' => $userId,
             'created_at' => date('Y-m-d'),
@@ -28,12 +28,8 @@ class FileSystemRepository extends BaseRepository
             'path' => $path
         ]);
 
-        $query = $this->queryBuilder
-            ->update(['path_ids'])
-            ->where(Expression::equal('id'))
-            ->build();
         $pathIds = is_null($parentDirId) ? "/$newDirId" : $this->getPathIds($userId, $parentDirId) . "/$newDirId";
-        $this->update($query, ['id' => $newDirId, 'path_ids' => $pathIds]);
+        $this->updateById($newDirId, ['path_ids' => $pathIds]);
         $this->submitTransaction();
 
         return $newDirId;
@@ -44,10 +40,7 @@ class FileSystemRepository extends BaseRepository
      */
     public function createFile(int $userId, string $fileName, string $path, ?int $parentDirId, int $fileSize): string
     {
-        $query = $this->queryBuilder->insert(['name', 'user_id', 'created_at', 'parent_id', 'type', 'path', 'size'])->build();
-        $this->beginTransaction();
-
-        $fileId = $this->insert($query, [
+        $fileId = $this->insert([
             'name' => $fileName,
             'user_id' => $userId,
             'created_at' => date('Y-m-d'),
@@ -57,12 +50,8 @@ class FileSystemRepository extends BaseRepository
             'size' => $fileSize
         ]);
 
-        $query = $this->queryBuilder
-            ->update(['path_ids'])
-            ->where(Expression::equal('id'))
-            ->build();
         $pathIds = is_null($parentDirId) ? "/$fileId" : $this->getPathIds($userId, $parentDirId) . "/$fileId";
-        $this->update($query, ['id' => $fileId, 'path_ids' => $pathIds]);
+        $this->updateById($fileId, ['path_ids' => $pathIds]);
         $this->submitTransaction();
 
         return $fileId;
@@ -70,15 +59,12 @@ class FileSystemRepository extends BaseRepository
 
     public function getPathById(int $id, int $userId): string|false
     {
-        $query = $this->queryBuilder
-            ->select(['path'])
-            ->where(Expression::equal('id'))
-            ->and(Expression::equal('user_id'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('id', $id))
+            ->and(Expression::equal('user_id', $userId))
             ->build();
-        $data = $this->fetchOne($query, ['id' => $id, 'user_id' => $userId]);
 
-        if ($data === false) return false;
-        else return $data['path'];
+        return $this->getOne(['path'], $query);
     }
 
     public function rename(FileSystemObject $fsObject, string $newName)
@@ -106,12 +92,12 @@ class FileSystemRepository extends BaseRepository
 
     private function softDeleteFileById(int $userId, int $itemId)
     {
-        $query = $this->queryBuilder
-            ->update(['deleted_at'])
-            ->where(Expression::equal('id'))
-            ->and(Expression::equal('user_id'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('id', $itemId))
+            ->and(Expression::equal('user_id', $userId))
             ->build();
-        $this->delete($query, ['id' => $itemId, 'user_id' => $userId, 'deleted_at' => date('Y-m-d H:i:s')]);
+
+        $this->updateById($itemId, ['deleted_at' => date('Y-m-d H:i:s')], $query);
     }
 
     public function softDeleteObject(FileSystemObject $fsObject)
@@ -120,16 +106,13 @@ class FileSystemRepository extends BaseRepository
             $this->softDeleteFileById($fsObject->ownerId, $fsObject->id);
             return;
         }
-        $query = $this->queryBuilder
-            ->update(['deleted_at'])
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::like('path_ids', 'p'))
+
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $fsObject->ownerId))
+            ->and(Expression::like('path_ids', $fsObject->getPathIds() . '%'))
             ->build();
-        $this->delete($query, [
-            'deleted_at' => date('Y-m-d H:i:s'),
-            'user_id' => $fsObject->ownerId,
-            'p' => $fsObject->getPathIds() . '%'
-        ]);
+
+        $this->update(['deleted_at' => date('Y-m-d H:i:s'),], $query);
     }
 
     public function moveObject(FileSystemObject $fsObject, FileSystemObject $toDir)
@@ -140,7 +123,7 @@ class FileSystemRepository extends BaseRepository
         $updatedPath = $fsObject->changeDir($toDir);
         if ($updatedPath === false) return false;
 
-        if (!$fsObject->isFile()) {
+        if ($fsObject->isDir()) {
             $this->beginTransaction();
             $this->moveTopItem($userId, $currentPathIds, $updatedPath, $fsObject->getPathIds(), $toDir->id);
             $this->moveInnerItems($userId, $currentPath, $updatedPath, $currentPathIds, $fsObject->getPathIds());
@@ -152,123 +135,115 @@ class FileSystemRepository extends BaseRepository
 
     public function getDirIdByPath(int $userId, string $path): int|false
     {
-        $query = $this->queryBuilder
-            ->select(['id'])
-            ->where(Expression::equal('path'))
-            ->and(Expression::equal('user_id'))
-            ->and(Expression::equal('type'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('path', $path))
+            ->and(Expression::equal('user_id', $userId))
+            ->and(Expression::equal('type', 'folder'))
             ->build();
-        $res = $this->fetchOne($query, ['user_id' => $userId, 'path' => $path, 'type' => 'folder']);
 
-        if ($res === false) return false;
-        else return $res['id'];
+        return $this->getOne(['id'], $query);
     }
 
-    public function getById(int $userId, int $objectId): FileSystemObject|false
+    public function getObjectById(int $userId, int $objectId): FileSystemObject|false
     {
-        $query = $this->queryBuilder
-            ->select()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('id'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
             ->build();
-        $res = $this->fetchOne($query, ['user_id' => $userId, 'id' => $objectId]);
+
+        $res = $this->getById($objectId, $query);
         if ($res === false) return false;
         return FileSystemObject::createFromArr($res);
     }
 
     public function getMany(int $userId, array $ids): FileSystemObjectCollection|false
     {
-        $preparedIds = $this->prepareParamsForIn($ids);
-
-        $query = $this->queryBuilder
-            ->select()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::in('id', count($ids)))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
+            ->and(Expression::in('id', $ids))
             ->build();
 
-        $requestRes = $this->fetchAll($query, ['user_id' => $userId, ...$preparedIds]);
-        if (empty($requestRes)) return false;
+        $requestRes = $this->getAll(whereClauseQuery: $query);
+        if ($requestRes === false) return false;
 
         return FileSystemObjectCollection::createFromDbArr($requestRes);
     }
 
-    public function search(int $userId, string $searchQuery)
+    public function search(int $userId, string $searchQuery): array|false
     {
-        $qury = $this->queryBuilder
-            ->select(['id', 'name', 'parent_id', 'type', 'path'])
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::like('name', 'pattern'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
+            ->and(Expression::like('name', "%$searchQuery%", 'pattern'))
             ->and(Expression::isNull('deleted_at'))
             ->build();
-        $res = $this->fetchAll($qury, ['user_id' => $userId, 'pattern' => "%$searchQuery%"]);
-        return $res;
+
+        return $this->getAll(whereClauseQuery: $query);
     }
 
     public function getFileTreeByIds(int $userId, array $ids): FileSystemObjectCollection|false
     {
-        $query = $this->queryBuilder->resetQuery()
-            ->where(Expression::in('id', count($ids)))
-            ->and(Expression::equal('user_id'))
+        $cteWhereClause = $this->queryBuilder->newQuery()
+            ->where(Expression::in('id', $ids))
+            ->and(Expression::equal('user_id', $userId))
             ->build();
 
-        $query = $this->getRecursiveCTE($query);
-        $query .= "
-        SELECT * FROM {$this->tableName} WHERE id IN (SELECT id FROM file_tree)";
+        $query = $this->getRecursiveCTE($cteWhereClause->query);
 
-        $res = $this->fetchAll($query, ['user_id' => $userId, ...$this->prepareParamsForIn($ids)]);
+        $selectQuery = $this->queryBuilder
+            ->select()
+            ->whereRaw('id IN (SELECT id FROM file_tree)')
+            ->build();
+
+        $query .= $selectQuery->query;
+
+        $res = $this->query(new Query($query, array_merge($cteWhereClause->params, $selectQuery->params)))->data;
         if (empty($res)) return false;
         return FileSystemObjectCollection::createFromDbArr($res);
     }
 
     public function getDeletedFiles(int $userId)
     {
-        $query = $this->queryBuilder
-            ->select([])
-            ->where(Expression::equal('user_id'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
             ->and(Expression::notNull('deleted_at'))
             ->build();
-        return $this->fetchAll($query, ['user_id' => $userId]);
+
+        return $this->getAll(whereClauseQuery: $query);
     }
 
     public function restoreObject(FileSystemObject $fsObject)
     {
         if ($fsObject->isFile()) {
-            $query = $this->queryBuilder
-                ->update(['deleted_at'])
-                ->where(Expression::equal('id'))
-                ->and(Expression::equal('user_id'))
+            $query = $this->queryBuilder->newQuery()
+                ->and(Expression::equal('user_id', $fsObject->ownerId))
                 ->build();
 
-            $this->update($query, ['deleted_at' => null, 'user_id' => $fsObject->ownerId, 'id' => $fsObject->id]);
+            $this->updateById($fsObject->id, ['deleted_at' => null], $query);
         } else {
-            $query = $this->queryBuilder
-                ->update(['deleted_at'])
-                ->where(Expression::like('path_ids', 'p'))
-                ->and(Expression::equal('user_id'))
+            $query = $this->queryBuilder->newQuery()
+                ->where(Expression::like('path_ids', $fsObject->getPathIds() . '%'))
+                ->and(Expression::equal('user_id', $fsObject->ownerId))
                 ->build();
 
-            $this->update($query, [
+            $this->update([
                 'deleted_at' => null,
-                'user_id' => $fsObject->ownerId,
-                'p' => $fsObject->getPathIds() . '%'
-            ]);
+            ], $query);
         }
     }
 
     public function deletePermanently(int $userId, array $ids)
     {
-        $query = $this->queryBuilder
-            ->delete()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::in('id', count($ids)))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
+            ->and(Expression::in('id', $ids))
             ->build();
 
-        $this->delete($query, ['user_id' => $userId, ...$this->prepareParamsForIn($ids)]);
+        $this->delete($query);
     }
 
     private function getRecursiveCTE(string $whereClause = '', int $depth = 0): string
     {
         $depthLimit = $depth == 0 ? '' : "<$depth";
+        $whereClause = $whereClause == '' ? '' : 'WHERE ' . $whereClause;
 
         return "WITH RECURSIVE file_tree AS (
             SELECT id, 1 AS 'depth'
@@ -278,119 +253,108 @@ class FileSystemRepository extends BaseRepository
             FROM {$this->tableName} t
             INNER JOIN file_tree tree ON t.parent_id = tree.id
             WHERE tree.depth $depthLimit
-        )";
+        )
+        ";
     }
 
     private function getRootContent(int $userId): array|false
     {
-        $query = $this->queryBuilder
-            ->select()
-            ->where(Expression::equal('user_id'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
             ->and(Expression::isNull('parent_id'))
             ->and(Expression::isNull('deleted_at'))
             ->build();
-        $content = $this->fetchAll($query, ['user_id' => $userId]);
 
-        return $content;
+        return $this->getAll(whereClauseQuery: $query);
     }
 
     private function getConcreteDirContent(int $userId, int $dirId): array|false
     {
-        $query = $this->queryBuilder
-            ->select()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('parent_id'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
+            ->and(Expression::equal('parent_id', $dirId))
             ->and(Expression::isNull('deleted_at'))
             ->build();
-        $content = $this->fetchAll($query, ['user_id' => $userId, 'parent_id' => $dirId]);
 
-        return $content;
+        return $this->getAll(whereClauseQuery: $query);
     }
 
     private function renameObject(int $userId, int $id, string $path, string $updatedPath, string $newName)
     {
-        $query = $this->queryBuilder
-            ->update(['path', 'name'])
-            ->where(Expression::like('path', 'pathPattern'))
-            ->and(Expression::equal('user_id'))
-            ->and(Expression::equal('id'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::like('path', $path, 'pathPattern'))
+            ->and(Expression::equal('user_id', $userId))
             ->build();
-        $this->update($query, [
+
+        $this->updateById($id, [
             'path' => $updatedPath,
             'name' => $newName,
-            'pathPattern' => $path,
-            'user_id' => $userId,
-            'id' => $id
-        ]);
+        ], $query);
     }
 
     private function renameInnerFolders(int $userId, int $id, string $path, string $updatedPath)
     {
         $startPos = mb_strlen($path) + 1;
 
-        $query = $this->getRecursiveCTE(
-            $this->queryBuilder->resetQuery()
-                ->where(Expression::equal('id', 'dirId'))
-                ->and(Expression::equal('user_id', 'userId'))
-                ->build()
-        );
-        $query .= "
-        UPDATE {$this->tableName}
-        SET path = CONCAT(:updatedPath, SUBSTRING(path, $startPos))
-        WHERE id IN (SELECT id FROM file_tree) AND id <> :dirId;
-        ";
+        $cteWhereClause = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('id', $id, 'dirId'))
+            ->and(Expression::equal('user_id', $userId, 'userId'))
+            ->build();
 
-        $this->update($query, [
-            'updatedPath' => $updatedPath,
-            'userId' => $userId,
-            'dirId' => $id
-        ]);
+        $cteQuery = $this->getRecursiveCTE($cteWhereClause->query);
+        $updateQuery = $this->queryBuilder
+            ->update([
+                'path' => Expression::raw("CONCAT(:updatedPath, SUBSTRING(path, $startPos))", ['updatedPath' => $updatedPath])
+            ])
+            ->where(Expression::notEqual('id', $id, 'dirId'))
+            ->whereRaw('id IN (SELECT id FROM file_tree)')
+            ->build();
+
+
+        $this->query(new Query(
+            $cteQuery . $updateQuery->query,
+            array_merge($cteWhereClause->params, $updateQuery->params)
+        ));
     }
 
     private function moveTopItem(int $userId, string $currentPathIds, string $updatedPath, string $updatedPathIds, ?int $toDirId)
     {
-        $query = $this->queryBuilder
-            ->update(['parent_id', 'path', 'path_ids'])
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::like('path_ids', 'currentPathIds'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
+            ->and(Expression::like('path_ids', $currentPathIds, 'currentPathIds'))
             ->build();
-        $this->update($query, [
+
+        $this->update([
             'parent_id' => $toDirId,
             'path' => $updatedPath,
-            'user_id' => $userId,
-            'currentPathIds' => $currentPathIds,
             'path_ids' => $updatedPathIds
-        ]);
+        ], $query);
     }
 
     private function moveInnerItems(int $userId, string $currentPath, string $updatedPath, string $currentPathIds, string $updatedPathIds)
     {
         $currentPathLen = mb_strlen($currentPath) + 1;
         $currentPathIdsLen = mb_strlen($currentPathIds) + 1;
-        $query = "
-            UPDATE file_system
-            SET path = CONCAT(:updatedPath, SUBSTR(path, $currentPathLen)),
-            path_ids = CONCAT(:updatedPathIds, SUBSTR(path_ids, $currentPathIdsLen))
-            WHERE path_ids LIKE :pathPattern AND user_id = :user_id;
-        ";
 
-        $this->update($query, [
-            'updatedPath' => $updatedPath,
-            'pathPattern' => $currentPathIds . '/%',
-            'updatedPathIds' => $updatedPathIds,
-            'user_id' => $userId
-        ]);
+        $query = $this->queryBuilder
+            ->update([
+                'path' => Expression::raw("CONCAT(:updatedPath, SUBSTR(path, $currentPathLen))", ['updatedPath' => $updatedPath]),
+                'path_ids' => Expression::raw("CONCAT(:updatedPathIds, SUBSTR(path_ids, $currentPathIdsLen))", ['updatedPathIds' => $updatedPathIds])
+            ])
+            ->where(Expression::equal('user_id', $userId))
+            ->and(Expression::like('path_ids', $currentPathIds . '/%', 'pathPattern'))
+            ->build();
+
+        $this->query($query);
     }
 
     private function getPathIds(int $userId, int $dirId): string
     {
-        $query = $this->queryBuilder
-            ->select(['path_ids'])
-            ->where(Expression::equal('id'))
-            ->and(Expression::equal('user_id'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('id', $dirId))
+            ->and(Expression::equal('user_id', $userId))
             ->build();
 
-        $res = $this->fetchColumn($query, ['id' => $dirId, 'user_id' => $userId]);
-        return $res;
+        return $this->getOne(['path_ids'], $query);
     }
 }
