@@ -94,14 +94,16 @@ abstract class BaseRepository
         return $stmt->rowCount();
     }
 
-    protected function getById(int $id, ?Query $whereClauseQuery = null): array|false
+    protected function getById(int $id, ?Query $whereClauseQuery = null, array $fieldsForSelect = []): array|false|string
     {
         $query = $this->queryBuilder
-            ->select()
+            ->select($fieldsForSelect)
             ->where(Expression::equal('id', $id));
         if ($whereClauseQuery !== null) $query->andRaw($whereClauseQuery->query, $whereClauseQuery->params);
 
-        return $this->fetchOne($query->build());
+        $res = $this->fetchOne($query->build());
+        if (count($fieldsForSelect) == 1) return $res[$fieldsForSelect[0]];
+        else return $res;
     }
 
     protected function deleteById(int $id, ?Query $whereClauseQuery = null): int

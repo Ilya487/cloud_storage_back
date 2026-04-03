@@ -27,7 +27,7 @@ class BuildFileJobHandler
 
     public function handle(int $userId, int $sessionId)
     {
-        $session = $this->uploadSessionsRepo->getById($userId, $sessionId);
+        $session = $this->uploadSessionsRepo->getSessionById($userId, $sessionId);
         if ($session === false)
             throw new Exception('Сессия не найдена');
 

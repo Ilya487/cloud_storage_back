@@ -83,7 +83,7 @@ class UploadService
 
     public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, string $data): OperationResult
     {
-        $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
+        $uploadSession = $this->uploadSessionsRepo->getSessionById($userId, $uploadSessionId);
         if ($uploadSession === false)  throw new NotFoundException('Сессия с данным айди не найдена');
 
         if ($uploadSession->isUploadComplete()) {
@@ -102,7 +102,7 @@ class UploadService
 
     public function cancelUploadSession(int $userId, int $uploadSessionId): OperationResult
     {
-        $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
+        $uploadSession = $this->uploadSessionsRepo->getSessionById($userId, $uploadSessionId);
         if ($uploadSession === false) throw new NotFoundException('Сессия с данным айди не найдена');
 
         if (!$uploadSession->isUploading()) {
@@ -128,7 +128,7 @@ class UploadService
 
     public function startBuild(int $userId, int $uploadSessionId): OperationResult
     {
-        $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
+        $uploadSession = $this->uploadSessionsRepo->getSessionById($userId, $uploadSessionId);
         if ($uploadSession === false) throw new NotFoundException('Сессия с данным айди не найдена');
 
         if ($uploadSession->isBuilding()) return OperationResult::createError(['message' => 'Сборка сессии уже запущена']);
@@ -145,7 +145,7 @@ class UploadService
 
     public function getSessionStatus(int $userId, int $sessionId): OperationResult
     {
-        $session = $this->uploadSessionsRepo->getById($userId, $sessionId);
+        $session = $this->uploadSessionsRepo->getSessionById($userId, $sessionId);
         if ($session === false) throw new NotFoundException('Сессия с данным айди не найдена');
 
         return OperationResult::createSuccess([
