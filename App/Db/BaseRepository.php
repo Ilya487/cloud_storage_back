@@ -140,7 +140,7 @@ abstract class BaseRepository
         return (int) ($result['cnt'] ?? 0);
     }
 
-    public function query(Query $query): QueryRes
+    protected function query(Query $query): QueryRes
     {
         $stmnt = $this->executeQuery($query);
         return new QueryRes($stmnt->fetchAll(), $this->pdo->lastInsertId() ?: null, $stmnt->rowCount());
