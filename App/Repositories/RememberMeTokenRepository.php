@@ -12,11 +12,11 @@ class RememberMeTokenRepository extends BaseRepository
 
     public function getBySelector(string $selector): RememberMeToken|false
     {
-        $query = $this->queryBuilder
-            ->select()
-            ->where(Expression::equal('selector'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('selector', $selector))
             ->build();
-        $data = $this->fetchOne($query, ['selector' => $selector]);
+
+        $data = $this->getOne(whereClauseQuery: $query);
 
         if ($data !== false) {
             return RememberMeToken::createFromArr($data);
@@ -26,8 +26,7 @@ class RememberMeTokenRepository extends BaseRepository
 
     public function saveToken(RememberMeToken $token): string
     {
-        $query = $this->queryBuilder->insert(['selector', 'validator_hash', 'user_id', 'expires'])->build();
-        return $this->insert($query, [
+        return $this->insert([
             'selector' => $token->selector,
             'validator_hash' => $token->validatorHash,
             'user_id' => $token->userId,
@@ -37,7 +36,10 @@ class RememberMeTokenRepository extends BaseRepository
 
     public function deleteBySelector(string $selector): void
     {
-        $query = $this->queryBuilder->delete()->where(Expression::equal('selector'))->build();
-        $this->delete($query, ['selector' => $selector]);
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('selector', $selector))
+            ->build();
+
+        $this->delete($query);
     }
 }
