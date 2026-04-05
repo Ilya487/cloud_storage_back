@@ -163,8 +163,10 @@ abstract class BaseRepository
         $this->tx->rollBackTransaction();
     }
 
-    protected function formatTimestamp(int $timestamp)
+    protected function formatTimestamp(?int $timestamp = null)
     {
+        if ($timestamp === null)
+            $timestamp = time();
         return date('Y-m-d H:i:s', $timestamp);
     }
 

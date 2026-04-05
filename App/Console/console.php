@@ -4,6 +4,7 @@ use App\Console\Commands\BuildFileWorkerCommand;
 use App\Console\Commands\CreateArchiveWorkerCommand;
 use App\Console\Commands\DeleteFilesWorkerCommand;
 use App\Console\Commands\Schedulers\DeleteArchivesCommand;
+use App\Console\Commands\Schedulers\DeleteExpiredAuthTokensCommand;
 use App\Console\Commands\Schedulers\DeleteExpiredUploadsSessionsCommand;
 use Symfony\Component\Console\Application;
 
@@ -17,6 +18,7 @@ $app->addCommands([
     new BuildFileWorkerCommand(),
     new DeleteFilesWorkerCommand(),
     new DeleteArchivesCommand(),
-    new DeleteExpiredUploadsSessionsCommand()
+    new DeleteExpiredUploadsSessionsCommand(),
+    new DeleteExpiredAuthTokensCommand
 ]);
 $app->run();

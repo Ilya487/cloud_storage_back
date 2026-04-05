@@ -42,4 +42,13 @@ class RememberMeTokenRepository extends BaseRepository
 
         $this->delete($query);
     }
+
+    public function deleteExpiredTokens(): void
+    {
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::less('expires', $this->formatTimestamp()))
+            ->build();
+
+        $this->delete($query);
+    }
 }
