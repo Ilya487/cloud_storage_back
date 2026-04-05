@@ -21,7 +21,7 @@ class DeleteExpiredArchives
             $deleteRes = $this->downloadStorage->deleteById($task->id);
             if (!$deleteRes) continue;
 
-            $this->taskRepo->deleteById($task->id);
+            $this->taskRepo->deleteTaskById($task->id);
         }
     }
 }

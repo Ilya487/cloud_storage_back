@@ -13,7 +13,7 @@ class MoveFilesUseCase
 
     public function execute(int $userId, array $items, ?int $toDirId = null): OperationResult
     {
-        $toDir = is_null($toDirId) ? FileSystemObject::createRootDir($userId) : $this->fsRepo->getById($userId, $toDirId);
+        $toDir = is_null($toDirId) ? FileSystemObject::createRootDir($userId) : $this->fsRepo->getObjectById($userId, $toDirId);
         if ($toDir === false) {
             return OperationResult::createError(['message' => 'Указана некорректная папка назначения']);
         }

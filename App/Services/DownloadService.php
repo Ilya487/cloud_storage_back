@@ -28,7 +28,7 @@ class DownloadService
 
     public function getFileServerPath(int $userId, int $fileId)
     {
-        $file = $this->fsRepo->getById($userId, $fileId);
+        $file = $this->fsRepo->getObjectById($userId, $fileId);
         if ($file === false) throw new NotFoundException('Файл не найден');
         if (!$file->isFile()) return OperationResult::createError(['message' => 'Попытка получить путь папки']);
 
@@ -56,14 +56,14 @@ class DownloadService
 
     public function checkArchiveStatus(int $userId, int $taskId): OperationResult
     {
-        $task = $this->prepareRepo->getById($userId, $taskId);
+        $task = $this->prepareRepo->getTaskById($userId, $taskId);
         if ($task === false) throw new NotFoundException('Задача с данным айди не найдена');
         return OperationResult::createSuccess(['status' => $task->status->value]);
     }
 
     public function getPathForArchiveDownlaod(int $userId, int $taskId)
     {
-        $task = $this->prepareRepo->getById($userId, $taskId);
+        $task = $this->prepareRepo->getTaskById($userId, $taskId);
         if ($task === false) throw new NotFoundException('Задача с данным айди не найдена');
 
         if ($task->hasError()) return OperationResult::createError(['message' => 'Произошла ошибка при создании архива']);

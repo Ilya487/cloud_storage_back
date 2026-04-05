@@ -21,7 +21,7 @@ class CreateArchiveJobHandler
 
     public function handle(int $userId, int $taskId)
     {
-        $task = $this->taskRepo->getById($userId, $taskId);
+        $task = $this->taskRepo->getTaskById($userId, $taskId);
         if ($task === false) throw new Exception('Задача не найдена');
 
         $files = $this->fsRepo->getFileTreeByIds($task->userId, $task->filesId);

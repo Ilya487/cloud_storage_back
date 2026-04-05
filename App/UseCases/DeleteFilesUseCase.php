@@ -54,17 +54,10 @@ class DeleteFilesUseCase
         if ($collection->len() == 0) return OperationResult::createError(['message' => 'Невозможно удалить файл не из корзины']);
         $failDelete -=  $collection->len();
 
-        $files = $collection->filesOnly();
-        if ($files->len() == 0) {
-            $this->fsRepo->deletePermanently($userId, $ids);
-            return OperationResult::createSuccess([
-                'successDelte' => count($ids) - $failDelete,
-                'failDelete' => $failDelete
-            ]);
-        }
-
         $this->fsRepo->deletePermanently($userId, $collection->toIdsArray());
-        $this->queue->push(DeleteFilesJob::create($collection->toIdsArray()));
+        $files = $collection->filesOnly();
+        if ($files->len() > 0)
+            $this->queue->push(DeleteFilesJob::create($files->toIdsArray()));
 
         return OperationResult::createSuccess([
             'successDelte' => count($ids) - $failDelete,

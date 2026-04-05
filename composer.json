@@ -9,5 +9,8 @@
   },
   "require-dev": {
     "symfony/var-dumper": "^8.0"
+  },
+  "scripts": {
+    "console": "php App/Console/console.php"
   }
 }

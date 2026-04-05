@@ -84,10 +84,13 @@ class FileSystemRepository extends BaseRepository
         } else throw new Exception('Unknown fs object type');
     }
 
-    public function getDirContent(int $userId, ?int $dirId = null): array|false
+    public function getDirContent(int $userId, ?int $dirId = null): array
     {
-        if (is_null($dirId)) return $this->getRootContent($userId);
-        else return $this->getConcreteDirContent($userId, $dirId);
+        if ($dirId == null) $res = $this->getRootContent($userId);
+        else $res = $this->getConcreteDirContent($userId, $dirId);
+
+        if ($res === false) return [];
+        return $res;
     }
 
     private function softDeleteFileById(int $userId, int $itemId)
@@ -176,7 +179,8 @@ class FileSystemRepository extends BaseRepository
             ->and(Expression::isNull('deleted_at'))
             ->build();
 
-        return $this->getAll(whereClauseQuery: $query);
+        if (($res = $this->getAll(whereClauseQuery: $query)) === false) return [];
+        else return $res;
     }
 
     public function getFileTreeByIds(int $userId, array $ids): FileSystemObjectCollection|false
@@ -200,14 +204,16 @@ class FileSystemRepository extends BaseRepository
         return FileSystemObjectCollection::createFromDbArr($res);
     }
 
-    public function getDeletedFiles(int $userId)
+    public function getDeletedFiles(int $userId): array
     {
         $query = $this->queryBuilder->newQuery()
             ->where(Expression::equal('user_id', $userId))
             ->and(Expression::notNull('deleted_at'))
             ->build();
 
-        return $this->getAll(whereClauseQuery: $query);
+        $res = $this->getAll(whereClauseQuery: $query);
+        if ($res === false) return [];
+        return $res;
     }
 
     public function restoreObject(FileSystemObject $fsObject)
