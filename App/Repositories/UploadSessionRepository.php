@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Db\Expression;
+use App\Models\Collections\UploadSessionCollection;
 use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
 use App\Db\BaseRepository;
@@ -105,6 +106,25 @@ class UploadSessionRepository  extends BaseRepository
             ->where(Expression::equal('user_id', $userId))
             ->build();
 
-        $this->update($query, ['user_id' => $userId, 'id' => $sessionId, 'status' => $status->value]);
+        $this->updateById($sessionId, ['status' => $status->value], $query);
+    }
+
+    public function deleteSessionsByIds(array $ids)
+    {
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::in('id', $ids))
+            ->build();
+
+        return $this->delete($query);
+    }
+
+    public function getExpired(int $limit): UploadSessionCollection
+    {
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::less('expire_at', $this->formatTimestamp(time())))
+            ->build();
+
+        $res = $this->getAll([], $query, $limit);
+        return UploadSessionCollection::createFromDbArr($res === false ? [] : $res);
     }
 }
