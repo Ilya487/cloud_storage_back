@@ -2,8 +2,9 @@
 
 use App\Console\Commands\BuildFileWorkerCommand;
 use App\Console\Commands\CreateArchiveWorkerCommand;
-use App\Console\Commands\Schedulers\DeleteArchivesCommand;
 use App\Console\Commands\DeleteFilesWorkerCommand;
+use App\Console\Commands\Schedulers\DeleteArchivesCommand;
+use App\Console\Commands\Schedulers\DeleteExpiredUploadsSessionsCommand;
 use Symfony\Component\Console\Application;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
@@ -15,6 +16,7 @@ $app->addCommands([
     new CreateArchiveWorkerCommand(),
     new BuildFileWorkerCommand(),
     new DeleteFilesWorkerCommand(),
-    new DeleteArchivesCommand()
+    new DeleteArchivesCommand(),
+    new DeleteExpiredUploadsSessionsCommand()
 ]);
 $app->run();

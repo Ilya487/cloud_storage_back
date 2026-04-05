@@ -31,9 +31,10 @@ class UploadsStorage extends BaseStorage
         return file_get_contents($path);
     }
 
-    public function deleteSessionDir(int $uploadSessionId)
+    public function deleteSessionDir(int $uploadSessionId): bool
     {
         $path = $this->getFullPath($uploadSessionId);
+        if (!is_dir($path)) return true;
         return $this->deleteDirectoryRecursively($path);
     }
 
