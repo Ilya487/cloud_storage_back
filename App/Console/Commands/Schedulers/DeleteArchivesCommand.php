@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Console\Commands\Schedulers;
 
 use App\Config\Container;
 use App\Scheduler\DeleteExpiredArchives;
@@ -11,7 +11,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(name: 'scheduler:delete_archives')]
-class DeleteArchivesSchedulerCommand extends Command
+class DeleteArchivesCommand extends Command
 {
     public function execute(InputInterface $input, OutputInterface $output): int
     {
