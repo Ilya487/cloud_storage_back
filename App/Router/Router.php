@@ -6,6 +6,7 @@ use App\Config\Container;
 use App\Exceptions\NotFoundException;
 use App\Http\Middleware\MiddlewareInterface;
 use App\Http\Request;
+use App\Http\Response;
 use Exception;
 
 class Router
@@ -16,7 +17,7 @@ class Router
     private array $routes = [];
     private array $globalMiddlewares = [];
 
-    public function __construct(private Request $request)
+    public function __construct(private Request $request, private Response $response)
     {
         $this->routes = $this->loadRoutesFromConfig();
     }
@@ -60,7 +61,7 @@ class Router
                 $resolvedMiddleware->$method();
             } else {
                 $resolvedMiddleware = Container::resolve($middleware);
-                $resolvedMiddleware->handle();
+                $resolvedMiddleware->handle($this->request, $this->response);
             }
         }
     }
