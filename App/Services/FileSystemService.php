@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Db\TransactionManager;
 use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
 use App\Models\FileSystemObject;
@@ -15,6 +16,7 @@ class FileSystemService
         private FileSystemRepository $fsRepo,
         private MoveFilesUseCase $moveFiles,
         private DeleteFilesUseCase $deleteFiles,
+        private TransactionManager $txManager
     ) {}
 
     public function createFolder(int $userId, string $dirName, ?int $parentDirId = null): OperationResult
@@ -30,7 +32,7 @@ class FileSystemService
 
     public function getFolderContent(int $userId, ?int $dirId = null): OperationResult
     {
-        $selectedDir = is_null($dirId) ? FileSystemObject::createRootDir($userId) : $this->fsRepo->getById($userId, $dirId);
+        $selectedDir = is_null($dirId) ? FileSystemObject::createRootDir($userId) : $this->fsRepo->getObjectById($userId, $dirId);
         if ($selectedDir === false) throw new NotFoundException('Указаная директория не найдена');
         if ($selectedDir->isFile())
             return OperationResult::createError(['message' => 'Выбран файл']);
@@ -44,7 +46,7 @@ class FileSystemService
 
     public function renameObject(int $userId, int $objectId, string $newName): OperationResult
     {
-        $fsObject = $this->fsRepo->getById($userId, $objectId);
+        $fsObject = $this->fsRepo->getObjectById($userId, $objectId);
         if ($fsObject === false) return OperationResult::createError(['message' => 'Указан неверный айди']);
 
         $this->fsRepo->rename($fsObject, $newName);
@@ -97,7 +99,7 @@ class FileSystemService
         if ($fsCollection->len() == 0) return OperationResult::createError(['message' => 'Запрашиваемые файлы не находятся в корзине']);
         $failedRestore = count($ids) - $fsCollection->len();
 
-        $this->fsRepo->withTransaction(function () use ($fsCollection) {
+        $this->txManager->withTransaction(function () use ($fsCollection) {
             foreach ($fsCollection as $fsObject) {
 
                 if (!$fsObject->hasParent()) {
@@ -105,7 +107,7 @@ class FileSystemService
                     continue;
                 }
 
-                $parentDir = $this->fsRepo->getById($fsObject->ownerId, $fsObject->getParentId());
+                $parentDir = $this->fsRepo->getObjectById($fsObject->ownerId, $fsObject->getParentId());
                 if (!$parentDir->inTrash) {
                     $this->fsRepo->restoreObject($fsObject);
                     continue;

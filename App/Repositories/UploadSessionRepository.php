@@ -3,22 +3,14 @@
 namespace App\Repositories;
 
 use App\Db\Expression;
+use App\Models\Collections\UploadSessionCollection;
 use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
-use App\Repositories\BaseRepository;
-use App\Tools\DbConnect;
-use PDO;
+use App\Db\BaseRepository;
 
 class UploadSessionRepository  extends BaseRepository
 {
     protected string $tableName = 'upload_sessions';
-
-    public function __construct(
-        DbConnect $dbConnect,
-        private UserRepository $userRepo
-    ) {
-        parent::__construct($dbConnect);
-    }
 
     public function createUploadSession(
         int $userId,
@@ -26,26 +18,18 @@ class UploadSessionRepository  extends BaseRepository
         int $totalChunks,
         ?string $destinationDirPath,
         ?int $destinationDirId,
-        int $fileSize
-    ): UploadSession|false {
-        $this->beginTransaction();
-        $canInsert = $this->userRepo->reserveDiskSpace($userId, $fileSize);
-        if (!$canInsert) {
-            $this->rollBackTransaction();
-            return false;
-        }
-
-        $query = $this->queryBuilder->insert(['user_id', 'filename', 'destination_dir_path', 'destination_dir_id', 'total_chunks', 'file_size'])->build();
-        $id =  $this->insert($query, [
+        int $fileSize,
+        int $expireAt
+    ): UploadSession {
+        $id =  $this->insert([
             'user_id' => $userId,
             'filename' => $fileName,
             'destination_dir_path' => $destinationDirPath,
             'destination_dir_id' => $destinationDirId,
             'total_chunks' => $totalChunks,
-            'file_size' => $fileSize
+            'file_size' => $fileSize,
+            'expire_at' => $this->formatTimestamp($expireAt)
         ]);
-
-        $this->submitTransaction();
 
         return UploadSession::createFromArr([
             'id' => $id,
@@ -55,42 +39,36 @@ class UploadSessionRepository  extends BaseRepository
             'total_chunks' => $totalChunks,
             'file_size' => $fileSize,
             'completed_chunks' => 0,
-            'status' => UploadSessionStatus::UPLOADING->value
+            'status' => UploadSessionStatus::UPLOADING->value,
+            'expire_at' => $this->formatTimestamp($expireAt)
         ]);
     }
 
     public function deleteSession(UploadSession $session)
     {
-        $this->beginTransaction();
-        $this->userRepo->freeUpDiskSpace($session->userId, $session->fileSize);
-        $query = $this->queryBuilder
-            ->delete()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('id'))
-            ->build();
-        $this->delete($query, ['user_id' => $session->userId, 'id' => $session->id]);
-        $this->submitTransaction();
+        $this->deleteById($session->id);
     }
 
-    public function getById(int $userId, int $sessionId): UploadSession|false
+    public function getSessionById(int $userId, int $sessionId): UploadSession|false
     {
-        $query = $this->queryBuilder
-            ->select()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('id'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
             ->build();
-        $data = $this->fetchOne($query, ['user_id' => $userId, 'id' => $sessionId]);
+
+        $data = $this->getById($sessionId, $query);
         return $data == false ? false : UploadSession::createFromArr($data);
     }
 
     public function incrementCompletedChunks(int $uploadSessionId): int|false
     {
-        $updateQuery = $this->queryBuilder->incrementField('completed_chunks')->where(Expression::equal('id'))->build();
-        $selectQuery = $this->queryBuilder->select(['completed_chunks'])->where(Expression::equal('id'))->build();
+        $updateQuery = $this->queryBuilder
+            ->add('completed_chunks', 1)
+            ->where(Expression::equal('id', $uploadSessionId))
+            ->build();
 
         $this->beginTransaction();
-        $this->update($updateQuery, ['id' => $uploadSessionId]);
-        $count = $this->fetchOne($selectQuery, ['id' => $uploadSessionId])['completed_chunks'];
+        $this->query($updateQuery);
+        $count = $this->getById($uploadSessionId, fieldsForSelect: ['completed_chunks']);
         $this->submitTransaction();
 
         return $count;
@@ -98,12 +76,12 @@ class UploadSessionRepository  extends BaseRepository
 
     public function getUserSessionsCount(int $userId): int
     {
-        $query = $this->queryBuilder
-            ->count()
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('status'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
+            ->and(Expression::equal('status', UploadSessionStatus::UPLOADING->value))
             ->build();
-        return $this->fetchOne($query, ['user_id' => $userId, 'status' => UploadSessionStatus::UPLOADING->value], PDO::FETCH_NUM)[0];
+
+        return $this->count($query);
     }
 
     /**
@@ -111,8 +89,10 @@ class UploadSessionRepository  extends BaseRepository
      */
     public function getUserSessions(int $userId): array
     {
-        $query = $this->queryBuilder->select()->where(Expression::equal('user_id'))->build();
-        $data = $this->fetchAll($query, ['user_id' => $userId]);
+        $query = $this->queryBuilder
+            ->where(Expression::equal('user_id', $userId))
+            ->build();
+        $data = $this->getAll(whereClauseQuery: $query);
         $res = [];
         foreach ($data as $session) {
             $res[] = UploadSession::createFromArr($session);
@@ -122,12 +102,29 @@ class UploadSessionRepository  extends BaseRepository
 
     public function setStatus(int $userId, int $sessionId, UploadSessionStatus $status)
     {
-        $query = $this->queryBuilder
-            ->update(['status'])
-            ->where(Expression::equal('user_id'))
-            ->and(Expression::equal('id'))
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('user_id', $userId))
             ->build();
 
-        $this->update($query, ['user_id' => $userId, 'id' => $sessionId, 'status' => $status->value]);
+        $this->updateById($sessionId, ['status' => $status->value], $query);
+    }
+
+    public function deleteSessionsByIds(array $ids)
+    {
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::in('id', $ids))
+            ->build();
+
+        return $this->delete($query);
+    }
+
+    public function getExpired(int $limit): UploadSessionCollection
+    {
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::less('expire_at', $this->formatTimestamp(time())))
+            ->build();
+
+        $res = $this->getAll([], $query, $limit);
+        return UploadSessionCollection::createFromDbArr($res === false ? [] : $res);
     }
 }

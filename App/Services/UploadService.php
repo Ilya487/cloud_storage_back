@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Db\TransactionManager;
 use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
 use App\Models\UploadSessionStatus;
@@ -14,16 +15,17 @@ use App\Storage\UploadsStorage;
 
 class UploadService
 {
-    private const CHUNK_SIZE = 8 * 1024 * 1024;
+    private const CHUNK_SIZE = 5 * 1024 * 1024;
     private const MAX_ACTIVE_SESSION_FOR_USER = 5;
-    private const SESSION_MAX_LIFETIME = 300; //5min
+    private const SESSION_EXPIRE_INTERVAL = 3600;
 
     public function __construct(
         private FileSystemRepository $fsRepo,
         private UploadSessionRepository $uploadSessionsRepo,
         private UploadsStorage $uploadsStorage,
         private UserRepository $userRepo,
-        private Queue $queue
+        private Queue $queue,
+        private TransactionManager $txManager
     ) {}
 
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
@@ -32,7 +34,7 @@ class UploadService
             return OperationResult::createError(['message' => 'Вы превысили максимальное количество активных сессий']);
         }
 
-        if (!is_null($destinationDirId)) {
+        if ($destinationDirId !== null) {
             $destinationDirPath = $this->fsRepo->getPathById($destinationDirId, $userId);
             if ($destinationDirPath === false) {
                 return OperationResult::createError(['message' => 'Папка назначения не существует или была удалена']);
@@ -40,28 +42,48 @@ class UploadService
         } else $destinationDirPath = '/';
 
         $totalChunks = ceil($fileSize / self::CHUNK_SIZE);
-        $uploadSession = $this->uploadSessionsRepo->createUploadSession($userId, $fileName, $totalChunks, $destinationDirPath, $destinationDirId, $fileSize);
 
-        if ($uploadSession === false) {
-            return OperationResult::createError(['message' => 'Недостаточно свободного места на диске']);
-        }
+        return $this->txManager->withTransaction(function ($rollBack) use (
+            $userId,
+            $fileSize,
+            $fileName,
+            $totalChunks,
+            $destinationDirPath,
+            $destinationDirId
+        ) {
+            $canInsert = $this->userRepo->reserveDiskSpace($userId, $fileSize);
+            if (!$canInsert) {
+                $rollBack();
+                return OperationResult::createError(['message' => 'Недостаточно свободного места на диске']);
+            }
 
-        if (!$this->uploadsStorage->initializeUploadDir($uploadSession->id)) {
-            $this->uploadSessionsRepo->deleteSession($uploadSession);
-            return OperationResult::createError(['message' => 'Не удалась инициализировать сессию загрузки']);
-        }
+            $uploadSession = $this->uploadSessionsRepo->createUploadSession(
+                $userId,
+                $fileName,
+                $totalChunks,
+                $destinationDirPath,
+                $destinationDirId,
+                $fileSize,
+                time() + self::SESSION_EXPIRE_INTERVAL
+            );
 
-        return OperationResult::createSuccess([
-            'sessionId' => (int)$uploadSession->id,
-            'chunkSize' => self::CHUNK_SIZE,
-            'chunksCount' => $totalChunks,
-            'path' => $destinationDirPath
-        ]);
+            if (!$this->uploadsStorage->initializeUploadDir($uploadSession->id)) {
+                $rollBack();
+                return OperationResult::createError(['message' => 'Не удалась инициализировать сессию загрузки']);
+            }
+
+            return OperationResult::createSuccess([
+                'sessionId' => (int)$uploadSession->id,
+                'chunkSize' => self::CHUNK_SIZE,
+                'chunksCount' => $totalChunks,
+                'path' => $destinationDirPath
+            ]);
+        });
     }
 
     public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, string $data): OperationResult
     {
-        $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
+        $uploadSession = $this->uploadSessionsRepo->getSessionById($userId, $uploadSessionId);
         if ($uploadSession === false)  throw new NotFoundException('Сессия с данным айди не найдена');
 
         if ($uploadSession->isUploadComplete()) {
@@ -80,7 +102,7 @@ class UploadService
 
     public function cancelUploadSession(int $userId, int $uploadSessionId): OperationResult
     {
-        $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
+        $uploadSession = $this->uploadSessionsRepo->getSessionById($userId, $uploadSessionId);
         if ($uploadSession === false) throw new NotFoundException('Сессия с данным айди не найдена');
 
         if (!$uploadSession->isUploading()) {
@@ -93,20 +115,20 @@ class UploadService
         return OperationResult::createSuccess([]);
     }
 
-    private function deleteExpiredSessions($userId)
-    {
-        $sessions = $this->uploadSessionsRepo->getUserSessions($userId);
-        foreach ($sessions as $session) {
-            $timeDiff = time() - $session->lastUpdated->getTimestamp();
-            if ($timeDiff >= self::SESSION_MAX_LIFETIME) {
-                $this->cancelUploadSession($session->userId, $session->id);
-            }
-        }
-    }
+    // private function deleteExpiredSessions($userId)
+    // {
+    //     $sessions = $this->uploadSessionsRepo->getUserSessions($userId);
+    //     foreach ($sessions as $session) {
+    //         $timeDiff = time() - $session->lastUpdated->getTimestamp();
+    //         if ($timeDiff >= self::SESSION_MAX_LIFETIME) {
+    //             $this->cancelUploadSession($session->userId, $session->id);
+    //         }
+    //     }
+    // }
 
     public function startBuild(int $userId, int $uploadSessionId): OperationResult
     {
-        $uploadSession = $this->uploadSessionsRepo->getById($userId, $uploadSessionId);
+        $uploadSession = $this->uploadSessionsRepo->getSessionById($userId, $uploadSessionId);
         if ($uploadSession === false) throw new NotFoundException('Сессия с данным айди не найдена');
 
         if ($uploadSession->isBuilding()) return OperationResult::createError(['message' => 'Сборка сессии уже запущена']);
@@ -123,7 +145,7 @@ class UploadService
 
     public function getSessionStatus(int $userId, int $sessionId): OperationResult
     {
-        $session = $this->uploadSessionsRepo->getById($userId, $sessionId);
+        $session = $this->uploadSessionsRepo->getSessionById($userId, $sessionId);
         if ($session === false) throw new NotFoundException('Сессия с данным айди не найдена');
 
         return OperationResult::createSuccess([

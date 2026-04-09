@@ -3,9 +3,8 @@
 namespace App\Repositories;
 
 use App\Db\Expression;
-use App\Repositories\BaseRepository;
+use App\Db\BaseRepository;
 use App\Models\User;
-use PDO;
 
 class UserRepository extends BaseRepository
 {
@@ -16,29 +15,28 @@ class UserRepository extends BaseRepository
      */
     public function insertNewUser(string $login, string $password, int $totalDiskSpace): string
     {
-        $query = $this->queryBuilder->insert(['login', 'password', 'available_disk_space', 'total_disk_space'])->build();
-        $newUserId =  $this->insert($query, [
+        return  $this->insert([
             'login' => $login,
             'password' => $password,
             'available_disk_space' => $totalDiskSpace,
             'total_disk_space' => $totalDiskSpace
         ]);
-        return $newUserId;
     }
 
     public function isLoginExist(string $login): bool
     {
-        $query = $this->queryBuilder->select()->where(Expression::equal('login'))->build();
-        $res = $this->fetchAll($query, ['login' => $login], PDO::FETCH_NUM);
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('login', $login))
+            ->build();
 
-        if ($res == false) return false;
-        else return true;
+        $res = $this->count($query);
+        if ($res > 0) return true;
+        else return false;
     }
 
-    public function getById(int $id): ?User
+    public function getUserById(int $id): ?User
     {
-        $query = $this->queryBuilder->select()->where(Expression::equal('id'))->build();
-        $dbRes = $this->fetchOne($query, ['id' => $id]);
+        $dbRes = $this->getById($id);
 
         if ($dbRes) {
             return User::createFromArr($dbRes);
@@ -48,8 +46,10 @@ class UserRepository extends BaseRepository
 
     public function getByLogin(string $login): ?User
     {
-        $query = $this->queryBuilder->select()->where(Expression::equal('login'))->build();
-        $dbRes = $this->fetchOne($query, ['login' => $login]);
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::equal('login', $login))->build();
+
+        $dbRes = $this->getOne(whereClauseQuery: $query);
 
         if ($dbRes) {
             return User::createFromArr($dbRes);
@@ -60,45 +60,48 @@ class UserRepository extends BaseRepository
     public function incrementDownloadSessionCount(int $userId, int $limit)
     {
         $query = $this->queryBuilder
-            ->update(['download_sessions_count'])
-            ->incrementField('download_sessions_count')
-            ->where(Expression::less('download_sessions_count'))
-            ->and(Expression::equal('id'))
+            ->add('download_sessions_count', 1)
+            ->where(Expression::equal('id', $userId))
+            ->where(Expression::less('download_sessions_count', $limit))
             ->build();
-        $rowCount = $this->update($query, ['download_sessions_count' => $limit, 'id' => $userId]);
+
+        $rowCount = $this->query($query)->affectedRows;
         return boolval($rowCount);
     }
 
     public function decrementDownloadSessionCount(int $userId)
     {
         $query = $this->queryBuilder
-            ->update(['download_sessions_count'])
-            ->decrementField('download_sessions_count')
-            ->where(Expression::equal('id'))
+            ->subtract('download_sessions_count', 1)
+            ->where(Expression::equal('id', $userId))
+            ->where(Expression::more('download_sessions_count', 0, 'bottom'))
             ->build();
-        $this->update($query, ['id' => $userId]);
+
+        $rowCount = $this->query($query)->affectedRows;
+        return boolval($rowCount);
     }
 
     public function reserveDiskSpace(int $userId, int $byteSize)
     {
         $query = $this->queryBuilder
-            ->subtract('available_disk_space', 'byteSize')
-            ->where(Expression::moreEqual('available_disk_space', 'byteSize'))
-            ->and(Expression::equal('id'))
+            ->subtract('available_disk_space', $byteSize)
+            ->where(Expression::moreEqual('available_disk_space', $byteSize))
+            ->and(Expression::equal('id', $userId))
             ->build();
 
-        $rowCount = $this->update($query, ['byteSize' => $byteSize, 'id' => $userId]);
+        $rowCount = $this->query($query)->affectedRows;
         return boolval($rowCount);
     }
 
     public function freeUpDiskSpace(int $userId, int $byteSize)
     {
         $query = $this->queryBuilder
-            ->add('available_disk_space', 'byteSize')
-            ->where(Expression::equal('id'))
+            ->add('available_disk_space', $byteSize)
+            ->where(Expression::equal('id', $userId))
+            ->andRaw('available_disk_space+:size <= total_disk_space', ['size' => $byteSize])
             ->build();
 
-        $rowCount = $this->update($query, ['byteSize' => $byteSize, 'id' => $userId]);
+        $rowCount = $this->query($query)->affectedRows;
         return boolval($rowCount);
     }
 }

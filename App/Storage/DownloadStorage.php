@@ -21,7 +21,7 @@ class DownloadStorage extends BaseStorage
 
     public function createArchive(int $downloadId, string $prefix = ''): ArchiveBuilder|false
     {
-        $path = $this->storagePath . "/$downloadId";
+        $path = $this->getPath($downloadId);
         if (mkdir($path) === false) return false;
         $name = $this->generateName($prefix);
         $path = "$path/$name";
@@ -36,10 +36,23 @@ class DownloadStorage extends BaseStorage
 
     public function getPathById(int $downloadId): string|false
     {
-        $dirPath = $this->storagePath . "/$downloadId";
+        $dirPath = $this->getPath($downloadId);
         $filePath = scandir($dirPath)[2];
         if (is_null($filePath)) return false;
         else return "$dirPath/$filePath";
+    }
+
+    public function deleteById(int $id): bool
+    {
+        $path = $this->getPath($id);
+        if (!is_dir($path)) return true;
+
+        return $this->deleteDirectoryRecursively($path);
+    }
+
+    private function getPath(int $id): string
+    {
+        return  $this->storagePath . "/$id";
     }
 
     private function generateName(string $prefix): string

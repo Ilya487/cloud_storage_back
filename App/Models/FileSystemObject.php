@@ -107,6 +107,11 @@ class FileSystemObject
         return $this->type == FsObjectType::FILE;
     }
 
+    public function isDir(): bool
+    {
+        return $this->type == FsObjectType::DIR;
+    }
+
     public function getExt(): string|false
     {
         if ($this->isFile()) {

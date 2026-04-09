@@ -58,15 +58,6 @@ class FileSystemObjectCollection extends Collection
         return new FileSystemObjectCollection($res);
     }
 
-    /**
-     * @param callable(FileSystemObject $fsObject): bool $cb
-     */
-    public function filter(callable $cb): self
-    {
-        $filteredArr = array_filter($this->collection, fn($value) => $cb($value));
-        return new self($filteredArr);
-    }
-
     public function filesOnly(): self
     {
         return new self(array_filter($this->collection, fn($item) => $item->isFile()));

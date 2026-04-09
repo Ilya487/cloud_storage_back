@@ -2,10 +2,10 @@
 
 namespace App\Queue\Handlers;
 
-use App\Models\PrepareFilesTask;
-use App\Models\PrepareFilesTaskStatus;
+use App\Models\CreateArchiveTask;
+use App\Models\CreateArchiveTaskStatus;
+use App\Repositories\CreateArchiveTaskRepository;
 use App\Repositories\FileSystemRepository;
-use App\Repositories\PreapareFilesTaskRepository;
 use App\Repositories\UserRepository;
 use App\Services\DownloadArchiveService;
 use Exception;
@@ -13,7 +13,7 @@ use Exception;
 class CreateArchiveJobHandler
 {
     public function __construct(
-        private PreapareFilesTaskRepository $taskRepo,
+        private CreateArchiveTaskRepository $taskRepo,
         private FileSystemRepository $fsRepo,
         private DownloadArchiveService $archiveCreator,
         private UserRepository $userRepo
@@ -21,7 +21,7 @@ class CreateArchiveJobHandler
 
     public function handle(int $userId, int $taskId)
     {
-        $task = $this->taskRepo->getById($userId, $taskId);
+        $task = $this->taskRepo->getTaskById($userId, $taskId);
         if ($task === false) throw new Exception('Задача не найдена');
 
         $files = $this->fsRepo->getFileTreeByIds($task->userId, $task->filesId);
@@ -37,13 +37,13 @@ class CreateArchiveJobHandler
         $creationRes = $this->archiveCreator->buildArchiveForDownload($task->id, $files, $prefix ?? '');
         if (!$creationRes->success) $this->handleError($task, 'Не удалось создать архив');
 
-        $this->taskRepo->setStatus($task->userId, $task->id, PrepareFilesTaskStatus::READY);
+        $this->taskRepo->setStatus($task->userId, $task->id, CreateArchiveTaskStatus::READY);
         $this->userRepo->decrementDownloadSessionCount($task->userId);
     }
 
-    private function handleError(PrepareFilesTask $task, string $msg)
+    private function handleError(CreateArchiveTask $task, string $msg)
     {
-        $this->taskRepo->setStatus($task->userId, $task->id, PrepareFilesTaskStatus::ERROR);
+        $this->taskRepo->setStatus($task->userId, $task->id, CreateArchiveTaskStatus::ERROR);
         $this->userRepo->decrementDownloadSessionCount($task->userId);
         throw new Exception($msg);
     }

@@ -6,8 +6,8 @@ use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
 use App\Queue\Jobs\CreateArchiveJob;
 use App\Queue\Queue;
+use App\Repositories\CreateArchiveTaskRepository;
 use App\Repositories\FileSystemRepository;
-use App\Repositories\PreapareFilesTaskRepository;
 use App\Storage\DiskStorage;
 use App\Storage\DownloadStorage;
 
@@ -16,18 +16,19 @@ class DownloadService
     private const SERVER_FILES_PATH = '/files';
     private const MAX_FILES_COUNT = 5;
     private const MAX_SESSIONS_COUNT = 3;
+    private const ARCHIVE_EXPIRE_INTERVAL = 3600;
 
     public function __construct(
         private DiskStorage $diskStorage,
         private FileSystemRepository $fsRepo,
-        private PreapareFilesTaskRepository $prepareRepo,
+        private CreateArchiveTaskRepository $prepareRepo,
         private DownloadStorage $downloadStorage,
         private Queue $queue
     ) {}
 
     public function getFileServerPath(int $userId, int $fileId)
     {
-        $file = $this->fsRepo->getById($userId, $fileId);
+        $file = $this->fsRepo->getObjectById($userId, $fileId);
         if ($file === false) throw new NotFoundException('Файл не найден');
         if (!$file->isFile()) return OperationResult::createError(['message' => 'Попытка получить путь папки']);
 
@@ -45,7 +46,7 @@ class DownloadService
         if ($files->len() == 1 && $files[0]->isFile()) return OperationResult::createError(['message' => 'Попытка скачать один файл']);
         if ($files->len() > self::MAX_FILES_COUNT) return OperationResult::createError(['message' => 'Превышено допустимое число файлов']);
 
-        $taskId = $this->prepareRepo->createTask($userId, $filesId, self::MAX_SESSIONS_COUNT);
+        $taskId = $this->prepareRepo->createTask($userId, $filesId, self::MAX_SESSIONS_COUNT, time() + self::ARCHIVE_EXPIRE_INTERVAL);
         if ($taskId === false) return OperationResult::createError(['message' => 'Превышен лимит одновременных скачиваний']);
 
         $this->queue->push(CreateArchiveJob::create($userId, $taskId));
@@ -55,14 +56,14 @@ class DownloadService
 
     public function checkArchiveStatus(int $userId, int $taskId): OperationResult
     {
-        $task = $this->prepareRepo->getById($userId, $taskId);
+        $task = $this->prepareRepo->getTaskById($userId, $taskId);
         if ($task === false) throw new NotFoundException('Задача с данным айди не найдена');
         return OperationResult::createSuccess(['status' => $task->status->value]);
     }
 
     public function getPathForArchiveDownlaod(int $userId, int $taskId)
     {
-        $task = $this->prepareRepo->getById($userId, $taskId);
+        $task = $this->prepareRepo->getTaskById($userId, $taskId);
         if ($task === false) throw new NotFoundException('Задача с данным айди не найдена');
 
         if ($task->hasError()) return OperationResult::createError(['message' => 'Произошла ошибка при создании архива']);

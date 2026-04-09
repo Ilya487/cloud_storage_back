@@ -2,6 +2,7 @@
 
 namespace App\Queue\Handlers;
 
+use App\Db\TransactionManager;
 use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
 use App\Repositories\FileSystemRepository;
@@ -20,16 +21,17 @@ class BuildFileJobHandler
         private UploadsStorage $uploadsStorage,
         private FileAssembler $fileBuilder,
         private DiskStorage $diskStorage,
-        private UserRepository $userRepo
+        private UserRepository $userRepo,
+        private TransactionManager $txManager
     ) {}
 
     public function handle(int $userId, int $sessionId)
     {
-        $session = $this->uploadSessionsRepo->getById($userId, $sessionId);
+        $session = $this->uploadSessionsRepo->getSessionById($userId, $sessionId);
         if ($session === false)
             throw new Exception('Сессия не найдена');
 
-        $this->fsRepo->withTransaction(function ($commit, $rollback) use ($session) {
+        $this->txManager->withTransaction(function ($rollback) use ($session) {
             $fileId = $this->fsRepo->createFile(
                 $session->userId,
                 $session->fileName,
@@ -50,11 +52,10 @@ class BuildFileJobHandler
                 $rollback();
                 $this->handleError($session, 'Не удалось собрать файл из чанков', $buildedFilePath);
             }
-
-            $commit();
-            $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::COMPLETE);
-            $this->uploadsStorage->deleteSessionDir($session->id);
         });
+
+        $this->uploadSessionsRepo->setStatus($session->userId, $session->id, UploadSessionStatus::COMPLETE);
+        $this->uploadsStorage->deleteSessionDir($session->id);
     }
 
     private function handleError(UploadSession $session, string $msg, ?string $buildedFilePath)

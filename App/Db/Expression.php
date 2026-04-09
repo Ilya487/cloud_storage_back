@@ -4,38 +4,46 @@ namespace App\Db;
 
 class Expression
 {
-    private function __construct(private string $query) {}
+    private function __construct(
+        public readonly string $query,
+        public readonly array $params = [],
+        public readonly bool $isRaw = false
+    ) {}
 
-    public static function equal(string $field, ?string $paramName = null)
+    public static function equal(string $field, $value, ?string $paramName = null)
     {
-        if (is_null($paramName)) $paramName = $field;
-        return new self("$field = :$paramName ");
+        if ($paramName === null) $paramName = $field;
+        return new self("$field = :$paramName ", [$paramName => $value]);
     }
 
-    public static function notEqual(string $field)
+    public static function notEqual(string $field, $value, ?string $paramName = null)
     {
-        return new self("$field != :$field ");
+        if ($paramName === null) $paramName = $field;
+        return new self("$field != :$paramName ", [$paramName => $value]);
     }
 
-    public static function less(string $field)
+    public static function less(string $field, $value, ?string $paramName = null)
     {
-        return new self("$field < :$field ");
+        if ($paramName === null) $paramName = $field;
+        return new self("$field < :$paramName ", [$paramName => $value]);
     }
 
-    public static function lessEqual(string $field)
+    public static function lessEqual(string $field, $value, ?string $paramName = null)
     {
-        return new self("$field <= :$field ");
+        if ($paramName === null) $paramName = $field;
+        return new self("$field <= :$paramName ", [$paramName => $value]);
     }
 
-    public static function more(string $field)
+    public static function more(string $field, $value, ?string $paramName = null)
     {
-        return new self("$field > :$field ");
+        if ($paramName === null) $paramName = $field;
+        return new self("$field > :$paramName ", [$paramName => $value]);
     }
 
-    public static function moreEqual(string $field, ?string $paramName = null)
+    public static function moreEqual(string $field, $value, ?string $paramName = null)
     {
-        if (is_null($paramName)) $paramName = $field;
-        return new self("$field >= :$paramName ");
+        if ($paramName === null) $paramName = $field;
+        return new self("$field >= :$paramName ",  [$paramName => $value]);
     }
 
     public static function isNull(string $field)
@@ -48,23 +56,30 @@ class Expression
         return new self("$field IS NOT NULL ");
     }
 
-    public static function like(string $field, string $pattern)
+    public static function like(string $field, $value, ?string $paramName = null)
     {
-        return new self("$field LIKE :$pattern ");
+        if ($paramName === null) $paramName = $field;
+        return new self("$field LIKE :$paramName ", [$paramName => $value]);
     }
 
-    public static function in(string $field, int $paramsCount)
+    public static function in(string $field, array $values, ?string $paramName = null)
     {
-        for ($i = 0; $i < $paramsCount; $i++) {
-            $tmp .= ":$i";
-            if ($i != $paramsCount - 1) $tmp .= ',';
+        if ($paramName === null) $paramName = $field;
+
+        $params = [];
+        $str = '';
+        foreach ($values as $i => $val) {
+            $name = ":$i" . $paramName;
+            $params[$name] = $val;
+            $str .= "$name,";
         }
+        $str = rtrim($str, ',');
 
-        return new self("$field IN ($tmp) ");
+        return new self("$field IN ($str) ", $params);
     }
 
-    public function __toString()
+    public static function raw(string $query, array $params = [])
     {
-        return $this->query;
+        return new self($query, $params, true);
     }
 }

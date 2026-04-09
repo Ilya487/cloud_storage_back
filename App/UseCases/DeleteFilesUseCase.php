@@ -2,6 +2,7 @@
 
 namespace App\UseCases;
 
+use App\Db\TransactionManager;
 use App\DTO\OperationResult;
 use App\Queue\Jobs\DeleteFilesJob;
 use App\Queue\Queue;
@@ -11,7 +12,8 @@ class DeleteFilesUseCase
 {
     public function __construct(
         private FileSystemRepository $fsRepo,
-        private Queue $queue
+        private Queue $queue,
+        private TransactionManager $txManager
     ) {}
 
     public function softDelete(int $userId, array $items): OperationResult
@@ -21,7 +23,7 @@ class DeleteFilesUseCase
         if ($fsObjects === false) return OperationResult::createError(['message' => 'Не удалось удалить указанные объекты']);
         $failDelete += count($items) - $fsObjects->len();
 
-        $failDelete += $this->fsRepo->withTransaction(function () use ($fsObjects) {
+        $failDelete += $this->txManager->withTransaction(function () use ($fsObjects) {
             $failDelete = 0;
             foreach ($fsObjects as $fsObject) {
                 if ($fsObject->inTrash) {
@@ -52,17 +54,10 @@ class DeleteFilesUseCase
         if ($collection->len() == 0) return OperationResult::createError(['message' => 'Невозможно удалить файл не из корзины']);
         $failDelete -=  $collection->len();
 
-        $files = $collection->filesOnly();
-        if ($files->len() == 0) {
-            $this->fsRepo->deletePermanently($userId, $ids);
-            return OperationResult::createSuccess([
-                'successDelte' => count($ids) - $failDelete,
-                'failDelete' => $failDelete
-            ]);
-        }
-
         $this->fsRepo->deletePermanently($userId, $collection->toIdsArray());
-        $this->queue->push(DeleteFilesJob::create($collection->toIdsArray()));
+        $files = $collection->filesOnly();
+        if ($files->len() > 0)
+            $this->queue->push(DeleteFilesJob::create($files->toIdsArray()));
 
         return OperationResult::createSuccess([
             'successDelte' => count($ids) - $failDelete,

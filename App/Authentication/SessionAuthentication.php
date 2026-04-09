@@ -17,7 +17,7 @@ class SessionAuthentication implements AuthenticationInterface
         if ($userId =  $this->session->get('userId')) {
             if ($this->isSessionExpired()) return;
 
-            $user = $userRepository->getById($userId);
+            $user = $userRepository->getUserById($userId);
             if (!is_null($user)) {
                 $this->user = $user;
                 $this->isAuth = true;

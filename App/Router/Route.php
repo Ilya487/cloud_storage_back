@@ -4,6 +4,8 @@ namespace App\Router;
 
 use App\Config\Container;
 use App\Http\Middleware\MiddlewareInterface;
+use App\Http\Request;
+use App\Http\Response;
 use Exception;
 
 class Route
@@ -98,7 +100,7 @@ class Route
                 $resolvedMiddleware->$method();
             } else {
                 $resolvedMiddleware = Container::resolve($middleware);
-                $resolvedMiddleware->handle();
+                $resolvedMiddleware->handle(Container::resolve(Request::class), Container::resolve(Response::class));
             }
         }
     }
