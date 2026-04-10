@@ -115,17 +115,6 @@ class UploadService
         return OperationResult::createSuccess([]);
     }
 
-    // private function deleteExpiredSessions($userId)
-    // {
-    //     $sessions = $this->uploadSessionsRepo->getUserSessions($userId);
-    //     foreach ($sessions as $session) {
-    //         $timeDiff = time() - $session->lastUpdated->getTimestamp();
-    //         if ($timeDiff >= self::SESSION_MAX_LIFETIME) {
-    //             $this->cancelUploadSession($session->userId, $session->id);
-    //         }
-    //     }
-    // }
-
     public function startBuild(int $userId, int $uploadSessionId): OperationResult
     {
         $uploadSession = $this->uploadSessionsRepo->getSessionById($userId, $uploadSessionId);
