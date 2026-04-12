@@ -100,6 +100,16 @@ class UploadSessionRepository  extends BaseRepository
         return $res;
     }
 
+    public function lockSession(int $sessionId)
+    {
+        $query = $this->queryBuilder
+            ->lockForUpdate()
+            ->where(Expression::equal('id', $sessionId))
+            ->build();
+
+        $this->query($query);
+    }
+
     public function setStatus(int $userId, int $sessionId, UploadSessionStatus $status)
     {
         $query = $this->queryBuilder->newQuery()

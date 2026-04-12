@@ -18,6 +18,8 @@ class QueryBuilder
     private ?int $limit = null;
     private int $offset = 0;
 
+    private bool $lockForUpdate = false;
+
     private array $params = [];
 
     public function __construct(private string $tableName) {}
@@ -175,12 +177,23 @@ class QueryBuilder
 
         if ($this->type == QueryType::SELECT) {
             $query .= $this->buildLimit();
+            $query .= $this->buildForUpdate();
         }
 
         $params = $this->params;
         $this->resetQuery();
 
         return new Query($query, $params);
+    }
+
+    public function lockForUpdate(): self
+    {
+        if ($this->type === null) $this->setType(QueryType::SELECT);
+        if ($this->type !== QueryType::SELECT)
+            throw new Exception('Невозможно сделать FOR UPDATE для запроса с типом отличным от SELECT');
+
+        $this->lockForUpdate = true;
+        return $this;
     }
 
     public function newQuery(?string $tableName = null): self
@@ -201,6 +214,7 @@ class QueryBuilder
         $this->limit = null;
         $this->offset = 0;
         $this->params = [];
+        $this->lockForUpdate = false;
 
         return $this;
     }
@@ -253,6 +267,12 @@ class QueryBuilder
         }
 
         return $res;
+    }
+
+    private function buildForUpdate(): string
+    {
+        if ($this->lockForUpdate) return 'FOR UPDATE ';
+        else return '';
     }
 
     private function setType(QueryType $type)
