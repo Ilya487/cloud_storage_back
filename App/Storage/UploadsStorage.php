@@ -22,6 +22,7 @@ class UploadsStorage extends BaseStorage
     public function uploadChunk(int $uploadSessionId, int $chunkNum, string $data): bool
     {
         $path = $this->getFullPath($uploadSessionId, $chunkNum);
+        if (file_exists($path)) return true;
         return file_put_contents($path, $data);
     }
 

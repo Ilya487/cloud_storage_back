@@ -9,6 +9,7 @@ use App\Models\UploadSessionStatus;
 use App\Queue\Jobs\BuildFileJob;
 use App\Queue\Queue;
 use App\Repositories\FileSystemRepository;
+use App\Repositories\UploadChunkRepository;
 use App\Repositories\UploadSessionRepository;
 use App\Repositories\UserRepository;
 use App\Storage\UploadsStorage;
@@ -25,7 +26,8 @@ class UploadService
         private UploadsStorage $uploadsStorage,
         private UserRepository $userRepo,
         private Queue $queue,
-        private TransactionManager $txManager
+        private TransactionManager $txManager,
+        private UploadChunkRepository $uploadChunkRepo
     ) {}
 
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
@@ -94,8 +96,14 @@ class UploadService
             return OperationResult::createError(['message' => 'Не удалось загрузить чанк']);
         }
 
-        $count = $this->uploadSessionsRepo->incrementCompletedChunks($uploadSessionId);
-        $uploadSession->setChunks($count);
+        $this->txManager->withTransaction(function () use ($chunkNum, $uploadSession) {
+            $this->uploadSessionsRepo->lockSession($uploadSession->id);
+            if ($this->uploadChunkRepo->insertChunk($uploadSession->id, $chunkNum) === false)
+                return;
+
+            $count = $this->uploadSessionsRepo->incrementCompletedChunks($uploadSession->id);
+            $uploadSession->setChunks($count);
+        });
 
         return OperationResult::createSuccess(['progress' => $uploadSession->getProgress()]);
     }
