@@ -84,20 +84,16 @@ class UploadSessionRepository  extends BaseRepository
         return $this->count($query);
     }
 
-    /**
-     * @return UploadSession[]
-     */
-    public function getUserSessions(int $userId): array
+    public function getSessionsByIds(int $userId, array $ids): UploadSessionCollection
     {
         $query = $this->queryBuilder
             ->where(Expression::equal('user_id', $userId))
+            ->where(Expression::in('id', $ids))
             ->build();
-        $data = $this->getAll(whereClauseQuery: $query);
-        $res = [];
-        foreach ($data as $session) {
-            $res[] = UploadSession::createFromArr($session);
-        }
-        return $res;
+
+        $res = $this->getAll(whereClauseQuery: $query);
+        if ($res === false) return UploadSessionCollection::createFromDbArr([]);
+        else return UploadSessionCollection::createFromDbArr($res);
     }
 
     public function lockSession(int $sessionId)

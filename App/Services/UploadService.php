@@ -149,4 +149,26 @@ class UploadService
             'status' => $session->status->value
         ]);
     }
+
+    public function getSessionsInfo(int $userId, array $ids): OperationResult
+    {
+        $sessions = $this->uploadSessionsRepo->getSessionsByIds($userId, $ids);
+        $sessions = $sessions->filter(fn($session) => $session->isUploading());
+        if ($sessions->len() == 0) return OperationResult::createSuccess([]);
+
+        $ids = array_map(fn($session) => $session->id, $sessions->toArray());
+        $chunks = $this->uploadChunkRepo->getSessionsChunksByIds($ids);
+
+        $res = [];
+
+        foreach ($sessions as $session) {
+            $res[] = [
+                'id' => $session->id,
+                'chunksCount' => $session->totalChunksCount,
+                'readyChunks' => $chunks[$session->id]
+            ];
+        }
+
+        return OperationResult::createSuccess($res);
+    }
 }

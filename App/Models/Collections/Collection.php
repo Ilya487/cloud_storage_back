@@ -60,4 +60,12 @@ abstract class Collection implements IteratorAggregate, ArrayAccess
         $filteredArr = array_filter($this->collection, fn($value) => $cb($value));
         return new static($filteredArr);
     }
+
+    /**
+     * @return T[]
+     */
+    public function toArray(): array
+    {
+        return $this->collection;
+    }
 }

@@ -45,4 +45,23 @@ class UploadChunkRepository extends BaseRepository
             return array_column($res, 'chunk_num');
         return $res;
     }
+
+    public function getSessionsChunksByIds(array $ids): array|false
+    {
+        $query = $this->queryBuilder->newQuery()
+            ->where(Expression::in('session_id', $ids))
+            ->build();
+
+        $res = $this->getAll([], $query);
+
+        if ($res === false)
+            return $res;
+
+        $arr = [];
+        foreach ($res as ["session_id" => $id, 'chunk_num' => $num]) {
+            $arr[$id][] = $num;
+        }
+
+        return $arr;
+    }
 }
