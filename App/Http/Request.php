@@ -14,7 +14,7 @@ class Request
         $this->method = $_SERVER['REQUEST_METHOD'] ?: 'GET';
     }
 
-    public function get(string $key)
+    public function get(string $key): ?string
     {
         return $_GET[$key] ?? null;
     }
