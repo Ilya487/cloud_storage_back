@@ -55,10 +55,12 @@ class UploadValidator extends RequestValidator
 
         $idsArray = explode(',', $idsStr);
 
-        $key = array_find_key($idsArray, fn($val) => !(filter_var($val, FILTER_VALIDATE_INT) && $val > 0));
-        if (!is_null($key)) {
-            $this->sendError('ids должен состоять из целых неотрицательных чисел');
-        }
+        $idsArray = array_map(function ($id) {
+            $filterRes = filter_var($id, FILTER_VALIDATE_INT);
+            if ($filterRes === false)
+                $this->sendError('ids должен состоять из целых неотрицательных чисел');
+            return $filterRes;
+        }, $idsArray);
 
         return $idsArray;
     }
