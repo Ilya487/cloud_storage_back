@@ -153,20 +153,35 @@ class UploadService
     public function getSessionsInfo(int $userId, array $ids): OperationResult
     {
         $sessions = $this->uploadSessionsRepo->getSessionsByIds($userId, $ids);
-        $sessions = $sessions->filter(fn($session) => $session->isUploading());
-        if ($sessions->len() == 0) return OperationResult::createSuccess([]);
+        $sessions = $sessions->filter(fn($session) => $session->isUploading() || $session->isBuilding() || $session->isComplete());
 
-        $ids = array_map(fn($session) => $session->id, $sessions->toArray());
-        $chunks = $this->uploadChunkRepo->getSessionsChunksByIds($ids);
+        $sessionsMap = [];
+        foreach ($sessions as $s) {
+            $sessionsMap[$s->id] = $s;
+        }
+
+        $chunks = [];
+        if ($sessions->len() > 0) {
+            $chunks = $this->uploadChunkRepo->getSessionsChunksByIds(array_keys($sessionsMap)) ?: [];
+        }
 
         $res = [];
-
-        foreach ($sessions as $session) {
-            $res[] = [
-                'id' => $session->id,
-                'chunksCount' => $session->totalChunksCount,
-                'readyChunks' => $chunks[$session->id]
-            ];
+        foreach ($ids as $id) {
+            if (isset($sessionsMap[$id])) {
+                $session = $sessionsMap[$id];
+                $res[] = [
+                    'id' => $session->id,
+                    'res' => true,
+                    'status' => $session->status->value,
+                    'path' => $session->getPath(),
+                    'chunksCount' => $session->totalChunksCount,
+                    'readyChunks' => $chunks[$session->id] ?? [],
+                    'chunkSize' => self::CHUNK_SIZE,
+                    'destinationDirId' => $session->destinationDirId == null ? 'root' : $session->destinationDirId,
+                ];
+            } else {
+                $res[] = ['id' => $id, 'res' => false];
+            }
         }
 
         return OperationResult::createSuccess($res);
