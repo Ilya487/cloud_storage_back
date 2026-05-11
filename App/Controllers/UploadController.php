@@ -39,9 +39,9 @@ class UploadController implements ControllerInterface
         $data = $this->requestValidator->uploadChunk($sessionId);
         $uploadSessionId = $data['sessionId'];
         $chunkNum = $data['chunkNum'];
-        $data  = $this->request->body();
+        $chunkStream  = $this->request->getBodyAsResource();
 
-        $res = $this->uploadService->uploadChunk($userId, $uploadSessionId, $chunkNum, $data);
+        $res = $this->uploadService->uploadChunk($userId, $uploadSessionId, $chunkNum, $chunkStream);
         if ($res->success) {
             $this->response->sendJson($res->data);
         } else {

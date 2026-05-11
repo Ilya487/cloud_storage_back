@@ -83,8 +83,12 @@ class UploadService
         });
     }
 
-    public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, string $data): OperationResult
+    /**
+     * @param resource $chunkStream
+     */
+    public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, $chunkStream): OperationResult
     {
+        // sleep(3);
         $uploadSession = $this->uploadSessionsRepo->getSessionById($userId, $uploadSessionId);
         if ($uploadSession === false)  throw new NotFoundException('Сессия с данным айди не найдена');
 
@@ -92,7 +96,7 @@ class UploadService
             return OperationResult::createError(['message' => 'Все чанки уже загружены']);
         }
 
-        if (!$this->uploadsStorage->uploadChunk($uploadSessionId, $chunkNum, $data)) {
+        if (!$this->uploadsStorage->uploadChunk($uploadSessionId, $chunkNum, $chunkStream)) {
             return OperationResult::createError(['message' => 'Не удалось загрузить чанк']);
         }
 
