@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Db\TransactionManager;
 use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
+use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
 use App\Queue\Jobs\BuildFileJob;
 use App\Queue\Queue;
@@ -96,9 +97,13 @@ class UploadService
             return OperationResult::createError(['message' => 'Все чанки уже загружены']);
         }
 
+        if ($this->getExpectetChunkSize($uploadSession, $chunkNum, self::CHUNK_SIZE) !== fstat($chunkStream)['size'])
+            return OperationResult::createError(['message' => 'Передан некорректный чанк']);
+
         if (!$this->uploadsStorage->uploadChunk($uploadSessionId, $chunkNum, $chunkStream)) {
             return OperationResult::createError(['message' => 'Не удалось загрузить чанк']);
         }
+        fclose($chunkStream);
 
         $this->txManager->withTransaction(function () use ($chunkNum, $uploadSession) {
             $this->uploadSessionsRepo->lockSession($uploadSession->id);
@@ -189,5 +194,14 @@ class UploadService
         }
 
         return OperationResult::createSuccess($res);
+    }
+
+    private function getExpectetChunkSize(UploadSession $uploadSession, int $chunkNum, int $chunkSize)
+    {
+        if ($chunkNum <= 0 || $chunkNum > $uploadSession->totalChunksCount) return 0;
+
+        if ($chunkNum != $uploadSession->totalChunksCount) return $chunkSize;
+
+        return $uploadSession->fileSize - (($uploadSession->totalChunksCount) - 1) * $chunkSize;
     }
 }
