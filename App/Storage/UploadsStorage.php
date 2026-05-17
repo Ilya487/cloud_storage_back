@@ -19,10 +19,22 @@ class UploadsStorage extends BaseStorage
         return mkdir($this->getFullPath($uploadSessionId));
     }
 
-    public function uploadChunk(int $uploadSessionId, int $chunkNum, string $data): bool
+    /**
+     * @param resource $chunkStream
+     */
+    public function uploadChunk(int $uploadSessionId, int $chunkNum, $chunkStream): bool
     {
         $path = $this->getFullPath($uploadSessionId, $chunkNum);
-        return file_put_contents($path, $data);
+        if (file_exists($path)) return true;
+
+        $chunkFile = fopen($path, 'w');
+        if ($chunkFile === false) return false;
+
+        rewind($chunkStream);
+        if (stream_copy_to_stream($chunkStream, $chunkFile) === false) return false;
+        fclose($chunkFile);
+
+        return true;
     }
 
     public function getChunkData(int $uploadSessionId, int $chunkNum): string|false

@@ -47,4 +47,21 @@ class UploadValidator extends RequestValidator
     {
         return $this->validate(self::REQUIRE | self::INT, 'sessionId', ['sessionId' => $sessionId]);
     }
+
+    public function getInfo(): array
+    {
+        $idsStr = $this->request->get('ids');
+        if ($idsStr === null) $this->sendError('Не передан обязательный параметр ids');
+
+        $idsArray = explode(',', $idsStr);
+
+        $idsArray = array_map(function ($id) {
+            $filterRes = filter_var($id, FILTER_VALIDATE_INT);
+            if ($filterRes === false)
+                $this->sendError('ids должен состоять из целых неотрицательных чисел');
+            return $filterRes;
+        }, $idsArray);
+
+        return $idsArray;
+    }
 }

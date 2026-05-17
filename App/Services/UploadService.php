@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Db\TransactionManager;
 use App\DTO\OperationResult;
 use App\Exceptions\NotFoundException;
+use App\Models\UploadSession;
 use App\Models\UploadSessionStatus;
 use App\Queue\Jobs\BuildFileJob;
 use App\Queue\Queue;
 use App\Repositories\FileSystemRepository;
+use App\Repositories\UploadChunkRepository;
 use App\Repositories\UploadSessionRepository;
 use App\Repositories\UserRepository;
 use App\Storage\UploadsStorage;
@@ -25,7 +27,8 @@ class UploadService
         private UploadsStorage $uploadsStorage,
         private UserRepository $userRepo,
         private Queue $queue,
-        private TransactionManager $txManager
+        private TransactionManager $txManager,
+        private UploadChunkRepository $uploadChunkRepo
     ) {}
 
     public function initializeUploadSession(int $userId, string $fileName, int $fileSize, ?int $destinationDirId): OperationResult
@@ -81,8 +84,12 @@ class UploadService
         });
     }
 
-    public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, string $data): OperationResult
+    /**
+     * @param resource $chunkStream
+     */
+    public function uploadChunk(int $userId, int $uploadSessionId, int $chunkNum, $chunkStream): OperationResult
     {
+        // sleep(3);
         $uploadSession = $this->uploadSessionsRepo->getSessionById($userId, $uploadSessionId);
         if ($uploadSession === false)  throw new NotFoundException('Сессия с данным айди не найдена');
 
@@ -90,12 +97,22 @@ class UploadService
             return OperationResult::createError(['message' => 'Все чанки уже загружены']);
         }
 
-        if (!$this->uploadsStorage->uploadChunk($uploadSessionId, $chunkNum, $data)) {
+        if ($this->getExpectetChunkSize($uploadSession, $chunkNum, self::CHUNK_SIZE) !== fstat($chunkStream)['size'])
+            return OperationResult::createError(['message' => 'Передан некорректный чанк']);
+
+        if (!$this->uploadsStorage->uploadChunk($uploadSessionId, $chunkNum, $chunkStream)) {
             return OperationResult::createError(['message' => 'Не удалось загрузить чанк']);
         }
+        fclose($chunkStream);
 
-        $count = $this->uploadSessionsRepo->incrementCompletedChunks($uploadSessionId);
-        $uploadSession->setChunks($count);
+        $this->txManager->withTransaction(function () use ($chunkNum, $uploadSession) {
+            $this->uploadSessionsRepo->lockSession($uploadSession->id);
+            if ($this->uploadChunkRepo->insertChunk($uploadSession->id, $chunkNum) === false)
+                return;
+
+            $count = $this->uploadSessionsRepo->incrementCompletedChunks($uploadSession->id);
+            $uploadSession->setChunks($count);
+        });
 
         return OperationResult::createSuccess(['progress' => $uploadSession->getProgress()]);
     }
@@ -114,17 +131,6 @@ class UploadService
         $this->userRepo->freeUpDiskSpace($userId, $uploadSession->fileSize);
         return OperationResult::createSuccess([]);
     }
-
-    // private function deleteExpiredSessions($userId)
-    // {
-    //     $sessions = $this->uploadSessionsRepo->getUserSessions($userId);
-    //     foreach ($sessions as $session) {
-    //         $timeDiff = time() - $session->lastUpdated->getTimestamp();
-    //         if ($timeDiff >= self::SESSION_MAX_LIFETIME) {
-    //             $this->cancelUploadSession($session->userId, $session->id);
-    //         }
-    //     }
-    // }
 
     public function startBuild(int $userId, int $uploadSessionId): OperationResult
     {
@@ -151,5 +157,51 @@ class UploadService
         return OperationResult::createSuccess([
             'status' => $session->status->value
         ]);
+    }
+
+    public function getSessionsInfo(int $userId, array $ids): OperationResult
+    {
+        $sessions = $this->uploadSessionsRepo->getSessionsByIds($userId, $ids);
+        $sessions = $sessions->filter(fn($session) => $session->isUploading() || $session->isBuilding() || $session->isComplete());
+
+        $sessionsMap = [];
+        foreach ($sessions as $s) {
+            $sessionsMap[$s->id] = $s;
+        }
+
+        $chunks = [];
+        if ($sessions->len() > 0) {
+            $chunks = $this->uploadChunkRepo->getSessionsChunksByIds(array_keys($sessionsMap)) ?: [];
+        }
+
+        $res = [];
+        foreach ($ids as $id) {
+            if (isset($sessionsMap[$id])) {
+                $session = $sessionsMap[$id];
+                $res[] = [
+                    'id' => $session->id,
+                    'res' => true,
+                    'status' => $session->status->value,
+                    'path' => $session->getPath(),
+                    'chunksCount' => $session->totalChunksCount,
+                    'readyChunks' => $chunks[$session->id] ?? [],
+                    'chunkSize' => self::CHUNK_SIZE,
+                    'destinationDirId' => $session->destinationDirId == null ? 'root' : $session->destinationDirId,
+                ];
+            } else {
+                $res[] = ['id' => $id, 'res' => false];
+            }
+        }
+
+        return OperationResult::createSuccess($res);
+    }
+
+    private function getExpectetChunkSize(UploadSession $uploadSession, int $chunkNum, int $chunkSize)
+    {
+        if ($chunkNum <= 0 || $chunkNum > $uploadSession->totalChunksCount) return 0;
+
+        if ($chunkNum != $uploadSession->totalChunksCount) return $chunkSize;
+
+        return $uploadSession->fileSize - (($uploadSession->totalChunksCount) - 1) * $chunkSize;
     }
 }

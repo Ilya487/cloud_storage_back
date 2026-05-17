@@ -36,6 +36,7 @@ return [
     Route::delete('/upload/cancel/{sessionId}', new ControllerSetup(UploadController::class, 'cancelUpload'), [AuthMiddleware::class]),
     Route::post('/upload/{sessionId}/build', new ControllerSetup(UploadController::class, 'startBuild'), [AuthMiddleware::class]),
     Route::get('/upload/status/{sessionId}', new ControllerSetup(UploadController::class, 'checkStatus'), [AuthMiddleware::class]),
+    Route::get('/upload/info', new ControllerSetup(UploadController::class, 'getInfo'), [AuthMiddleware::class]),
 
     Route::get('/download/file/{id}', new ControllerSetup(DownloadController::class, 'downloadFile'), [AuthMiddleware::class]),
     Route::post('/download/archive/ini', new ControllerSetup(DownloadController::class, 'iniArchive'), [AuthMiddleware::class]),

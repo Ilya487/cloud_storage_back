@@ -2,8 +2,12 @@
 
 namespace App\Http;
 
+use Exception;
+
 class Request
 {
+    private const TEMP_STREAM_SIZE = 10 * 1024 * 1024;
+
     public readonly string $endPoint;
     public readonly string $method;
     private array $jsonCache;
@@ -14,7 +18,7 @@ class Request
         $this->method = $_SERVER['REQUEST_METHOD'] ?: 'GET';
     }
 
-    public function get(string $key)
+    public function get(string $key): ?string
     {
         return $_GET[$key] ?? null;
     }
@@ -41,8 +45,30 @@ class Request
         } else return null;
     }
 
-    public function body(): string
+    /**
+     * @return resource
+     */
+    public function getBodyAsResource()
     {
-        return file_get_contents('php://input');
+        $input = fopen('php://input', 'r');
+        $resource = fopen('php://temp/maxmemory:' . self::TEMP_STREAM_SIZE, 'r+');
+
+        if ($resource === false || $input === false) {
+            if ($input === false) fclose($input);
+            if ($resource === false) fclose($resource);
+
+            throw new Exception("Не удалось открыть ресурс для чтения тела запроса");
+        }
+
+        if (stream_copy_to_stream($input, $resource) === false) {
+            fclose($input);
+            fclose($resource);
+
+            throw new Exception("Не удалось прочитать тело запроса");
+        }
+        fclose($input);
+
+        rewind($resource);
+        return $resource;
     }
 }
