@@ -16,11 +16,10 @@ function auth(): ?User
 
 function executeApp()
 {
-    $container = Container::getInstance();
+    $router = Container::resolve(Router::class);
+    $router->setGlobalMiddleware(CORSMiddleware::class);
 
-
-    $router = new Router($container);
-    $router->resolve();
+    $router->handleRequest();
 }
 
 ErrorHandler::handle('executeApp');
